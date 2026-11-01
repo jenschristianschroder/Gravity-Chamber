@@ -1,14 +1,24 @@
 {
   "id": "./",
-  "name": "Gravity Chamber",
-  "short_name": "Gravity",
-  "description": "A world in your hands. A game controlled by your phone's movement.",
+  "name": "Gravity Run",
+  "short_name": "Gravity Run",
+  "description": "A motion-controlled robot adventure through a floating world.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "display_override": ["fullscreen", "standalone"],
+  "display_override": [
+    "fullscreen",
+    "standalone"
+  ],
   "orientation": "portrait-primary",
-  "background_color": "#f4f3ec",
-  "theme_color": "#f4f3ec",
-  "icons": [{"src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"}]
+  "background_color": "#badbe6",
+  "theme_color": "#badbe6",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
 }

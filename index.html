@@ -1,89 +1,83 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#f4f3ec">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Gravity Chamber">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="description" content="A tiny world in your hands. Guide an orb through a three-dimensional chamber using only your phone's movement.">
-  <title>Gravity Chamber — a world in your hands</title>
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=2">
-  <script src="physics.js?v=2" defer></script>
-  <script src="game.js?v=2" defer></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#badbe6">
+<meta name="description" content="Roll a little robot through a floating obstacle course using only your phone. Gravity Run is a motion-controlled, third-person browser game.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gravity Run">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Gravity Run — a world in your hands</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css?v=run1">
+<script src="run-core.js?v=run1" defer></script>
+<script src="run-input.js?v=run1" defer></script>
+<script src="run-renderer.js?v=run1" defer></script>
+<script src="game.js?v=run1" defer></script>
 </head>
 <body>
-  <div class="app">
-    <header class="masthead">
-      <a class="brand" href="./" aria-label="Gravity Chamber home"><span class="brand-mark" aria-hidden="true">g</span> gravity chamber<span class="edition"> / 01</span></a>
-      <button class="text-button" id="help-button">How to play <span aria-hidden="true">↗</span></button>
-    </header>
-    <main>
-      <section class="intro" aria-labelledby="page-title">
-        <div class="eyebrow"><span class="live-dot"></span> A HANDHELD PHYSICS EXPERIMENT</div>
-        <h1 id="page-title">A world <br>in your <em>hands.</em></h1>
-        <p class="description">Your phone is the chamber. <br>Tilt, move, and turn it to guide the orb <br class="wide-only">through six glowing beacons.</p>
-        <div class="start-controls">
-          <button class="button primary" id="start-button">Enable motion &amp; play <span aria-hidden="true">↗</span></button>
-          <button class="button secondary" id="demo-button">Watch the demo <span aria-hidden="true">▷</span></button>
-        </div>
-        <p class="permission-note" id="start-note">Start with your phone upright, top edge up.<br>On iPhone: Share → Add to Home Screen for edge-to-edge play.</p>
-        <p class="status-message" id="status" role="status" aria-live="polite"></p>
-        <div class="gesture-guide" aria-label="Movement guide">
-          <div><span class="gesture-symbol" aria-hidden="true">↙</span><strong>Tilt</strong><span>Find your gravity</span></div>
-          <div><span class="gesture-symbol" aria-hidden="true">↔</span><strong>Move</strong><span>Give it momentum</span></div>
-          <div><span class="gesture-symbol" aria-hidden="true">⟳</span><strong>Turn</strong><span>Change its course</span></div>
-        </div>
-      </section>
-      <div class="game-shell" id="game-shell">
-      <section class="stage" aria-label="Three-dimensional gravity game">
-        <div class="stage-top">
-          <div><span class="small-label" id="stage-label">THE CHAMBER</span><div class="stage-title" id="objective">Follow the glow.</div></div>
-          <span class="mode-badge" id="mode-badge"><span></span> READY</span>
-        </div>
-        <canvas id="chamber" aria-label="A ball inside a three-dimensional chamber. Tilt and move your phone to reach the highlighted beacon."></canvas>
-        <div class="result-panel" id="result-panel" hidden>
-          <div class="eyebrow" id="result-kicker">ALL SIX BEACONS</div>
-          <h2 id="result-title">Beautifully balanced.</h2>
-          <p id="result-detail"></p>
-          <button class="button primary" id="again-button">Play again <span aria-hidden="true">↻</span></button>
-        </div>
-        <div class="stage-bottom">
-          <div class="beacons" id="beacons" aria-label="0 of 6 beacons collected"></div>
-          <span class="time" id="time">00:00.0</span>
-        </div>
-        <div class="capture-track" aria-hidden="true"><div id="capture-fill"></div></div>
-      </section>
-      <div class="play-controls" id="play-controls" hidden>
-        <p id="play-hint">Small movements. Let the orb settle inside the glow.</p>
-        <div class="control-buttons">
-          <button class="button compact" id="pause-button">Pause</button>
-          <button class="button compact" id="reset-button">Restart</button>
-          <button class="button compact" id="fullscreen-button" hidden>Full screen</button>
-          <button class="text-button" id="exit-button">Exit</button>
-        </div>
-        <p class="sensor-notice" id="sensor-notice" role="status"></p>
-      </div>
-      </div>
-    </main>
-    <footer><span>REAL MOTION. A LITTLE WONDER.</span><span id="best-label">Six beacons · three dimensions</span></footer>
+<main id="app">
+ <canvas id="world" aria-label="A third-person view of a rolling robot on a floating obstacle course."></canvas>
+ <div class="vignette" aria-hidden="true"></div>
+ <header class="topbar">
+  <div class="wordmark"><span class="logo-orb" aria-hidden="true"></span>gravity<span>run</span></div>
+  <div id="hud-stats" class="hud-stats" hidden>
+   <span class="energy"><span aria-hidden="true">◆</span> <span id="energy">0 / 15</span></span>
+   <span id="timer" class="timer">00:00.0</span>
   </div>
-  <dialog id="help-dialog" aria-labelledby="help-title">
-    <div class="dialog-heading"><span class="eyebrow">A SMALL GUIDE</span><button id="close-help" class="close-button" aria-label="Close instructions">×</button></div>
-    <h2 id="help-title">Let your hands<br>do the thinking.</h2>
-    <ol>
-      <li><strong>Start upright.</strong> Allow motion access, then hold your phone still with its physical top edge up for a moment. This calibrates which way gravity points.</li>
-      <li><strong>Follow the amber beacon.</strong> Tilt the chamber so the orb falls toward it. The beacons sit at different depths.</li>
-      <li><strong>Move and turn.</strong> Gentle shifts add momentum. Turning the phone changes how the orb moves.</li>
-      <li><strong>Settle into the glow.</strong> Slow the orb inside each beacon briefly to collect it. Reach all six, including the upper corners.</li>
-    </ol>
-    <p>Keep hold of your phone. Small movements are enough. Gameplay needs no touch controls; buttons only start, pause, and restart.</p>
-    <p class="subtle">The game stays fixed to your phone as you turn it. For edge-to-edge play on iPhone, use Safari’s Share → Add to Home Screen, then open the game from that icon. The demo uses simulated movement.</p>
-    <button class="button primary" id="help-done">Got it <span aria-hidden="true">↗</span></button>
-  </dialog>
+  <div id="edition" class="edition">A WORLD IN YOUR HANDS</div>
+ </header>
+ <div class="route-hud" id="route-hud" hidden>
+  <div class="route-label"><span id="section">Find your feet</span><span id="distance">0%</span></div>
+  <div class="route-track"><div id="route-fill"></div><span></span><span></span><span></span></div>
+ </div>
+ <section class="panel menu-panel" id="menu" aria-labelledby="title">
+  <div class="eyebrow"><span class="status-dot"></span> COURSE 01 / SKYWAY</div>
+  <h1 id="title">Find your <br><em>flow.</em></h1>
+  <p class="intro">A little robot. A floating world. <br>Every turn is in your hands.</p>
+  <div class="course-facts"><span>334 metres</span><span>6 sections</span><span>15 energy cells</span></div>
+  <button class="button primary" id="start">Play with motion <span aria-hidden="true">↗</span></button>
+  <div class="menu-secondary"><button id="demo" class="text-button">Watch a demo <span aria-hidden="true">▷</span></button><button id="how" class="text-button">How to move <span aria-hidden="true">?</span></button></div>
+  <p class="micro">Start upright, with your phone’s top edge up.<br>On iPhone, add to Home Screen to hide the browser bars.</p>
+  <p class="error" id="status" role="status" aria-live="polite"></p>
+  <p class="best" id="best"></p>
+ </section>
+ <section class="panel center-panel" id="calibrating" hidden aria-labelledby="calibration-title">
+  <div class="phone-icon" aria-hidden="true">↟</div><div class="eyebrow">FINDING YOUR BALANCE</div>
+  <h2 id="calibration-title">Hold steady.</h2><p>Phone upright. Physical top edge up.<br>Stay still for about one second.</p>
+  <div class="calibration-loader" aria-hidden="true"><span></span></div>
+  <button class="text-button" id="cancel-calibration">Back to start</button>
+ </section>
+ <div class="bottom-hud" id="bottom-hud" hidden>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div class="driving-hint" id="hint">Tilt forward to roll. Lean to steer.</div>
+  <div class="bottom-row"><span class="checkpoint" id="checkpoint">CHECKPOINT 1 / 4</span><div class="game-buttons"><button id="fullscreen" class="glass-button" hidden>Full screen</button><button id="pause" class="glass-button">Pause</button></div><span class="speed" id="speed">0 km/h</span></div>
+ </div>
+ <section class="panel center-panel" id="paused" hidden aria-labelledby="pause-title">
+  <div class="eyebrow">A MOMENT OF STILLNESS</div><h2 id="pause-title">Take a breath.</h2>
+  <p id="pause-message">The course will be right here.</p>
+  <button id="resume" class="button primary">Keep rolling <span aria-hidden="true">↗</span></button>
+  <button id="restart-pause" class="button secondary">Restart course</button>
+  <button id="exit-pause" class="text-button">Back to start</button>
+ </section>
+ <section class="panel center-panel finish-panel" id="finish" hidden aria-labelledby="finish-title">
+  <div class="finish-orb" aria-hidden="true">✦</div><div id="finish-kicker" class="eyebrow">COURSE COMPLETE</div>
+  <h2 id="finish-title">You found<br>your flow.</h2>
+  <div id="finish-time" class="finish-time">01:06.0</div>
+  <div class="finish-stats"><div><strong id="finish-energy">0 / 15</strong><span>ENERGY CELLS</span></div><div><strong id="finish-falls">0</strong><span>RECOVERIES</span></div></div>
+  <p id="finish-note"></p>
+  <button id="again" class="button primary">Roll again <span aria-hidden="true">↻</span></button><button id="exit-finish" class="text-button">Back to start</button>
+ </section>
+ <dialog id="help" aria-labelledby="help-title">
+  <button id="close-help" class="close" aria-label="Close instructions">×</button><div class="eyebrow">YOUR PHONE IS THE CONTROLLER</div><h2 id="help-title">A few good moves.</h2>
+  <ol><li><strong>Tilt forward to roll.</strong> Tilt back to slow down or reverse.</li><li><strong>Lean to steer.</strong> Small left and right tilts guide the robot. A gentle twist adds a sharper turn.</li><li><strong>Nudge for momentum.</strong> A short forward or sideways movement gives a burst. A quick upward nudge makes the robot hop. A downward nudge shortens a jump.</li><li><strong>Follow the skyway.</strong> Keep your balance on the narrow bridge, aim through the moving openings, and hop just before the gap.</li></ol>
+  <p>Keep hold of your phone. Gentle movements are enough. Checkpoints catch you after a fall, with a two-second time penalty.</p>
+  <p class="micro">Gameplay fills the screen and stays fixed to your phone. On iPhone: Safari → Share → Add to Home Screen, then launch from the new icon. Sensor readings stay on your device.</p>
+  <button id="help-done" class="button primary">Ready to roll <span aria-hidden="true">↗</span></button>
+ </dialog>
+</main>
 </body>
 </html>
