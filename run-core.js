@@ -168,20 +168,23 @@ class Run{
  constructor(course=new Course()){this.course=course;this.radius=.44;this.reset();}
  reset(){
   this.elapsed=0;this.time=0;this.falls=0;this.collected=0;this.checkpoint=0;this.maxProgress=2;this.finished=false;
-  this.event='';this.flash=0;this.jumpCooldown=0;this.gateCooldown=0;
+  this.event='';this.eventKind='';this.events=[];this.flash=0;this.jumpCooldown=0;this.gateCooldown=0;
   this.course.cells.forEach(c=>c.taken=false);this.place(2);
  }
- place(s){const q=this.course.at(s);this.position=[q.p[0],q.p[1]+this.radius,q.p[2]];this.velocity=[0,0,0];this.hint=q.index;this.grounded=true;this.progress=q.s;this.surface=q;this.yaw=Math.atan2(q.tangent[0],q.tangent[2]);}
+ place(s){const q=this.course.at(s);this.position=[q.p[0],q.p[1]+this.radius,q.p[2]];this.velocity=[0,0,0];this.hint=q.index;this.grounded=true;this.falling=false;this.progress=q.s;this.surface=q;this.yaw=Math.atan2(q.tangent[0],q.tangent[2]);}
+ emit(type,details={}){this.events.push({type,position:this.position.slice(),...details});}
+ announce(type,message,duration,details={}){this.event=message;this.eventKind=type;this.flash=duration;this.emit(type,details);}
  recover(){
   this.falls++;this.elapsed+=2;this.place(this.course.checkpoints[this.checkpoint].s);this.jumpCooldown=.5;
-  this.event='Checkpoint recovery · +2s';this.flash=1.4;
+  this.announce('recover','Checkpoint recovery · +2s',1.8);
  }
  step(dt,input){
   if(!(dt>0&&dt<=1/30))throw new RangeError('Fixed physics step required.');
+  this.events=[];
   if(this.finished)return;
   this.elapsed+=dt;this.time+=dt;this.flash=Math.max(0,this.flash-dt);this.jumpCooldown-=dt;this.gateCooldown-=dt;
   const q=this.course.closest(this.position,this.hint);this.hint=q.index;this.surface=q;this.progress=q.s;
-  const oldY=this.position[1],groundBefore=this.grounded&&!q.gap&&Math.abs(q.offset)<q.width;
+  const oldY=this.position[1],wasGrounded=this.grounded,groundBefore=this.grounded&&!q.gap&&Math.abs(q.offset)<q.width;
   const along=dot(this.velocity,q.tangent),lateral=dot(this.velocity,q.right);
   const throttle=clamp(input.throttle||0,-1,1),steer=clamp(input.steer||0,-1,1),turn=clamp(input.turn||0,-1,1);
   let forward=(groundBefore?13:4)*throttle-(groundBefore?12.5*q.slope:0),side=(groundBefore?17:4)*steer+turn*5;
@@ -190,7 +193,7 @@ class Run{
    this.velocity[0]+=q.right[0]*clamp(burst[0],-2,2)+q.tangent[0]*clamp(burst[2],-2,2);
    this.velocity[2]+=q.right[2]*clamp(burst[0],-2,2)+q.tangent[2]*clamp(burst[2],-2,2);
    if(!groundBefore&&burst[1]<-.5)this.velocity[1]-=1.8;
-   if(groundBefore&&burst[1]>.5){this.velocity[1]=Math.max(4.9,along*q.slope+4.5);this.grounded=false;this.event='Nice lift';this.flash=.8;}
+   if(groundBefore&&burst[1]>.5){this.velocity[1]=Math.max(4.9,along*q.slope+4.5);this.grounded=false;this.announce('jump','Nice lift',.8);}
    this.jumpCooldown=.65;
   }
   if(this.grounded&&groundBefore)this.velocity[1]=along*q.slope;
@@ -205,22 +208,25 @@ class Run{
   if(support&&this.position[1]<=floor&&oldY>=floor-.45){
    const surfaceSpeed=dot(this.velocity,next.tangent)*next.slope,impact=surfaceSpeed-this.velocity[1];
    this.position[1]=floor;this.velocity[1]=surfaceSpeed+(impact>3?Math.min(.65,impact*.08):0);this.grounded=impact<=3;
+   if(!wasGrounded&&impact>2.2)this.emit('land',{strength:clamp(impact/9,.2,1)});
+   this.falling=false;
   }
   for(const gate of this.course.gates){
    const g=this.course.at(gate.s),rel=sub(this.position,g.p),a=dot(rel,g.tangent),b=dot(rel,g.right),opening=this.course.gateCenter(gate,this.time);
    if(Math.abs(a)<.28+this.radius&&Math.abs(b-opening)>this.course.track.opening-this.radius&&Math.abs(b)<g.width+.3&&this.position[1]<g.p[1]+1.9&&this.position[1]>g.p[1]-.5&&this.gateCooldown<=0){
     const sign=a<0?-1:1,push=sign*(.3+this.radius)-a;this.position[0]+=g.tangent[0]*push;this.position[2]+=g.tangent[2]*push;
     const v=dot(this.velocity,g.tangent);this.velocity[0]-=g.tangent[0]*v*1.35;this.velocity[2]-=g.tangent[2]*v*1.35;
-    this.gateCooldown=.25;this.event='Find the opening';this.flash=.9;
+    this.gateCooldown=.25;this.announce('gate','Find the opening',.9,{strength:clamp(Math.abs(v)/7,.2,1)});
    }
   }
   if(this.grounded){
    this.maxProgress=Math.max(this.maxProgress,this.progress);
-   this.course.checkpoints.forEach((cp,i)=>{if(i>this.checkpoint&&this.progress>=cp.s){this.checkpoint=i;this.event='Checkpoint secured';this.flash=1.5;}});
+   this.course.checkpoints.forEach((cp,i)=>{if(i>this.checkpoint&&this.progress>=cp.s){this.checkpoint=i;this.announce('checkpoint','Checkpoint secured',1.8);}});
   }
-  for(const cell of this.course.cells){if(!cell.taken&&Math.abs(cell.s-this.progress)<3&&len(sub(this.position,this.course.cellPosition(cell)))<1.05){cell.taken=true;this.collected++;this.event='Energy +1';this.flash=.7;}}
+  for(const cell of this.course.cells){if(!cell.taken&&Math.abs(cell.s-this.progress)<3&&len(sub(this.position,this.course.cellPosition(cell)))<1.05){cell.taken=true;this.collected++;this.announce('cell','Energy +1',.7,{variant:this.collected,position:this.course.cellPosition(cell)});}}
+  if(!this.grounded&&!this.falling&&this.position[1]<next.p[1]-.8){this.falling=true;this.announce('fall','Returning to your checkpoint',1.5);}
   if(this.position[1]<next.p[1]-9||this.position.some(v=>!Number.isFinite(v))){this.recover();return;}
-  if(this.grounded&&this.progress>=this.course.total-2.2){this.finished=true;this.event='Course complete';}
+  if(this.grounded&&this.progress>=this.course.total-2.2){this.finished=true;this.announce('finish','Course complete',2);}
   const planar=Math.hypot(this.velocity[0],this.velocity[2]);
   if(planar>.4){const target=Math.atan2(this.velocity[0],this.velocity[2]);this.yaw+=Math.atan2(Math.sin(target-this.yaw),Math.cos(target-this.yaw))*(1-Math.exp(-dt*7));}
  }

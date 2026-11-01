@@ -12,24 +12,29 @@
 <title>Gravity Run — a world in your hands</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="styles.css?v=campaign1">
-<script src="run-core.js?v=campaign1" defer></script>
-<script src="run-progress.js?v=campaign1" defer></script>
-<script src="run-input.js?v=campaign1" defer></script>
-<script src="run-renderer.js?v=campaign1" defer></script>
-<script src="game.js?v=campaign1" defer></script>
+<link rel="stylesheet" href="styles.css?v=polish1">
+<script src="run-core.js?v=polish1" defer></script>
+<script src="run-progress.js?v=polish1" defer></script>
+<script src="run-input.js?v=polish1" defer></script>
+<script src="run-audio.js?v=polish1" defer></script>
+<script src="run-renderer.js?v=polish1" defer></script>
+<script src="game.js?v=polish1" defer></script>
 </head>
 <body>
 <main id="app">
  <canvas id="world" aria-label="A third-person view of a rolling robot on a floating obstacle course."></canvas>
  <div class="vignette" aria-hidden="true"></div>
+ <div id="feedback-wash" aria-hidden="true"></div>
  <header class="topbar">
   <div class="wordmark"><span class="logo-orb" aria-hidden="true"></span>gravity<span>run</span></div>
+  <div id="edition" class="edition">A WORLD IN YOUR HANDS</div>
+  <div class="top-controls">
   <div id="hud-stats" class="hud-stats" hidden>
    <span class="energy"><span aria-hidden="true">◆</span> <span id="energy">0 / 15</span></span>
    <span id="timer" class="timer">00:00.0</span>
   </div>
-  <div id="edition" class="edition">A WORLD IN YOUR HANDS</div>
+   <button id="sound-toggle" class="sound-button" aria-label="Mute sound" aria-pressed="true" title="Sound on"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="sound-waves" d="M16 8c2 2 2 6 0 8m3-11c4 4 4 10 0 14"/><path class="sound-slash" d="m4 3 16 18"/></svg><span id="sound-label">Sound on</span></button>
+  </div>
  </header>
  <div class="route-hud" id="route-hud" hidden>
   <div class="route-label"><span id="section">Find your feet</span><span id="distance">0%</span></div>
@@ -82,6 +87,7 @@
   <ol><li><strong>Tilt forward to roll.</strong> Tilt back to slow down or reverse.</li><li><strong>Lean to steer.</strong> Small left and right tilts guide the robot. A gentle twist adds a sharper turn.</li><li><strong>Nudge for momentum.</strong> A short forward or sideways movement gives a burst. A quick upward nudge makes the robot hop. A downward nudge shortens a jump.</li><li><strong>Follow the skyway.</strong> Keep your balance on the narrow bridge, aim through the moving openings, and hop just before the gap.</li></ol>
   <p>Finish a track to unlock the next. Six tracks get progressively harder with narrower bridges, faster gates, more jumps, and fewer checkpoints. Demos let you preview every course and do not unlock tracks.</p>
   <p>Keep hold of your phone. Gentle movements are enough. Checkpoints catch you after a fall, with a two-second time penalty. Progress and each track's best time are saved on this device.</p>
+  <p>Follow the coral chevrons at each launch ramp. Listen for energy chimes, checkpoint tones, and landing sounds. The speaker button switches sound on or off and remembers your choice.</p>
   <p class="micro">Gameplay fills the screen and stays fixed to your phone. On iPhone: Safari → Share → Add to Home Screen, then launch from the new icon. Sensor readings stay on your device.</p>
   <button id="help-done" class="button primary">Ready to roll <span aria-hidden="true">↗</span></button>
  </dialog>

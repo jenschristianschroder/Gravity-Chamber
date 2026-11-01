@@ -38,6 +38,16 @@ Collect energy cells along the way. Checkpoints preserve progress after a fall, 
 
 Automated demos complete all six routes without falling, in roughly 66–120 seconds. These timings establish that the routes are traversable; a player's pace will depend on motion control and recovery time.
 
+## Sound and feedback
+
+The speaker button switches sound on or off and remembers the preference on this device. Sound starts after a tap. A quiet rolling texture follows speed; jumps, landings, gate impacts, energy cells, checkpoints, falls, recovery, and finishing have distinct cues. Pausing or hiding the page silences playback.
+
+All sounds are synthesized with the Web Audio API, with a master limiter and bounded simultaneous effects. There are no audio downloads. If audio is unavailable or blocked, the game remains playable.
+
+Pickup sparks, checkpoint bursts, a finish celebration, gentle landing animation, and colored toast messages make events easier to recognize. Coral chevrons identify the takeoff area before every gap. Decorative particles, body deformation, and speed-related camera zoom respect reduced-motion preferences.
+
+Contact shadows soften as the robot rises, follow the slope of the track, and disappear over gaps, outside the track, or when the robot drops below the surface. Recovery cuts the camera back to the checkpoint.
+
 ## Fullscreen and orientation
 
 Gameplay fills the available viewport. It requests native fullscreen and portrait orientation locking where supported. The entire game surface counterrotates when the operating system changes screen orientation, keeping the game's axes aligned with the physical phone. The third-person camera follows the course with a level horizon.
@@ -51,7 +61,8 @@ The page pauses if it loses visibility or motion samples stop arriving. Resume a
 - `run-core.js`: deterministic 120 Hz physics, six course definitions, collisions, checkpoints, collectibles, and demo driver.
 - `run-progress.js`: campaign unlocks, per-track records, storage validation, and legacy record migration.
 - `run-input.js`: upright calibration, sensor sign normalization, smoothing, tilt controls, optional gyroscope twist, and one-shot motion impulses.
-- `run-renderer.js`: dependency-free WebGL scene, follow camera, robot, floating scenery, shadows, and course geometry.
+- `run-audio.js`: gesture-activated sound synthesis, rolling texture, bounded effect voices, mute persistence, and pause cleanup.
+- `run-renderer.js`: dependency-free WebGL scene, follow camera, robot, floating scenery, height-aware contact shadows, visual effects, and course geometry.
 - `game.js`: permissions, game state, fullscreen/orientation handling, HUD, and local records.
 - `index.html` / `styles.css`: responsive menu and game interface.
 
@@ -69,9 +80,9 @@ Run the automated tests with Node.js:
 node --test tests/*.test.cjs
 ~~~
 
-The tests cover control direction across sensor conventions, missing sensors, bounded motion impulses, completion of every course, increasing difficulty, obstacles and falls, camera math and rendering data, renderer resource cleanup when switching courses, permission denial/cancellation, pause/resume, orientation fallback, the complete campaign flow, locked previews, migration, and persistence.
+The tests cover control direction across sensor conventions, missing sensors, bounded motion impulses, completion of every course, increasing difficulty, obstacles and falls, camera math and rendering data, renderer resource cleanup when switching courses, permission denial/cancellation, pause/resume, orientation fallback, the complete campaign flow, locked previews, migration, and persistence. Regression checks cover shadows below the track, gaps, edges and ramps, discrete event delivery, reduced-motion effects, sound scheduling, voice limits, mute persistence, and silencing on pause or page hiding.
 
-Renderer checks use a mock WebGL API. Controller checks use a simulated DOM. These checks do not replace real WebGL rendering or physical iOS/Android testing.
+Renderer and audio checks use mock WebGL and Web Audio APIs. Controller checks use a simulated DOM. These checks do not replace real rendering, listening, or physical iOS/Android testing.
 
 Pushes to `main` trigger `.github/workflows/pages.yml`, which checks JavaScript syntax, runs the tests, assembles the static files, and deploys them to GitHub Pages. Repository Pages must use **GitHub Actions** as its source.
 

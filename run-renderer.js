@@ -7,6 +7,25 @@ function model(p,s=[1,1,1],yaw=0){const c=Math.cos(yaw),n=Math.sin(yaw);return[c
 function multiply(a,b){const out=new Float32Array(16);for(let c=0;c<4;c++)for(let r=0;r<4;r++){let v=0;for(let k=0;k<4;k++)v+=a[k*4+r]*b[c*4+k];out[c*4+r]=v;}return out;}
 function perspective(fov,aspect,near,far){const f=1/Math.tan(fov/2),nf=1/(near-far);return[f/aspect,0,0,0,0,f,0,0,0,0,(far+near)*nf,-1,0,0,2*far*near*nf,0];}
 function lookAt(eye,target){const z=G.norm(G.sub(eye,target)),x=G.norm(G.cross([0,1,0],z)),y=G.cross(z,x);return[x[0],y[0],z[0],0,x[1],y[1],z[1],0,x[2],y[2],z[2],0,-G.dot(x,eye),-G.dot(y,eye),-G.dot(z,eye),1];}
+function contactShadow(run){
+ const q=run.surface,p=run.position,relative=G.sub(p,q.p),along=G.dot(relative,q.tangent);
+ const floor=q.p[1]+along*q.slope,height=p[1]-run.radius-floor,clearance=q.width-Math.abs(G.dot(relative,q.right));
+ // A surface must be underneath the robot, never above it or beyond an edge.
+ if(q.gap||height<-.015||height>6||clearance<=.025||Math.abs(along)>.35)return null;
+ const radius=Math.min(.58+Math.max(0,height)*.08,clearance*.96);
+ let length=radius;
+ for(const gap of run.course.gaps)if(q.s<=gap.start)length=Math.min(length,gap.start-q.s);else if(q.s>=gap.end)length=Math.min(length,q.s-gap.end);
+ length=Math.min(length,q.s,run.course.total-q.s);
+ if(radius<=.025||length<=.025)return null;
+ const tangent=[q.tangent[0],q.slope,q.tangent[2]],normal=G.norm(G.cross(tangent,q.right));
+ const alpha=.34*Math.exp(-Math.max(0,height)*.6)*G.clamp(clearance/.65,0,1);
+ return {height,alpha,radius,matrix:[
+  q.right[0]*radius,0,q.right[2]*radius,0,
+  normal[0],normal[1],normal[2],0,
+  tangent[0]*length,tangent[1]*length,tangent[2]*length,0,
+  p[0]+normal[0]*.025,floor+normal[1]*.025,p[2]+normal[2]*.025,1
+ ]};
+}
 function vertex(out,p,n,color){out.push(...p,...n,color[0],color[1],color[2],color[3]===undefined?1:color[3]);}
 function tri(out,a,b,c,color,normal){const n=normal||G.norm(G.cross(G.sub(b,a),G.sub(c,a)));vertex(out,a,n,color);vertex(out,b,n,color);vertex(out,c,n,color);}
 function quad(out,a,b,c,d,color,normal){tri(out,a,b,c,color,normal);tri(out,a,c,d,color,normal);}
@@ -27,7 +46,8 @@ class Renderer{
  constructor(canvas,course){
   this.canvas=canvas;this.course=course;this.gl=canvas.getContext('webgl',{alpha:false,antialias:true,powerPreference:'high-performance'});
   if(!this.gl)throw Error('This browser could not start the 3D scene.');
-  this.eye=[-7,11,-9];this.target=[0,5,7];this.init();
+  this.eye=[-7,11,-9];this.target=[0,5,7];
+  this.reduced=!!(root.matchMedia&&root.matchMedia('(prefers-reduced-motion: reduce)').matches);this.init();
  }
  init(){
   const gl=this.gl;
@@ -40,14 +60,33 @@ class Renderer{
   const cube=[];box(cube,[0,0,0],[1,1,1],[1,1,1]);this.cube=this.mesh(cube);
   const orb=[];sphere(orb,[0,0,0],[1,1,1],[1,1,1],12,18);this.orb=this.mesh(orb);
   const gem=[];crystal(gem);this.gem=this.mesh(gem);
-  const disc=[];for(let i=0;i<32;i++){const a=i*Math.PI/16,b=(i+1)*Math.PI/16;tri(disc,[0,0,0],[Math.cos(a),0,Math.sin(a)],[Math.cos(b),0,Math.sin(b)],[.06,.24,.29,.24],[0,1,0]);}this.disc=this.mesh(disc);
+  const disc=[];for(let i=0;i<32;i++){const a=i*Math.PI/16,b=(i+1)*Math.PI/16;
+   vertex(disc,[0,0,0],[0,1,0],[.06,.24,.29,1]);
+   vertex(disc,[Math.cos(a),0,Math.sin(a)],[0,1,0],[.06,.24,.29,0]);
+   vertex(disc,[Math.cos(b),0,Math.sin(b)],[0,1,0],[.06,.24,.29,0]);
+  }this.disc=this.mesh(disc);
   this.setCourse(this.course);
  }
  setCourse(course){
   for(const key of ['track','scenery','landmarks'])if(this[key])this.gl.deleteBuffer(this[key].buffer);
-  this.course=course;this.eye=[-7,11,-9];this.target=[0,5,7];
+  this.course=course;this.eye=[-7,11,-9];this.target=[0,5,7];this.resetEffects();
   this.track=this.mesh(this.buildTrack());this.scenery=this.mesh(this.buildScenery());this.landmarks=this.mesh(this.buildLandmarks());
   this.gl.clearColor(...course.track.sky,1);
+ }
+ resetEffects(){this.particles=[];this.squash=0;this.cameraCut=false;}
+ handleEvents(events){
+  for(const event of events){
+   if(event.type==='recover'){this.particles=[];this.cameraCut=true;}
+   if(this.reduced)continue;
+   if(event.type==='land')this.squash=Math.min(.18,(event.strength||.5)*.18);
+   if(event.type==='jump')this.squash=-.1;
+   const count={cell:8,checkpoint:14,finish:32,recover:8,gate:5}[event.type]||0;
+   const color=event.type==='cell'?[1,.73,.25]:event.type==='gate'?CORAL:MINT;
+   for(let i=0;i<count&&this.particles.length<64;i++){
+    const angle=i*2.39996,spread=event.type==='finish'?3.3:1.5,life=event.type==='finish'?1.8:.7+i%3*.13;
+    this.particles.push({p:event.position.slice(),v:[Math.cos(angle)*spread,1.4+i%4*.45,Math.sin(angle)*spread],life,total:life,color});
+   }
+  }
  }
  mesh(vertices){const gl=this.gl,b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vertices),gl.STATIC_DRAW);return {buffer:b,count:vertices.length/10};}
  draw(mesh,m=identity(),tint=[1,1,1,1]){
@@ -72,6 +111,12 @@ class Renderer{
   for(let row=0;row<4;row++)for(let col=0;col<8;col++){
    const q=this.course.at(this.course.total-4+row*.55),p=q.p.map((v,i)=>v+q.right[i]*(col-3.5)*.65);
    box(out,[p[0],p[1]+.025,p[2]],[.64,.025,.54],(row+col)%2?TEAL:WHITE,Math.atan2(q.tangent[0],q.tangent[2]));
+  }
+  // Repeating chevrons mark each takeoff, matching the actual jump gaps.
+  for(const gap of this.course.gaps)for(let i=0;i<3;i++){
+   const q=this.course.at(gap.start-2.2-i*1.1);
+   const point=(side,along)=>[q.p[0]+q.right[0]*side+q.tangent[0]*along,q.p[1]+.04+q.slope*along,q.p[2]+q.right[2]*side+q.tangent[2]*along];
+   for(const side of [-1,1])quad(out,point(0,.38),point(side*.65,-.15),point(side*.65,-.35),point(0,.18),CORAL,[0,1,0]);
   }
   return out;
  }
@@ -104,17 +149,19 @@ class Renderer{
   }
   return out;
  }
- render(run,dt,active){
+ render(run,dt,active,animate=active){
   const gl=this.gl,canvas=this.canvas,dpr=Math.min(root.devicePixelRatio||1,2),width=Math.max(1,canvas.clientWidth),height=Math.max(1,canvas.clientHeight);
   if(canvas.width!==Math.round(width*dpr)||canvas.height!==Math.round(height*dpr)){canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);}
   gl.viewport(0,0,canvas.width,canvas.height);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.useProgram(this.program);
+  const speed=Math.hypot(run.velocity[0],run.velocity[2]);
   const ahead=this.course.at(Math.min(this.course.total,run.progress+5)),dir=ahead.tangent,p=run.position;
   const narrow=width/height<.8,back=narrow?10.8:7.8,raise=narrow?5.5:4.1;
   const desired=active?[p[0]-dir[0]*back,p[1]+raise,p[2]-dir[2]*back]:[-6.5,10.5,-8];
   const target=active?[p[0]+dir[0]*3.8,p[1]+.4,p[2]+dir[2]*3.8]:[1,5.4,8];
-  const blend=1-Math.exp(-Math.min(dt,.1)*5);
+  const blend=this.cameraCut?1:1-Math.exp(-Math.min(dt,.1)*5);this.cameraCut=false;
   this.eye=this.eye.map((v,i)=>G.mix(v,desired[i],blend));this.target=this.target.map((v,i)=>G.mix(v,target[i],blend));
-  const vp=multiply(perspective(Math.PI/3,width/height,.12,140),lookAt(this.eye,this.target));
+  const fov=Math.PI/3+(active&&!this.reduced?G.clamp(speed/11,0,1)*.045:0);
+  const vp=multiply(perspective(fov,width/height,.12,140),lookAt(this.eye,this.target));
   gl.uniformMatrix4fv(this.uniforms.uVP,false,vp);gl.uniform3fv(this.uniforms.uEye,this.eye);gl.uniform3fv(this.uniforms.uSky,this.course.track.sky);
   this.draw(this.scenery);this.draw(this.track);this.draw(this.landmarks);
   for(const gate of this.course.gates){
@@ -125,23 +172,28 @@ class Renderer{
    }
   }
   for(const cell of this.course.cells){if(cell.taken||Math.abs(cell.s-run.progress)>60)continue;const p=this.course.cellPosition(cell);p[1]+=Math.sin(run.time*2+cell.s)*.12;this.draw(this.gem,model(p,[.23,.36,.23],run.time+cell.s),[1,.75,.26,1]);}
-  const surface=run.surface;
-  if(!surface.gap&&Math.abs(surface.offset||0)<surface.width){
-   gl.depthMask(false);this.draw(this.disc,model([p[0],surface.p[1]+.035,p[2]],[.65,1,.65]));gl.depthMask(true);
+  const shadow=contactShadow(run);
+  if(shadow){
+   gl.depthMask(false);this.draw(this.disc,shadow.matrix,[1,1,1,shadow.alpha]);gl.depthMask(true);
   }
+  if(animate){this.squash*=Math.exp(-Math.min(dt,.1)*9);for(const particle of this.particles){particle.life-=dt;particle.v[1]-=3*dt;particle.p=particle.p.map((v,i)=>v+particle.v[i]*dt);}this.particles=this.particles.filter(particle=>particle.life>0);}
+  gl.depthMask(false);
+  for(const particle of this.particles){const size=.055+.025*particle.life/particle.total;this.draw(this.gem,model(particle.p,[size,size,size],particle.life*4),[...particle.color,Math.min(1,particle.life/.25)]);}
+  gl.depthMask(true);
   // A round courier robot with a contrasting band, eyes, and a lit antenna.
-  this.draw(this.orb,model(p,[.44,.44,.44]),[.94,.97,.92,1]);
-  this.draw(this.orb,model(p,[.449,.19,.449]),[.12,.42,.46,1]);
+  const sy=1-this.squash,sx=1+this.squash*.5,body=[p[0],p[1]+.44*(sy-1),p[2]];
+  this.draw(this.orb,model(body,[.44*sx,.44*sy,.44*sx]),[.94,.97,.92,1]);
+  this.draw(this.orb,model(body,[.449*sx,.19*sy,.449*sx]),[.12,.42,.46,1]);
   const yaw=run.yaw,forward=[Math.sin(yaw),0,Math.cos(yaw)],right=[Math.cos(yaw),0,-Math.sin(yaw)];
   for(const side of [-1,1]){
-   const eye=[p[0]+forward[0]*.37+right[0]*side*.145,p[1]+.09,p[2]+forward[2]*.37+right[2]*side*.145];
-   this.draw(this.orb,model(eye,[.075,.105,.075],yaw),[.05,.2,.24,1]);
+   const eye=[body[0]+(forward[0]*.37+right[0]*side*.145)*sx,body[1]+.09*sy,body[2]+(forward[2]*.37+right[2]*side*.145)*sx];
+   this.draw(this.orb,model(eye,[.075,.105*sy,.075],yaw),[.05,.2,.24,1]);
    this.draw(this.orb,model([eye[0]+forward[0]*.045,eye[1]+.02,eye[2]+forward[2]*.045],[.035,.045,.035]),[.6,1,.86,1]);
   }
-  this.draw(this.cube,model([p[0],p[1]+.55,p[2]],[.045,.24,.045]),[.1,.33,.37,1]);
-  this.draw(this.orb,model([p[0],p[1]+.71,p[2]],[.085,.085,.085]),[1,.47,.3,1]);
+  this.draw(this.cube,model([body[0],body[1]+.55*sy,body[2]],[.045,.24*sy,.045]),[.1,.33,.37,1]);
+  this.draw(this.orb,model([body[0],body[1]+.71*sy,body[2]],[.085,.085,.085]),[1,.47,.3,1]);
  }
 }
-root.GravityRenderer={Renderer,model,multiply,perspective,lookAt};
+root.GravityRenderer={Renderer,model,multiply,perspective,lookAt,contactShadow};
 if(typeof module!=='undefined'&&module.exports)module.exports=root.GravityRenderer;
 })(globalThis);

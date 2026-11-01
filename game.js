@@ -4,6 +4,7 @@
 const G=GravityRun,$=id=>document.getElementById(id);
 let storage;try{storage=localStorage;}catch{}
 const progress=new GravityProgress.Progress(storage);
+const sound=new GravityAudio.Sound(storage),reduced=!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 let selected=progress.selected,course=new G.Course(selected),run=new G.Run(course);
 const motion=new GravityMotion.MotionInput(),STEP=1/120;
 let renderer,state='menu',mode='motion',listener=false,session=0,immersive=false,displaySession=0;
@@ -17,6 +18,20 @@ const hints=[
  'Follow the spiral. The finish is just ahead.'
 ];
 function time(t){return String(Math.floor(t/60)).padStart(2,'0')+':'+(t%60).toFixed(1).padStart(4,'0');}
+function soundUI(){
+ const unavailable=!sound.factory,label=unavailable?'Sound unavailable':!sound.enabled?'Sound off':sound.failed?'Enable sound':'Sound on';
+ $('sound-label').textContent=label;$('sound-toggle').disabled=unavailable;
+ $('sound-toggle').setAttribute('aria-pressed',String(sound.enabled&&!unavailable));
+ $('sound-toggle').setAttribute('aria-label',unavailable?label:sound.enabled&&!sound.failed?'Mute sound':'Enable sound');
+ $('sound-toggle').setAttribute('title',label);$('sound-toggle').classList.toggle('muted',!sound.enabled||unavailable);
+}
+function unlockAudio(){void sound.unlock().then(soundUI);}
+function feedback(events){
+ sound.handle(events);if(renderer)renderer.handleEvents(events);
+ if(reduced)return;
+ if(events.some(event=>event.type==='cell')&&$('energy').animate)$('energy').animate([{transform:'scale(1)'},{transform:'scale(1.18)',color:'#bb7a16'},{transform:'scale(1)'}],{duration:280,easing:'ease-out'});
+ if(events.some(event=>event.type==='recover')&&$('feedback-wash').animate)$('feedback-wash').animate([{opacity:.25},{opacity:0}],{duration:450,easing:'ease-out'});
+}
 function showBest(){const record=progress.record(selected);$('best').textContent=[record?'Your best · '+time(record.time):'',!progress.saved?'Progress is kept for this session only.':''].filter(Boolean).join(' · ');}
 function trackUI(){
  const track=course.track,unlocked=progress.isUnlocked(selected);
@@ -72,7 +87,7 @@ function ui(){
  $('paused').hidden=state!=='paused';$('finish').hidden=state!=='finished';
  $('hud-stats').hidden=!hud;$('route-hud').hidden=!hud;$('bottom-hud').hidden=state!=='playing';$('edition').hidden=active;
  $('demo').disabled=!renderer;
- display();trackUI();showBest();hudUpdate();
+ display();trackUI();showBest();soundUI();hudUpdate();
 }
 function hudUpdate(){
  $('timer').textContent=time(run.elapsed);$('energy').textContent=run.collected+' / '+course.cells.length;
@@ -83,16 +98,16 @@ function hudUpdate(){
  $('checkpoint').textContent='CHECKPOINT '+(run.checkpoint+1)+' / '+course.checkpoints.length;
  $('hint').textContent=(mode==='demo'?'DEMO · ':'')+(course.sections[run.surface.section].hint||hints[run.surface.section]);
  const message=run.flash>0?run.event:'';
- if($('toast').textContent!==message)$('toast').textContent=message;
+ if($('toast').textContent!==message){$('toast').textContent=message;$('toast').setAttribute('data-kind',run.eventKind||'info');}
 }
 function attach(){if(!listener){window.addEventListener('devicemotion',onMotion,{passive:true});listener=true;}}
 function detach(){if(listener){window.removeEventListener('devicemotion',onMotion);listener=false;}}
 function menu(message=''){
- session++;detach();state='menu';accumulator=0;motion.reset();run.reset();leaveFullscreen();
+ session++;detach();state='menu';accumulator=0;motion.reset();run.reset();sound.silence();if(renderer)renderer.resetEffects();leaveFullscreen();
  $('status').textContent=message;ui();
 }
 function begin(){
- run.reset();state='playing';accumulator=0;lastHUD=-Infinity;
+ run.reset();if(renderer)renderer.resetEffects();state='playing';accumulator=0;lastHUD=-Infinity;sound.play('start');
  if(mode==='demo'){run.event='Demo running · your phone is not controlling this run';run.flash=4;}
  else{run.event='Motion ready · tilt forward to roll';run.flash=3;}
  ui();
@@ -111,6 +126,7 @@ async function startMotion(){
  $('status').textContent='';ui();
  try{
   // Both privileged requests begin directly inside the button's click gesture.
+  unlockAudio();
   const permission=typeof eventType.requestPermission==='function'?eventType.requestPermission():Promise.resolve('granted');
   void enterFullscreen();
   if(await permission!=='granted')throw Error('Motion permission was not granted. Allow Motion & Orientation Access in your browser, then try again.');
@@ -120,17 +136,17 @@ async function startMotion(){
 }
 function startDemo(){
  if(!renderer)return;
- session++;detach();motion.reset();mode='demo';void enterFullscreen();begin();
+ session++;detach();motion.reset();mode='demo';unlockAudio();void enterFullscreen();begin();
 }
 function pause(message='The course will be right here.'){
- if(state!=='playing')return;state='paused';accumulator=0;$('pause-message').textContent=message;ui();
+ if(state!=='playing')return;state='paused';accumulator=0;sound.silence();$('pause-message').textContent=message;ui();
 }
 function resume(){
  if(state!=='paused')return;
  if(mode==='motion'&&performance.now()-motion.last>1500){
   $('pause-message').textContent='Waiting for motion readings. Keep this page visible, or restart to reconnect.';return;
  }
- motion.burst=[0,0,0];state='playing';accumulator=0;void enterFullscreen();ui();
+ motion.burst=[0,0,0];state='playing';accumulator=0;unlockAudio();void enterFullscreen();ui();
 }
 function finish(){
  state='finished';accumulator=0;detach();
@@ -154,15 +170,20 @@ function frame(now){
  if(state==='playing'){
   accumulator=Math.min(accumulator+dt,.12);
   while(accumulator>=STEP&&state==='playing'){
-   run.step(STEP,mode==='demo'?run.demoInput():motion.consume());accumulator-=STEP;
+   run.step(STEP,mode==='demo'?run.demoInput():motion.consume());feedback(run.events);accumulator-=STEP;
    if(run.finished)finish();
   }
  }else if(state==='menu')run.time+=dt;
+ sound.update(run,state==='playing');
  if(now-lastHUD>100){hudUpdate();lastHUD=now;}
- if(renderer)renderer.render(run,dt,state!=='menu');
+ if(renderer)renderer.render(run,dt,state!=='menu',state==='playing'||state==='finished');
  requestAnimationFrame(frame);
 }
 $('start').addEventListener('click',startMotion);$('demo').addEventListener('click',startDemo);
+$('sound-toggle').addEventListener('click',()=>{
+ sound.setEnabled(sound.failed||!sound.enabled);soundUI();
+ if(sound.enabled)void sound.unlock().then(ok=>{soundUI();if(ok)sound.play('ui');});
+});
 $('cancel-calibration').addEventListener('click',()=>menu());
 $('pause').addEventListener('click',()=>pause());$('resume').addEventListener('click',resume);
 $('restart-pause').addEventListener('click',()=>mode==='demo'?startDemo():startMotion());
@@ -174,7 +195,7 @@ $('close-tracks').addEventListener('click',()=>{$('tracks').close();});
 for(let i=0;i<G.TRACKS.length;i++)$('track-'+i).addEventListener('click',()=>{selectTrack(i);$('tracks').close();});
 $('how').addEventListener('click',()=>{$('help').showModal();});
 for(const id of ['close-help','help-done'])$(id).addEventListener('click',()=>{$('help').close();});
-document.addEventListener('visibilitychange',()=>{if(document.hidden){if(state==='playing')pause('Your run paused while the page was away.');else if(state==='waiting')menu('Calibration paused. Tap Play with motion when you are ready.');}lastFrame=0;});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){sound.silence();if(state==='playing')pause('Your run paused while the page was away.');else if(state==='waiting')menu('Calibration paused. Tap Play with motion when you are ready.');}lastFrame=0;});
 document.addEventListener('fullscreenchange',display);window.addEventListener('resize',display);window.addEventListener('orientationchange',display);
 if(window.screen.orientation&&window.screen.orientation.addEventListener)window.screen.orientation.addEventListener('change',display);
 $('world').addEventListener('webglcontextlost',event=>{event.preventDefault();renderer=null;menu('The 3D scene was interrupted. Reload the page to reconnect.');});

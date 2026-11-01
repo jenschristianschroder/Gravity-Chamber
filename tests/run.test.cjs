@@ -73,3 +73,20 @@ test('whole-page counterrotation preserves the physical phone orientation',()=>{
  assert.deepEqual(G.displayLayout(844,390,-90),{width:390,height:844,rotation:-270});
  assert.deepEqual(G.displayLayout(390,844,180),{width:390,height:844,rotation:-180});
 });
+test('each pickup, checkpoint, jump, landing, and finish emits discrete feedback',()=>{
+ const r=new G.Run(),counts={};
+ for(let n=0;n<120*100&&!r.finished;n++){
+  r.step(1/120,r.demoInput());
+  for(const event of r.events){counts[event.type]=(counts[event.type]||0)+1;assert.ok(event.position.every(Number.isFinite));}
+ }
+ assert.equal(counts.cell,r.collected);assert.equal(counts.checkpoint,r.course.checkpoints.length-1);
+ assert.equal(counts.finish,1);assert.ok(counts.jump>=1);assert.ok(counts.land>=1);
+ r.step(1/120,{});assert.equal(r.events.length,0);
+});
+test('fall feedback fires once per fall and recovery supplies the checkpoint position',()=>{
+ const r=new G.Run();r.position[0]=r.surface.width+1;r.position[1]=r.surface.p[1]-1;
+ r.step(1/120,{});assert.equal(r.events.filter(e=>e.type==='fall').length,1);
+ r.step(1/120,{});assert.ok(!r.events.some(e=>e.type==='fall'));
+ r.position[1]-=12;r.step(1/120,{});
+ const event=r.events.find(e=>e.type==='recover');assert.ok(event);assert.deepEqual(event.position,r.position);assert.equal(r.falling,false);
+});
