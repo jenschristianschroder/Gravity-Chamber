@@ -13,7 +13,7 @@ This repository contains the game at its root, with `index.html` alongside `styl
 3. Once the deployment finishes, open the HTTPS address displayed in Pages settings on your phone. Enable **Enforce HTTPS** when available.
 4. Tap **Enable motion & play**, allow the browser's motion permission, and hold the phone still briefly.
 
-The GitHub Pages address for this repository is [jenschristianschroder.github.io/Gravity-Chamber/](https://jenschristianschroder.github.io/Gravity-Chamber/). It becomes available after Pages is enabled and its first deployment succeeds.
+Play at [jenschristianschroder.github.io/Gravity-Chamber/](https://jenschristianschroder.github.io/Gravity-Chamber/). GitHub Actions deploys updates from `main` after the checks pass.
 
 All file paths are relative, so GitHub Pages project URLs work. The empty `.nojekyll` file keeps publication static. The workflow uploads only the game files; tests and documentation remain in the repository.
 
@@ -69,7 +69,9 @@ node --test tests/*.test.cjs
 
 Sixteen automated checks cover all six wall directions, accelerometer signs, rotation-force directions, collision energy loss, numerical stability, permission denial, missing and stale sensor readings, pause/resume, and completion/replay of the six-beacon demo. HTML asset references and JavaScript syntax were also checked.
 
-**Verification limits:** the available browser-preview service was unavailable, so visual browser QA has not been completed. No physical iPhone or Android device was available. Sensor signs, rotation-axis behavior, screen rotation, layout, and game feel require an on-device pass before calling this production-ready.
+The GitHub Actions deployment passed all checks. The published desktop page was visually inspected, and demo startup, beacon collection, pause, resume, and exit were checked in the browser.
+
+**Verification limits:** no physical iPhone or Android device was available. Sensor signs, rotation-axis behavior, screen rotation, mobile layout, and game feel require an on-device pass before calling this production-ready.
 
 ## Sources
 
