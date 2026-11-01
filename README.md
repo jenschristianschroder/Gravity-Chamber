@@ -8,13 +8,14 @@ Plain HTML, CSS, and JavaScript. No dependencies, build step, player accounts, A
 
 This repository contains the game at its root, with `index.html` alongside `styles.css`, `physics.js`, and `game.js`.
 
-1. Open the repository's **Settings → Pages**. Under **Build and deployment**, choose **Deploy from a branch**, select `main` and **/ (root)**, then save.
-2. Once GitHub finishes publishing, open the HTTPS address displayed in Pages settings on your phone. Enable **Enforce HTTPS** when available.
-3. Tap **Enable motion & play**, allow the browser's motion permission, and hold the phone still briefly.
+1. Open the repository's **Settings → Pages**. Under **Build and deployment**, set **Source** to **GitHub Actions**.
+2. Push changes to `main`, or run **Test and deploy Gravity Chamber** from the **Actions** tab. The workflow checks JavaScript syntax, runs the automated tests, and deploys the five runtime files to Pages only if the checks pass.
+3. Once the deployment finishes, open the HTTPS address displayed in Pages settings on your phone. Enable **Enforce HTTPS** when available.
+4. Tap **Enable motion & play**, allow the browser's motion permission, and hold the phone still briefly.
 
 The GitHub Pages address for this repository is [jenschristianschroder.github.io/Gravity-Chamber/](https://jenschristianschroder.github.io/Gravity-Chamber/). It becomes available after Pages is enabled and its first deployment succeeds.
 
-All file paths are relative, so GitHub Pages project URLs work. The empty `.nojekyll` file keeps publication static.
+All file paths are relative, so GitHub Pages project URLs work. The empty `.nojekyll` file keeps publication static. The workflow uploads only the game files; tests and documentation remain in the repository.
 
 Official instructions: [configure a Pages publishing source](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site) and [HTTPS on Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/securing-your-github-pages-site-with-https).
 

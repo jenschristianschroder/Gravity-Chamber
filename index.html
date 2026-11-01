@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f4f3ec">
+  <meta name="description" content="A tiny world in your hands. Guide an orb through a three-dimensional chamber using only your phone's movement.">
+  <title>Gravity Chamber — a world in your hands</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="physics.js" defer></script>
+  <script src="game.js" defer></script>
+</head>
+<body>
+  <div class="app">
+    <header class="masthead">
+      <a class="brand" href="./" aria-label="Gravity Chamber home"><span class="brand-mark" aria-hidden="true">g</span> gravity chamber<span class="edition"> / 01</span></a>
+      <button class="text-button" id="help-button">How to play <span aria-hidden="true">↗</span></button>
+    </header>
+    <main>
+      <section class="intro" aria-labelledby="page-title">
+        <div class="eyebrow"><span class="live-dot"></span> A HANDHELD PHYSICS EXPERIMENT</div>
+        <h1 id="page-title">A world <br>in your <em>hands.</em></h1>
+        <p class="description">Your phone is the chamber. <br>Tilt, move, and turn it to guide the orb <br class="wide-only">through six glowing beacons.</p>
+        <div class="start-controls">
+          <button class="button primary" id="start-button">Enable motion &amp; play <span aria-hidden="true">↗</span></button>
+          <button class="button secondary" id="demo-button">Watch the demo <span aria-hidden="true">▷</span></button>
+        </div>
+        <p class="permission-note" id="start-note">Open on your phone. Allow motion when asked.</p>
+        <p class="status-message" id="status" role="status" aria-live="polite"></p>
+        <div class="gesture-guide" aria-label="Movement guide">
+          <div><span class="gesture-symbol" aria-hidden="true">↙</span><strong>Tilt</strong><span>Find your gravity</span></div>
+          <div><span class="gesture-symbol" aria-hidden="true">↔</span><strong>Move</strong><span>Give it momentum</span></div>
+          <div><span class="gesture-symbol" aria-hidden="true">⟳</span><strong>Turn</strong><span>Change its course</span></div>
+        </div>
+      </section>
+      <section class="stage" aria-label="Three-dimensional gravity game">
+        <div class="stage-top">
+          <div><span class="small-label" id="stage-label">THE CHAMBER</span><div class="stage-title" id="objective">Follow the glow.</div></div>
+          <span class="mode-badge" id="mode-badge"><span></span> READY</span>
+        </div>
+        <canvas id="chamber" aria-label="A ball inside a three-dimensional chamber. Tilt and move your phone to reach the highlighted beacon."></canvas>
+        <div class="result-panel" id="result-panel" hidden>
+          <div class="eyebrow" id="result-kicker">ALL SIX BEACONS</div>
+          <h2 id="result-title">Beautifully balanced.</h2>
+          <p id="result-detail"></p>
+          <button class="button primary" id="again-button">Play again <span aria-hidden="true">↻</span></button>
+        </div>
+        <div class="stage-bottom">
+          <div class="beacons" id="beacons" aria-label="0 of 6 beacons collected"></div>
+          <span class="time" id="time">00:00.0</span>
+        </div>
+        <div class="capture-track" aria-hidden="true"><div id="capture-fill"></div></div>
+      </section>
+      <div class="play-controls" id="play-controls" hidden>
+        <p id="play-hint">Small movements. Let the orb settle inside the glow.</p>
+        <div class="control-buttons">
+          <button class="button compact" id="pause-button">Pause</button>
+          <button class="button compact" id="reset-button">Restart</button>
+          <button class="text-button" id="exit-button">Exit</button>
+        </div>
+        <p class="sensor-notice" id="sensor-notice" role="status"></p>
+      </div>
+    </main>
+    <footer><span>REAL MOTION. A LITTLE WONDER.</span><span id="best-label">Six beacons · three dimensions</span></footer>
+  </div>
+  <dialog id="help-dialog" aria-labelledby="help-title">
+    <div class="dialog-heading"><span class="eyebrow">A SMALL GUIDE</span><button id="close-help" class="close-button" aria-label="Close instructions">×</button></div>
+    <h2 id="help-title">Let your hands<br>do the thinking.</h2>
+    <ol>
+      <li><strong>Start on your phone.</strong> Allow motion access and hold still for a moment.</li>
+      <li><strong>Follow the amber beacon.</strong> Tilt the chamber so the orb falls toward it. The beacons sit at different depths.</li>
+      <li><strong>Move and turn.</strong> Gentle shifts add momentum. Turning the phone changes how the orb moves.</li>
+      <li><strong>Settle into the glow.</strong> Slow the orb inside each beacon briefly to collect it. Reach all six, including the upper corners.</li>
+    </ol>
+    <p>Keep hold of your phone. Small movements are enough. Gameplay needs no touch controls; buttons only start, pause, and restart.</p>
+    <p class="subtle">The demo uses simulated movement. Motion play needs a compatible phone browser over HTTPS.</p>
+    <button class="button primary" id="help-done">Got it <span aria-hidden="true">↗</span></button>
+  </dialog>
+</body>
+</html>
