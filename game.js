@@ -5,6 +5,7 @@ const G=GravityRun,$=id=>document.getElementById(id);
 let storage;try{storage=localStorage;}catch{}
 const progress=new GravityProgress.Progress(storage);
 const sound=new GravityAudio.Sound(storage),reduced=!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+const guide=new GravityGuide.Guide(document,{reduced});
 let selected=progress.selected,course=new G.Course(selected),run=new G.Run(course);
 const motion=new GravityMotion.MotionInput(),STEP=1/120;
 let renderer,state='menu',mode='motion',listener=false,session=0,immersive=false,displaySession=0;
@@ -193,8 +194,8 @@ $('next-track').addEventListener('click',()=>{if(selected<G.TRACKS.length-1&&pro
 $('choose-track').addEventListener('click',openTracks);$('finish-tracks').addEventListener('click',()=>{menu();openTracks();});
 $('close-tracks').addEventListener('click',()=>{$('tracks').close();});
 for(let i=0;i<G.TRACKS.length;i++)$('track-'+i).addEventListener('click',()=>{selectTrack(i);$('tracks').close();});
-$('how').addEventListener('click',()=>{$('help').showModal();});
-for(const id of ['close-help','help-done'])$(id).addEventListener('click',()=>{$('help').close();});
+for(const id of ['how','pause-how'])$(id).addEventListener('click',()=>{$('help').showModal();guide.open();});
+for(const id of ['close-help','help-done'])$(id).addEventListener('click',()=>{guide.close();$('help').close();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){sound.silence();if(state==='playing')pause('Your run paused while the page was away.');else if(state==='waiting')menu('Calibration paused. Tap Play with motion when you are ready.');}lastFrame=0;});
 document.addEventListener('fullscreenchange',display);window.addEventListener('resize',display);window.addEventListener('orientationchange',display);
 if(window.screen.orientation&&window.screen.orientation.addEventListener)window.screen.orientation.addEventListener('change',display);

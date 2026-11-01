@@ -29,9 +29,10 @@ function fixture({permission='granted',storageFails=false,webgl=true,deferredPer
  const storage={getItem(k){if(storageFails)throw Error('Blocked');return saved.get(k)||null;},setItem(k,v){if(storageFails)throw Error('Blocked');saved.set(k,v);}};
  const af=contextFixture();let sound;
  const audio={Sound:class extends A.Sound{constructor(storage){super(storage,{contextFactory:()=>af.ctx});sound=this;}}};
+ let guide;const guideAPI={Guide:class{constructor(){guide=this;this.opened=false;}open(){this.opened=true;}close(){this.opened=false;}}};
  const renderer={Renderer:class{constructor(){if(!webgl)throw Error('No WebGL');}setCourse(){}handleEvents(){}resetEffects(){}render(run){latestRun=run;}}};
- new Function('GravityRun','GravityMotion','GravityRenderer','GravityProgress','GravityAudio','window','document','performance','requestAnimationFrame','localStorage',source)(G,M,renderer,P,audio,window,document,{now:()=>now},fn=>frames.push(fn),storage);
- return {elements,window,document,events,saved,sound,
+ new Function('GravityRun','GravityMotion','GravityRenderer','GravityProgress','GravityAudio','GravityGuide','window','document','performance','requestAnimationFrame','localStorage',source)(G,M,renderer,P,audio,guideAPI,window,document,{now:()=>now},fn=>frames.push(fn),storage);
+ return {elements,window,document,events,saved,sound,guide,
   get run(){return latestRun;},
   click:id=>elements[id].handlers.click(),
   frame(dt=1000/60){now+=dt;af.advance(dt/1000);frames.shift()(now);},
@@ -126,4 +127,11 @@ test('sound waits for a gesture, follows pause and visibility, and remembers mut
  f.document.hidden=true;f.events['document:visibilitychange']();assert.equal(f.sound.active,false);
  f.click('sound-toggle');assert.equal(f.sound.enabled,false);assert.equal(f.elements['sound-label'].textContent,'Sound off');
  const reload=fixture({saved});assert.equal(reload.sound.enabled,false);assert.equal(reload.sound.context,null);
+});
+test('animated instructions open without WebGL and can be viewed during a paused run',()=>{
+ const basic=fixture({webgl:false});basic.click('how');assert.ok(basic.guide.opened);assert.ok(basic.elements.help.open);
+ basic.click('close-help');assert.equal(basic.guide.opened,false);assert.equal(basic.elements.help.open,false);
+ const f=fixture();f.click('demo');f.frame();f.click('pause');const elapsed=f.run.elapsed;
+ f.click('pause-how');assert.ok(f.guide.opened);f.frame(100);assert.equal(f.run.elapsed,elapsed);
+ f.click('help-done');assert.equal(f.guide.opened,false);assert.equal(f.elements.paused.hidden,false);
 });

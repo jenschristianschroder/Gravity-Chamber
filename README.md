@@ -19,6 +19,14 @@ Small movements are enough. Keep hold of the phone. The robot carries momentum, 
 
 Use **Change track** to choose a course. **Watch a demo** (or **Preview this track** for a locked course) runs a complete automated lap without sensor permission. Demos do not write personal bests or unlock tracks.
 
+## Animated movement guide
+
+Open **How to move** from the start screen or pause menu for six silent animations: roll, brake/reverse, steer, twist, nudge, and hop. Each pairs an animated phone with the robot's response, a directional arrow, and a plain-language explanation.
+
+Pause an animation or drag its progress slider to inspect a movement. The guide works without motion permission or WebGL. It starts paused when reduced motion is preferred and stops rendering when closed or hidden.
+
+During play, the entire robot leans forward/back, banks left/right, and swivels briefly with twist input. Its eyes and antenna follow the same pose. Lean uses the calibrated control frame, eases toward neutral, and remains bounded. It changes appearance only; collision physics and the level camera are unchanged.
+
 ## Six-track campaign
 
 Finish each course with motion controls to unlock the next. Every course has a distinct route and sky palette. Later courses have narrower bridges, tighter turns, faster gates with smaller openings, more jumps, and fewer checkpoints.
@@ -62,7 +70,8 @@ The page pauses if it loses visibility or motion samples stop arriving. Resume a
 - `run-progress.js`: campaign unlocks, per-track records, storage validation, and legacy record migration.
 - `run-input.js`: upright calibration, sensor sign normalization, smoothing, tilt controls, optional gyroscope twist, and one-shot motion impulses.
 - `run-audio.js`: gesture-activated sound synthesis, rolling texture, bounded effect voices, mute persistence, and pause cleanup.
-- `run-renderer.js`: dependency-free WebGL scene, follow camera, robot, floating scenery, height-aware contact shadows, visual effects, and course geometry.
+- `run-renderer.js`: dependency-free WebGL scene, follow camera, robot pose, floating scenery, height-aware contact shadows, visual effects, and course geometry.
+- `run-guide.js`: six SVG movement lessons, synchronized illustrations, playback/scrubbing, and reduced-motion support.
 - `game.js`: permissions, game state, fullscreen/orientation handling, HUD, and local records.
 - `index.html` / `styles.css`: responsive menu and game interface.
 
@@ -83,6 +92,8 @@ node --test tests/*.test.cjs
 The tests cover control direction across sensor conventions, missing sensors, bounded motion impulses, completion of every course, increasing difficulty, obstacles and falls, camera math and rendering data, renderer resource cleanup when switching courses, permission denial/cancellation, pause/resume, orientation fallback, the complete campaign flow, locked previews, migration, and persistence. Regression checks cover shadows below the track, gaps, edges and ramps, discrete event delivery, reduced-motion effects, sound scheduling, voice limits, mute persistence, and silencing on pause or page hiding.
 
 Renderer and audio checks use mock WebGL and Web Audio APIs. Controller checks use a simulated DOM. These checks do not replace real rendering, listening, or physical iOS/Android testing.
+
+The guide and pose tests verify gesture directions, bounded animation geometry, pause/seek/close behavior, reduced-motion defaults, course-relative leaning, recovery resets, and identical physics with different visual poses.
 
 Pushes to `main` trigger `.github/workflows/pages.yml`, which checks JavaScript syntax, runs the tests, assembles the static files, and deploys them to GitHub Pages. Repository Pages must use **GitHub Actions** as its source.
 

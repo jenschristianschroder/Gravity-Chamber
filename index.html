@@ -12,13 +12,14 @@
 <title>Gravity Run — a world in your hands</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="styles.css?v=polish1">
-<script src="run-core.js?v=polish1" defer></script>
-<script src="run-progress.js?v=polish1" defer></script>
-<script src="run-input.js?v=polish1" defer></script>
-<script src="run-audio.js?v=polish1" defer></script>
-<script src="run-renderer.js?v=polish1" defer></script>
-<script src="game.js?v=polish1" defer></script>
+<link rel="stylesheet" href="styles.css?v=guide1">
+<script src="run-core.js?v=guide1" defer></script>
+<script src="run-progress.js?v=guide1" defer></script>
+<script src="run-input.js?v=guide1" defer></script>
+<script src="run-audio.js?v=guide1" defer></script>
+<script src="run-renderer.js?v=guide1" defer></script>
+<script src="run-guide.js?v=guide1" defer></script>
+<script src="game.js?v=guide1" defer></script>
 </head>
 <body>
 <main id="app">
@@ -70,6 +71,7 @@
   <p id="pause-message">The course will be right here.</p>
   <button id="resume" class="button primary">Keep rolling <span aria-hidden="true">↗</span></button>
   <button id="restart-pause" class="button secondary">Restart course</button>
+  <button id="pause-how" class="text-button">How to move</button>
   <button id="exit-pause" class="text-button">Back to start</button>
  </section>
  <section class="panel center-panel finish-panel" id="finish" hidden aria-labelledby="finish-title">
@@ -82,13 +84,63 @@
   <button id="again" class="button primary">Roll again <span aria-hidden="true">↻</span></button>
   <div class="finish-navigation"><button id="finish-tracks" class="text-button">Choose track</button><button id="exit-finish" class="text-button">Back to start</button></div>
  </section>
- <dialog id="help" aria-labelledby="help-title">
-  <button id="close-help" class="close" aria-label="Close instructions">×</button><div class="eyebrow">YOUR PHONE IS THE CONTROLLER</div><h2 id="help-title">A few good moves.</h2>
-  <ol><li><strong>Tilt forward to roll.</strong> Tilt back to slow down or reverse.</li><li><strong>Lean to steer.</strong> Small left and right tilts guide the robot. A gentle twist adds a sharper turn.</li><li><strong>Nudge for momentum.</strong> A short forward or sideways movement gives a burst. A quick upward nudge makes the robot hop. A downward nudge shortens a jump.</li><li><strong>Follow the skyway.</strong> Keep your balance on the narrow bridge, aim through the moving openings, and hop just before the gap.</li></ol>
+ <dialog id="help" class="guide-dialog" aria-labelledby="help-title">
+  <button id="close-help" class="close" aria-label="Close instructions">×</button>
+  <div class="eyebrow">YOUR PHONE IS THE CONTROLLER</div><h2 id="help-title">Watch. Tilt. Roll.</h2>
+  <p class="guide-intro">See the movement, then make it your own. Start with your phone upright and its top edge up.</p>
+  <div class="guide-lessons" role="group" aria-label="Choose a movement">
+   <button id="guide-roll" aria-pressed="true">01 · Roll</button><button id="guide-brake" aria-pressed="false">02 · Brake</button><button id="guide-steer" aria-pressed="false">03 · Steer</button><button id="guide-twist" aria-pressed="false">04 · Twist</button><button id="guide-nudge" aria-pressed="false">05 · Nudge</button><button id="guide-hop" aria-pressed="false">06 · Hop</button>
+  </div>
+  <div class="guide-scenes">
+   <div class="guide-pane"><div class="guide-scene-label">YOUR PHONE</div>
+    <svg id="guide-phone" viewBox="0 0 240 250" role="img" aria-label="Phone movement">
+     <defs><marker id="guide-arrow-phone" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#db7456"/></marker></defs>
+     <ellipse id="guide-phone-floor" cx="120" cy="224" rx="40" ry="6" fill="#214b4c" opacity=".08"/>
+     <path id="guide-neutral" fill="none" stroke="#9eb9af" stroke-width="1.5" stroke-dasharray="4 5"/>
+     <path id="guide-axis" d="M120 38V220" fill="none" stroke="#789b8c" stroke-dasharray="3 5" opacity="0"/>
+     <path id="guide-back" fill="#557d78" stroke="#254d50" stroke-width="3" stroke-linejoin="round"/>
+     <path id="guide-edge" fill="#77968a" stroke="#254d50" stroke-width="2" stroke-linejoin="round"/>
+     <path id="guide-front" fill="#fcfff7" stroke="#254d50" stroke-width="4" stroke-linejoin="round"/>
+     <path id="guide-screen" fill="#dcece1" stroke="#afc9bc" stroke-width="1" stroke-linejoin="round"/>
+     <path id="guide-camera" fill="none" stroke="#254d50" stroke-width="4" stroke-linecap="round"/>
+     <circle id="guide-phone-dot" r="8" fill="#3b7778" stroke="#f5fff6" stroke-width="3"/>
+     <text id="guide-top" text-anchor="middle" fill="#486b65" font-size="10" font-family="monospace" letter-spacing="1">TOP</text>
+     <path id="guide-gesture" fill="none" stroke="#db7456" stroke-width="2.5" stroke-linecap="round" marker-end="url(#guide-arrow-phone)"/>
+    </svg>
+   </div>
+   <div class="guide-pane"><div class="guide-scene-label">ROBOT RESPONSE</div>
+    <svg id="guide-response" viewBox="0 0 240 250" role="img" aria-label="Robot response">
+     <defs><marker id="guide-arrow-robot" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 10 5 0 10z" fill="#db7456"/></marker><clipPath id="guide-robot-mask"><circle r="17"/></clipPath></defs>
+     <path d="M45 219 77 76h86l32 143v8H45z" fill="#5c8e87"/>
+     <path d="M45 219 77 76h86l32 143z" fill="#fcfff5" stroke="#c4d5c9"/>
+     <path d="m47 218 32-141m82 0 32 141" fill="none" stroke="#92cbb1" stroke-width="3"/>
+     <path d="M120 88V208" stroke="#c3d7ca" stroke-width="2" stroke-dasharray="7 8"/>
+     <text x="120" y="58" text-anchor="middle" fill="#64867b" font-size="9" font-family="monospace" letter-spacing="1">FORWARD ↑</text>
+     <path id="guide-trail" fill="none" stroke="#91bdaa" stroke-width="3" stroke-dasharray="3 4" stroke-linecap="round"/>
+     <path id="guide-direction" fill="none" stroke="#db7456" stroke-width="2.5" stroke-linecap="round" marker-end="url(#guide-arrow-robot)"/>
+     <ellipse id="guide-shadow" cx="120" cy="195" rx="16" ry="4" fill="#285353" opacity=".2"/>
+     <g id="guide-robot">
+      <path d="M0-15V-25" stroke="#254f53" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="0" cy="-28" r="3.5" fill="#f18762"/>
+      <circle r="17" fill="#fcfff8" stroke="#7d9c91" stroke-width="1"/>
+      <g clip-path="url(#guide-robot-mask)"><rect x="-18" y="-7" width="36" height="13" rx="5" fill="#33787d"/></g>
+      <circle cx="-6" cy="-1" r="2.4" fill="#c5ffe7"/><circle cx="6" cy="-1" r="2.4" fill="#c5ffe7"/>
+      <path d="M-9 10q9 5 18 0" fill="none" stroke="#deebe0" stroke-width="2" stroke-linecap="round"/>
+     </g>
+    </svg>
+   </div>
+  </div>
+  <div id="guide-phase" class="guide-phase" aria-hidden="true">Start upright</div>
+  <div class="guide-playback"><button id="guide-play" aria-pressed="true">Pause animation</button><label class="sr-only" for="guide-scrub">Animation progress</label><input id="guide-scrub" type="range" min="0" max="100" step="1" value="0" aria-label="Animation progress"></div>
+  <h3 id="guide-title">Tilt forward to roll</h3>
+  <p id="guide-description" class="guide-description">Tip the phone’s top edge away from you. The robot leans forward and picks up speed.</p>
+  <p id="guide-tip" class="guide-tip">Start upright. Small tilts are enough.</p>
+  <details class="guide-more"><summary>Course tips &amp; fullscreen</summary>
   <p>Finish a track to unlock the next. Six tracks get progressively harder with narrower bridges, faster gates, more jumps, and fewer checkpoints. Demos let you preview every course and do not unlock tracks.</p>
   <p>Keep hold of your phone. Gentle movements are enough. Checkpoints catch you after a fall, with a two-second time penalty. Progress and each track's best time are saved on this device.</p>
   <p>Follow the coral chevrons at each launch ramp. Listen for energy chimes, checkpoint tones, and landing sounds. The speaker button switches sound on or off and remembers your choice.</p>
   <p class="micro">Gameplay fills the screen and stays fixed to your phone. On iPhone: Safari → Share → Add to Home Screen, then launch from the new icon. Sensor readings stay on your device.</p>
+  </details>
   <button id="help-done" class="button primary">Ready to roll <span aria-hidden="true">↗</span></button>
  </dialog>
  <dialog id="tracks" class="tracks-dialog" aria-labelledby="tracks-title">

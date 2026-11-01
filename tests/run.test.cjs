@@ -90,3 +90,19 @@ test('fall feedback fires once per fall and recovery supplies the checkpoint pos
  r.position[1]-=12;r.step(1/120,{});
  const event=r.events.find(e=>e.type==='recover');assert.ok(event);assert.deepEqual(event.position,r.position);assert.equal(r.falling,false);
 });
+test('robot lean follows calibrated control directions and settles smoothly at neutral',()=>{
+ const r=new G.Run();r.step(1/120,{throttle:1,steer:1,turn:1});
+ assert.ok(r.pose.pitch>0&&r.pose.pitch<.28);assert.ok(r.pose.roll<0&&r.pose.roll>-.35);assert.ok(r.pose.twist>0&&r.pose.twist<.22);
+ for(let i=0;i<180;i++)r.step(1/120,{});
+ assert.ok(Object.values(r.pose).every(v=>Math.abs(v)<1e-6));
+ r.step(1/120,{throttle:-1,steer:-1,turn:-1});assert.ok(r.pose.pitch<0&&r.pose.roll>0&&r.pose.twist<0);
+ r.recover();assert.deepEqual(r.pose,{pitch:0,roll:0,twist:0});
+});
+test('visual tilt never changes the course physics',()=>{
+ const normal=new G.Run(),changed=new G.Run();
+ for(let i=0;i<300;i++){
+  const input={throttle:.2,steer:Math.sin(i*.03)*.04,turn:0};
+  changed.pose={pitch:2,roll:-2,twist:3};normal.step(1/120,input);changed.step(1/120,input);
+  assert.deepEqual(normal.position,changed.position);assert.deepEqual(normal.velocity,changed.velocity);
+ }
+});

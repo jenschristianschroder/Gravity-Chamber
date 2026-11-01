@@ -7,6 +7,13 @@ function model(p,s=[1,1,1],yaw=0){const c=Math.cos(yaw),n=Math.sin(yaw);return[c
 function multiply(a,b){const out=new Float32Array(16);for(let c=0;c<4;c++)for(let r=0;r<4;r++){let v=0;for(let k=0;k<4;k++)v+=a[k*4+r]*b[c*4+k];out[c*4+r]=v;}return out;}
 function perspective(fov,aspect,near,far){const f=1/Math.tan(fov/2),nf=1/(near-far);return[f/aspect,0,0,0,0,f,0,0,0,0,(far+near)*nf,-1,0,0,2*far*near*nf,0];}
 function lookAt(eye,target){const z=G.norm(G.sub(eye,target)),x=G.norm(G.cross([0,1,0],z)),y=G.cross(z,x);return[x[0],y[0],z[0],0,x[1],y[1],z[1],0,x[2],y[2],z[2],0,-G.dot(x,eye),-G.dot(y,eye),-G.dot(z,eye),1];}
+function robotModel(run){
+ const pose=run.pose||{pitch:0,roll:0,twist:0},c=Math.cos(pose.pitch),s=Math.sin(pose.pitch),a=Math.cos(pose.roll),b=Math.sin(pose.roll);
+ const pitch=[1,0,0,0,0,c,s,0,0,-s,c,0,0,0,0,1],roll=[a,b,0,0,-b,a,0,0,0,0,1,0,0,0,0,1];
+ const courseYaw=Math.atan2(run.surface.tangent[0],run.surface.tangent[2]);
+ // Lean in the same course frame as steering, while the face follows travel.
+ return multiply(model(run.position,[1,1,1],courseYaw),multiply(pitch,multiply(roll,model([0,0,0],[1,1,1],run.yaw-courseYaw+pose.twist))));
+}
 function contactShadow(run){
  const q=run.surface,p=run.position,relative=G.sub(p,q.p),along=G.dot(relative,q.tangent);
  const floor=q.p[1]+along*q.slope,height=p[1]-run.radius-floor,clearance=q.width-Math.abs(G.dot(relative,q.right));
@@ -181,19 +188,19 @@ class Renderer{
   for(const particle of this.particles){const size=.055+.025*particle.life/particle.total;this.draw(this.gem,model(particle.p,[size,size,size],particle.life*4),[...particle.color,Math.min(1,particle.life/.25)]);}
   gl.depthMask(true);
   // A round courier robot with a contrasting band, eyes, and a lit antenna.
-  const sy=1-this.squash,sx=1+this.squash*.5,body=[p[0],p[1]+.44*(sy-1),p[2]];
-  this.draw(this.orb,model(body,[.44*sx,.44*sy,.44*sx]),[.94,.97,.92,1]);
-  this.draw(this.orb,model(body,[.449*sx,.19*sy,.449*sx]),[.12,.42,.46,1]);
-  const yaw=run.yaw,forward=[Math.sin(yaw),0,Math.cos(yaw)],right=[Math.cos(yaw),0,-Math.sin(yaw)];
+  const sy=1-this.squash,sx=1+this.squash*.5,bodyY=.44*(sy-1),pose=robotModel(run);
+  const part=(mesh,position,size,tint)=>this.draw(mesh,multiply(pose,model(position,size)),tint);
+  part(this.orb,[0,bodyY,0],[.44*sx,.44*sy,.44*sx],[.94,.97,.92,1]);
+  part(this.orb,[0,bodyY,0],[.449*sx,.19*sy,.449*sx],[.12,.42,.46,1]);
   for(const side of [-1,1]){
-   const eye=[body[0]+(forward[0]*.37+right[0]*side*.145)*sx,body[1]+.09*sy,body[2]+(forward[2]*.37+right[2]*side*.145)*sx];
-   this.draw(this.orb,model(eye,[.075,.105*sy,.075],yaw),[.05,.2,.24,1]);
-   this.draw(this.orb,model([eye[0]+forward[0]*.045,eye[1]+.02,eye[2]+forward[2]*.045],[.035,.045,.035]),[.6,1,.86,1]);
+   const eye=[side*.145*sx,bodyY+.09*sy,.37*sx];
+   part(this.orb,eye,[.075,.105*sy,.075],[.05,.2,.24,1]);
+   part(this.orb,[eye[0],eye[1]+.02,eye[2]+.045],[.035,.045,.035],[.6,1,.86,1]);
   }
-  this.draw(this.cube,model([body[0],body[1]+.55*sy,body[2]],[.045,.24*sy,.045]),[.1,.33,.37,1]);
-  this.draw(this.orb,model([body[0],body[1]+.71*sy,body[2]],[.085,.085,.085]),[1,.47,.3,1]);
+  part(this.cube,[0,bodyY+.55*sy,0],[.045,.24*sy,.045],[.1,.33,.37,1]);
+  part(this.orb,[0,bodyY+.71*sy,0],[.085,.085,.085],[1,.47,.3,1]);
  }
 }
-root.GravityRenderer={Renderer,model,multiply,perspective,lookAt,contactShadow};
+root.GravityRenderer={Renderer,model,multiply,perspective,lookAt,contactShadow,robotModel};
 if(typeof module!=='undefined'&&module.exports)module.exports=root.GravityRenderer;
 })(globalThis);

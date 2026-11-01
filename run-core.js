@@ -171,7 +171,7 @@ class Run{
   this.event='';this.eventKind='';this.events=[];this.flash=0;this.jumpCooldown=0;this.gateCooldown=0;
   this.course.cells.forEach(c=>c.taken=false);this.place(2);
  }
- place(s){const q=this.course.at(s);this.position=[q.p[0],q.p[1]+this.radius,q.p[2]];this.velocity=[0,0,0];this.hint=q.index;this.grounded=true;this.falling=false;this.progress=q.s;this.surface=q;this.yaw=Math.atan2(q.tangent[0],q.tangent[2]);}
+ place(s){const q=this.course.at(s);this.position=[q.p[0],q.p[1]+this.radius,q.p[2]];this.velocity=[0,0,0];this.hint=q.index;this.grounded=true;this.falling=false;this.progress=q.s;this.surface=q;this.yaw=Math.atan2(q.tangent[0],q.tangent[2]);this.pose={pitch:0,roll:0,twist:0};}
  emit(type,details={}){this.events.push({type,position:this.position.slice(),...details});}
  announce(type,message,duration,details={}){this.event=message;this.eventKind=type;this.flash=duration;this.emit(type,details);}
  recover(){
@@ -187,6 +187,11 @@ class Run{
   const oldY=this.position[1],wasGrounded=this.grounded,groundBefore=this.grounded&&!q.gap&&Math.abs(q.offset)<q.width;
   const along=dot(this.velocity,q.tangent),lateral=dot(this.velocity,q.right);
   const throttle=clamp(input.throttle||0,-1,1),steer=clamp(input.steer||0,-1,1),turn=clamp(input.turn||0,-1,1);
+  // A separate visual pose mirrors calibrated phone inputs without changing forces.
+  const poseBlend=1-Math.exp(-dt*10);
+  this.pose.pitch=mix(this.pose.pitch,throttle*.28,poseBlend);
+  this.pose.roll=mix(this.pose.roll,-steer*.35,poseBlend);
+  this.pose.twist=mix(this.pose.twist,turn*.22,poseBlend);
   let forward=(groundBefore?13:4)*throttle-(groundBefore?12.5*q.slope:0),side=(groundBefore?17:4)*steer+turn*5;
   const burst=input.burst||[0,0,0];
   if(this.jumpCooldown<=0&&len(burst)>0){

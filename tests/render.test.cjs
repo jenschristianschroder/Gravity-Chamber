@@ -76,3 +76,15 @@ test('visual feedback is bounded, clears on reset, and respects reduced motion',
 test('unsupported WebGL reports a useful startup error',()=>{
  assert.throws(()=>new R.Renderer({getContext:()=>null},new G.Course()),Error);
 });
+test('the complete robot leans with the phone in course coordinates, including on bends',()=>{
+ const r=new G.Run();
+ for(const s of [12,65,220]){
+  r.place(s);r.pose={pitch:.2,roll:-.3,twist:.1};r.yaw+=.8;
+  const m=R.robotModel(r),up=[m[4],m[5],m[6]];
+  assert.ok(G.dot(up,r.surface.right)>0);assert.ok(G.dot(up,r.surface.tangent)>0);assert.ok(up[1]>.8);
+  const center=transform(m,[0,0,0,1]);
+  for(let i=0;i<3;i++)assert.ok(Math.abs(center[i]-r.position[i])<1e-5);
+  r.pose={pitch:-.2,roll:.3,twist:0};const back=R.robotModel(r),backUp=[back[4],back[5],back[6]];
+  assert.ok(G.dot(backUp,r.surface.right)<0);assert.ok(G.dot(backUp,r.surface.tangent)<0);
+ }
+});
