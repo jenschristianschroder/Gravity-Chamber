@@ -3,11 +3,12 @@ const assert=require('node:assert/strict');
 const {readFileSync}=require('node:fs');
 const G=require('../run-core.js');
 const M=require('../run-input.js');
+const P=require('../run-progress.js');
 const source=readFileSync(__dirname+'/../game.js','utf8');
 const html=readFileSync(__dirname+'/../index.html','utf8');
-function fixture({permission='granted',storageFails=false,webgl=true,deferredPermission=null}={}){
- const elements={},events={},frames=[],saved=new Map();let now=1000,latestRun;
- const element=()=>({hidden:false,disabled:false,textContent:'',style:{setProperty(k,v){this[k]=v;}},handlers:{},addEventListener(k,fn){this.handlers[k]=fn;},showModal(){this.open=true;},close(){this.open=false;}});
+function fixture({permission='granted',storageFails=false,webgl=true,deferredPermission=null,saved=new Map()}={}){
+ const elements={},events={},frames=[];let now=1000,latestRun;
+ const element=()=>({hidden:false,disabled:false,textContent:'',classList:{toggle(k,value){this[k]=value;}},setAttribute(k,v){this[k]=v;},style:{setProperty(k,v){this[k]=v;}},handlers:{},addEventListener(k,fn){this.handlers[k]=fn;},showModal(){this.open=true;},close(){this.open=false;}});
  for(const m of html.matchAll(/id="([^"]+)"/g))elements[m[1]]=element();
  const document={hidden:false,fullscreenElement:null,
   body:{classList:{toggle(k,value){this[k]=value;}}},
@@ -24,8 +25,8 @@ function fixture({permission='granted',storageFails=false,webgl=true,deferredPer
   location:{reload(){}}
  };
  const storage={getItem(k){if(storageFails)throw Error('Blocked');return saved.get(k)||null;},setItem(k,v){if(storageFails)throw Error('Blocked');saved.set(k,v);}};
- const renderer={Renderer:class{constructor(){if(!webgl)throw Error('No WebGL');}render(run){latestRun=run;}}};
- new Function('GravityRun','GravityMotion','GravityRenderer','window','document','performance','requestAnimationFrame','localStorage',source)(G,M,renderer,window,document,{now:()=>now},fn=>frames.push(fn),storage);
+ const renderer={Renderer:class{constructor(){if(!webgl)throw Error('No WebGL');}setCourse(){}render(run){latestRun=run;}}};
+ new Function('GravityRun','GravityMotion','GravityRenderer','GravityProgress','window','document','performance','requestAnimationFrame','localStorage',source)(G,M,renderer,P,window,document,{now:()=>now},fn=>frames.push(fn),storage);
  return {elements,window,document,events,saved,
   get run(){return latestRun;},
   click:id=>elements[id].handlers.click(),
@@ -83,8 +84,33 @@ test('a completed motion run saves a personal best and can restart with fresh ca
  const f=fixture();await f.click('start');f.calibrate();
  f.run.place(f.run.course.total-2.1);f.motion();f.frame(20);
  assert.equal(f.elements.finish.hidden,false);assert.equal(f.elements['finish-kicker'].textContent,'NEW PERSONAL BEST');
- assert.ok(Number(f.saved.get('gravity-run-skyway-best-v1'))>0);
+ assert.ok(JSON.parse(f.saved.get(P.KEY)).records.skyway.time>0);
  assert.ok(!f.events['window:devicemotion']);
  await f.click('again');assert.equal(f.elements.calibrating.hidden,false);
  f.calibrate();assert.equal(f.elements['bottom-hud'].hidden,false);assert.ok(f.run.progress<3);
+});
+test('locked tracks allow previews but cannot start motion play or unlock the campaign',async()=>{
+ const f=fixture();f.click('choose-track');assert.ok(f.elements.tracks.open);
+ f.click('track-5');assert.equal(f.elements.tracks.open,false);assert.equal(f.elements.start.disabled,true);
+ await f.click('start');assert.ok(!f.events['window:devicemotion']);
+ f.click('demo');for(let i=0;i<8500&&f.elements.finish.hidden;i++)f.frame();
+ assert.equal(f.elements.finish.hidden,false);assert.equal(f.elements['finish-kicker'].textContent,'DEMO COMPLETE');
+ assert.equal(f.elements['next-track'].hidden,true);assert.equal(f.elements.again.hidden,true);
+ assert.deepEqual(JSON.parse(f.saved.get(P.KEY)).records,{});
+ f.click('finish-tracks');f.click('track-0');assert.equal(f.elements.start.disabled,false);
+});
+test('the player advances through all six tracks and reloading preserves the campaign',async()=>{
+ const saved=new Map(),f=fixture({saved});await f.click('start');f.calibrate();
+ for(let i=0;i<6;i++){
+  assert.equal(f.run.course.index,i);f.run.place(f.run.course.total-2.1);f.motion();f.frame(20);
+  assert.equal(f.elements.finish.hidden,false);assert.ok(JSON.parse(saved.get(P.KEY)).records[G.TRACKS[i].id]);
+  assert.equal(f.elements['next-track'].hidden,i===5);
+  if(i<5){await f.click('next-track');f.calibrate();}
+ }
+ assert.equal(f.elements['finish-kicker'].textContent,'ALL SIX TRACKS COMPLETE');
+ const reload=fixture({saved});reload.frame();assert.equal(reload.run.course.index,5);
+ assert.equal(reload.elements['campaign-count'].textContent,'6 / 6 tracks unlocked');
+ reload.click('choose-track');reload.click('track-1');assert.equal(reload.elements.start.disabled,false);
+ assert.equal(reload.elements['track-name'].textContent,'Seabreeze');
+ assert.ok(reload.elements.best.textContent.includes('Your best'));
 });

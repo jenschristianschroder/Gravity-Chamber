@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#badbe6">
-<meta name="description" content="Roll a little robot through a floating obstacle course using only your phone. Gravity Run is a motion-controlled, third-person browser game.">
+<meta name="description" content="Six floating worlds. One little robot. Tilt, twist, and jump through progressively harder tracks in Gravity Run, a motion-controlled browser game.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Gravity Run">
@@ -12,11 +12,12 @@
 <title>Gravity Run — a world in your hands</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="styles.css?v=run1">
-<script src="run-core.js?v=run1" defer></script>
-<script src="run-input.js?v=run1" defer></script>
-<script src="run-renderer.js?v=run1" defer></script>
-<script src="game.js?v=run1" defer></script>
+<link rel="stylesheet" href="styles.css?v=campaign1">
+<script src="run-core.js?v=campaign1" defer></script>
+<script src="run-progress.js?v=campaign1" defer></script>
+<script src="run-input.js?v=campaign1" defer></script>
+<script src="run-renderer.js?v=campaign1" defer></script>
+<script src="game.js?v=campaign1" defer></script>
 </head>
 <body>
 <main id="app">
@@ -32,18 +33,21 @@
  </header>
  <div class="route-hud" id="route-hud" hidden>
   <div class="route-label"><span id="section">Find your feet</span><span id="distance">0%</span></div>
-  <div class="route-track"><div id="route-fill"></div><span></span><span></span><span></span></div>
+  <div class="route-track"><div id="route-fill"></div><span id="route-marker-1"></span><span id="route-marker-2"></span><span id="route-marker-3"></span></div>
  </div>
  <section class="panel menu-panel" id="menu" aria-labelledby="title">
-  <div class="eyebrow"><span class="status-dot"></span> COURSE 01 / SKYWAY</div>
+  <div class="eyebrow"><span class="status-dot"></span><span id="course-label">COURSE 01 / SKYWAY</span></div>
   <h1 id="title">Find your <br><em>flow.</em></h1>
-  <p class="intro">A little robot. A floating world. <br>Every turn is in your hands.</p>
-  <div class="course-facts"><span>334 metres</span><span>6 sections</span><span>15 energy cells</span></div>
+  <p class="intro">A little robot. Six floating worlds. <br>Every turn is in your hands.</p>
+  <button id="choose-track" class="course-choice" aria-haspopup="dialog"><span><strong id="track-name">Skyway</strong><small id="track-difficulty">Easy · 1 / 6</small></span><span class="change-track">Change track ↗</span></button>
+  <p class="track-description" id="track-description">Find your balance above the coast.</p>
+  <div class="course-facts"><span id="course-distance">334 metres</span><span id="course-sections">6 sections</span><span id="course-cells">15 energy cells</span></div>
   <button class="button primary" id="start">Play with motion <span aria-hidden="true">↗</span></button>
   <div class="menu-secondary"><button id="demo" class="text-button">Watch a demo <span aria-hidden="true">▷</span></button><button id="how" class="text-button">How to move <span aria-hidden="true">?</span></button></div>
   <p class="micro">Start upright, with your phone’s top edge up.<br>On iPhone, add to Home Screen to hide the browser bars.</p>
   <p class="error" id="status" role="status" aria-live="polite"></p>
   <p class="best" id="best"></p>
+  <p class="campaign-count" id="campaign-count">1 / 6 tracks unlocked</p>
  </section>
  <section class="panel center-panel" id="calibrating" hidden aria-labelledby="calibration-title">
   <div class="phone-icon" aria-hidden="true">↟</div><div class="eyebrow">FINDING YOUR BALANCE</div>
@@ -69,14 +73,30 @@
   <div id="finish-time" class="finish-time">01:06.0</div>
   <div class="finish-stats"><div><strong id="finish-energy">0 / 15</strong><span>ENERGY CELLS</span></div><div><strong id="finish-falls">0</strong><span>RECOVERIES</span></div></div>
   <p id="finish-note"></p>
-  <button id="again" class="button primary">Roll again <span aria-hidden="true">↻</span></button><button id="exit-finish" class="text-button">Back to start</button>
+  <button id="next-track" class="button primary" hidden>Next track ↗</button>
+  <button id="again" class="button primary">Roll again <span aria-hidden="true">↻</span></button>
+  <div class="finish-navigation"><button id="finish-tracks" class="text-button">Choose track</button><button id="exit-finish" class="text-button">Back to start</button></div>
  </section>
  <dialog id="help" aria-labelledby="help-title">
   <button id="close-help" class="close" aria-label="Close instructions">×</button><div class="eyebrow">YOUR PHONE IS THE CONTROLLER</div><h2 id="help-title">A few good moves.</h2>
   <ol><li><strong>Tilt forward to roll.</strong> Tilt back to slow down or reverse.</li><li><strong>Lean to steer.</strong> Small left and right tilts guide the robot. A gentle twist adds a sharper turn.</li><li><strong>Nudge for momentum.</strong> A short forward or sideways movement gives a burst. A quick upward nudge makes the robot hop. A downward nudge shortens a jump.</li><li><strong>Follow the skyway.</strong> Keep your balance on the narrow bridge, aim through the moving openings, and hop just before the gap.</li></ol>
-  <p>Keep hold of your phone. Gentle movements are enough. Checkpoints catch you after a fall, with a two-second time penalty.</p>
+  <p>Finish a track to unlock the next. Six tracks get progressively harder with narrower bridges, faster gates, more jumps, and fewer checkpoints. Demos let you preview every course and do not unlock tracks.</p>
+  <p>Keep hold of your phone. Gentle movements are enough. Checkpoints catch you after a fall, with a two-second time penalty. Progress and each track's best time are saved on this device.</p>
   <p class="micro">Gameplay fills the screen and stays fixed to your phone. On iPhone: Safari → Share → Add to Home Screen, then launch from the new icon. Sensor readings stay on your device.</p>
   <button id="help-done" class="button primary">Ready to roll <span aria-hidden="true">↗</span></button>
+ </dialog>
+ <dialog id="tracks" class="tracks-dialog" aria-labelledby="tracks-title">
+  <button id="close-tracks" class="close" aria-label="Close track selector">×</button>
+  <div class="eyebrow">SIX WORLDS / ONE JOURNEY</div><h2 id="tracks-title">Find your next challenge.</h2>
+  <p class="tracks-intro">Finish each track to unlock the next. Preview any course before you play.</p>
+  <div class="track-list">
+   <button id="track-0" class="track-option" aria-pressed="true"><span class="track-number">01</span><span class="track-info"><strong>Skyway <small>Easy</small></strong><span>Wide turns, a skybridge, and your first jump.</span><span id="track-record-0" class="track-record">Ready to roll</span></span><span id="track-status-0" class="track-status">Unlocked</span></button>
+   <button id="track-1" class="track-option" aria-pressed="false"><span class="track-number">02</span><span class="track-info"><strong>Seabreeze <small>Steady</small></strong><span>Longer bridges and three moving gates.</span><span id="track-record-1" class="track-record"></span></span><span id="track-status-1" class="track-status">Locked · preview</span></button>
+   <button id="track-2" class="track-option" aria-pressed="false"><span class="track-number">03</span><span class="track-info"><strong>Switchback <small>Tricky</small></strong><span>Tight hairpins and two committed jumps.</span><span id="track-record-2" class="track-record"></span></span><span id="track-status-2" class="track-status">Locked · preview</span></button>
+   <button id="track-3" class="track-option" aria-pressed="false"><span class="track-number">04</span><span class="track-info"><strong>Cloudspire <small>Hard</small></strong><span>A rising corkscrew and thinner crossings.</span><span id="track-record-3" class="track-record"></span></span><span id="track-status-3" class="track-status">Locked · preview</span></button>
+   <button id="track-4" class="track-option" aria-pressed="false"><span class="track-number">05</span><span class="track-info"><strong>Fracture <small>Expert</small></strong><span>Three broken causeways. Five fast gates.</span><span id="track-record-4" class="track-record"></span></span><span id="track-status-4" class="track-status">Locked · preview</span></button>
+   <button id="track-5" class="track-option" aria-pressed="false"><span class="track-number">06</span><span class="track-info"><strong>Eventide <small>Master</small></strong><span>Four leaps. Six gates. One final checkpoint.</span><span id="track-record-5" class="track-record"></span></span><span id="track-status-5" class="track-status">Locked · preview</span></button>
+  </div>
  </dialog>
 </main>
 </body>

@@ -4,7 +4,7 @@ A third-person motion-controlled browser game, hosted in the Gravity Chamber rep
 
 **[Play Gravity Run](https://jenschristianschroder.github.io/Gravity-Chamber/)**
 
-Guide a little rolling robot across a floating skyway. Tilt, twist, and nudge your phone to manage momentum, navigate moving gates, and jump the gap. There are no accounts, third-party network requests, external libraries, or server-side logic.
+Guide a little rolling robot across six floating courses. Tilt, twist, and nudge your phone to manage momentum, navigate moving gates, and jump the gaps. There are no accounts, third-party network requests, external libraries, or server-side logic.
 
 ## Playing
 
@@ -17,22 +17,26 @@ Guide a little rolling robot across a floating skyway. Tilt, twist, and nudge yo
 
 Small movements are enough. Keep hold of the phone. The robot carries momentum, so slow down before a tight turn.
 
-**Watch a demo** runs a complete automated lap on desktop or mobile without sensor permission. It does not write a personal best.
+Use **Change track** to choose a course. **Watch a demo** (or **Preview this track** for a locked course) runs a complete automated lap without sensor permission. Demos do not write personal bests or unlock tracks.
 
-## Skyway: course 01
+## Six-track campaign
 
-A roughly 334-metre course with six sections:
+Finish each course with motion controls to unlock the next. Every course has a distinct route and sky palette. Later courses have narrower bridges, tighter turns, faster gates with smaller openings, more jumps, and fewer checkpoints.
 
-- A wide opening to learn the controls.
-- Two sweeping coastal bends.
-- A narrow skybridge.
-- Two gates with moving openings.
-- An ascending ramp and a 4.5-metre gap.
-- A descending spiral and finish line.
+| Track | Difficulty | Length | Gates | Jumps | Checkpoints, including start |
+| --- | --- | ---: | ---: | ---: | ---: |
+| 01 Skyway | Easy | 334 m | 2 | 1 | 4 |
+| 02 Seabreeze | Steady | 395 m | 3 | 1 | 4 |
+| 03 Switchback | Tricky | 375 m | 3 | 2 | 4 |
+| 04 Cloudspire | Hard | 454 m | 4 | 2 | 3 |
+| 05 Fracture | Expert | 491 m | 5 | 3 | 3 |
+| 06 Eventide | Master | 589 m | 6 | 4 | 2 |
 
-Collect 15 energy cells. Four checkpoints preserve progress after a fall, with a two-second time penalty. Best completion time is stored only in this browser's local storage.
+Skyway teaches the basics. Seabreeze adds long coastal bridges; Switchback introduces hairpins and a second jump. Cloudspire climbs a corkscrew, Fracture crosses separated islands, and Eventide combines the hardest obstacles into the final gauntlet.
 
-The automated demonstration completes the course in about 66 seconds with no falls and all cells collected.
+Collect energy cells along the way. Checkpoints preserve progress after a fall, with a two-second time penalty. Unlocks, the selected course, and separate best times are stored only in this browser. Existing Skyway records migrate automatically and unlock Seabreeze. If storage is blocked, progress still works for the current session.
+
+Automated demos complete all six routes without falling, in roughly 66–120 seconds. These timings establish that the routes are traversable; a player's pace will depend on motion control and recovery time.
 
 ## Fullscreen and orientation
 
@@ -44,7 +48,8 @@ The page pauses if it loses visibility or motion samples stop arriving. Resume a
 
 ## Implementation
 
-- `run-core.js`: deterministic 120 Hz physics, procedural course, collisions, checkpoints, collectibles, and demo driver.
+- `run-core.js`: deterministic 120 Hz physics, six course definitions, collisions, checkpoints, collectibles, and demo driver.
+- `run-progress.js`: campaign unlocks, per-track records, storage validation, and legacy record migration.
 - `run-input.js`: upright calibration, sensor sign normalization, smoothing, tilt controls, optional gyroscope twist, and one-shot motion impulses.
 - `run-renderer.js`: dependency-free WebGL scene, follow camera, robot, floating scenery, shadows, and course geometry.
 - `game.js`: permissions, game state, fullscreen/orientation handling, HUD, and local records.
@@ -64,7 +69,7 @@ Run the automated tests with Node.js:
 node --test tests/*.test.cjs
 ~~~
 
-The tests cover control direction across sensor conventions, missing sensors, bounded motion impulses, the complete course, physical obstacles and falls, camera math and rendering data, permission denial/cancellation, pause/resume, orientation fallback, and game completion.
+The tests cover control direction across sensor conventions, missing sensors, bounded motion impulses, completion of every course, increasing difficulty, obstacles and falls, camera math and rendering data, renderer resource cleanup when switching courses, permission denial/cancellation, pause/resume, orientation fallback, the complete campaign flow, locked previews, migration, and persistence.
 
 Renderer checks use a mock WebGL API. Controller checks use a simulated DOM. These checks do not replace real WebGL rendering or physical iOS/Android testing.
 

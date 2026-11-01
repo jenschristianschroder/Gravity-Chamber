@@ -2,7 +2,7 @@
   "id": "./",
   "name": "Gravity Run",
   "short_name": "Gravity Run",
-  "description": "A motion-controlled robot adventure through a floating world.",
+  "description": "A motion-controlled robot adventure across six increasingly challenging floating worlds.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

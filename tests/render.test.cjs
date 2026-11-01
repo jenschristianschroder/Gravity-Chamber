@@ -13,12 +13,12 @@ test('camera projection puts its target in the center and points ahead at positi
  assert.deepEqual(vertex,[5,7,9,1]);
 });
 test('renderer uploads finite geometry and draws the course at phone and desktop sizes',()=>{
- let bound,draws=0,uploads=0,viewport;
+ let bound,draws=0,uploads=0,viewport;const liveBuffers=new Set();
  const gl={
   createShader:()=>({}),shaderSource(){},compileShader(){},getShaderParameter:()=>true,getShaderInfoLog:()=>'',
   createProgram:()=>({}),attachShader(){},linkProgram(){},getProgramParameter:()=>true,useProgram(){},
   getAttribLocation:(_,name)=>['aPosition','aNormal','aColor'].indexOf(name),getUniformLocation:(_,name)=>name,
-  enable(){},blendFunc(){},clearColor(){},createBuffer:()=>({}),
+  enable(){},blendFunc(){},clearColor(){},createBuffer(){const b={};liveBuffers.add(b);return b;},deleteBuffer(b){assert.ok(liveBuffers.has(b));liveBuffers.delete(b);},
   bindBuffer(_,buffer){bound=buffer;},bufferData(_,data){assert.ok(data.length>0);assert.ok(data.every(Number.isFinite));assert.equal(data.length%30,0);bound.count=data.length/10;uploads++;},
   enableVertexAttribArray(){},vertexAttribPointer(){},
   uniformMatrix4fv(_,transpose,data){assert.equal(data.length,16);assert.ok(data.every(Number.isFinite));},
@@ -32,6 +32,7 @@ test('renderer uploads finite geometry and draws the course at phone and desktop
  for(let i=0;i<2000;i++)run.step(1/120,run.demoInput());
  canvas.clientWidth=1280;canvas.clientHeight=720;renderer.render(run,1/60,true);
  assert.deepEqual(viewport,[1280,720]);assert.ok(renderer.eye.every(Number.isFinite));
+ for(let i=1;i<6;i++){const next=new G.Course(i);renderer.setCourse(next);renderer.render(new G.Run(next),1/60,false);assert.equal(liveBuffers.size,7);}
 });
 test('unsupported WebGL reports a useful startup error',()=>{
  assert.throws(()=>new R.Renderer({getContext:()=>null},new G.Course()),Error);

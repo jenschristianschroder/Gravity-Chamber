@@ -8,6 +8,14 @@ const norm=v=>{const n=len(v)||1;return v.map(x=>x/n);};
 const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
 const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
 const sub=(a,b)=>a.map((x,i)=>x-b[i]);
+const TRACKS=[
+ {id:'skyway',name:'Skyway',level:'Easy',description:'Find your balance above the coast.',sky:[.73,.86,.90],bridge:1.35,opening:1.2,gateSpeed:.8},
+ {id:'seabreeze',name:'Seabreeze',level:'Steady',description:'Long bridges and a sweeping coastal loop.',sky:[.65,.83,.85],bridge:1.2,opening:1.1,gateSpeed:.92},
+ {id:'switchback',name:'Switchback',level:'Tricky',description:'Brake for hairpins. Commit to the double jump.',sky:[.87,.81,.69],bridge:1.1,opening:1.03,gateSpeed:1.04},
+ {id:'cloudspire',name:'Cloudspire',level:'Hard',description:'Climb a corkscrew into the high clouds.',sky:[.77,.83,.94],bridge:1,opening:.96,gateSpeed:1.16},
+ {id:'fracture',name:'Fracture',level:'Expert',description:'Broken causeways demand precise landings.',sky:[.76,.80,.83],bridge:.9,opening:.89,gateSpeed:1.28},
+ {id:'eventide',name:'Eventide',level:'Master',description:'One final gauntlet. Every movement matters.',sky:[.74,.72,.85],bridge:.8,opening:.82,gateSpeed:1.4}
+];
 function calibrate(samples){
  if(samples.length<8)return null;
  const mean=[0,1,2].map(i=>samples.reduce((s,v)=>s+v[i],0)/samples.length);
@@ -29,8 +37,10 @@ function displayLayout(width,height,angle){
  return {width:q?height:width,height:q?width:height,rotation:-a||0};
 }
 class Course{
- constructor(){
-  this.points=[];this.sections=[];this.gates=[];this.checkpoints=[];this.cells=[];
+ constructor(trackIndex=0){
+  this.index=Number.isInteger(trackIndex)?clamp(trackIndex,0,TRACKS.length-1):0;this.track=TRACKS[this.index];
+  this.points=[];this.sections=[];this.gates=[];this.gaps=[];this.checkpoints=[];this.cells=[];
+  if(this.index){this.buildAdvanced();return;}
   const add=(p,width,section,gap=false)=>{const prev=this.points[this.points.length-1];this.points.push({p,width,section,gap,s:prev?prev.s+Math.hypot(p[0]-prev.p[0],p[2]-prev.p[2]):0});};
   const bezier=(a,b,c,d,width,section,gap=false)=>{
    const estimate=len(sub(a,b))+len(sub(b,c))+len(sub(c,d)),n=Math.ceil(estimate/1.1);
@@ -54,6 +64,7 @@ class Course{
   this.gapStart=this.points[this.points.length-1].s;
   line([0,3.2,171],[0,2.7,175.5],3.2,k,true);
   this.gapEnd=this.points[this.points.length-1].s;
+  this.gaps.push({start:this.gapStart,end:this.gapEnd});
   bezier([0,2.7,175.5],[0,2.4,189],[18,2.1,188],[18,1.6,199],3.6,k);
   k=mark('Spiral descent');const spiralStart=this.points[this.points.length-1].s;
   for(let i=1;i<=82;i++){const t=i/82,a=-Math.PI/2+t*Math.PI*1.5;add([18+17*Math.cos(a),mix(1.6,-4.4,t),216+17*Math.sin(a)],3.3,k);}
@@ -62,6 +73,72 @@ class Course{
   this.checkpoints=[{s:2,label:'Start'},{s:bridgeStart-5,label:'Skybridge'},{s:rampStart+1,label:'Launch ramp'},{s:spiralStart+2,label:'Spiral'}];
   this.gates=[{s:gatesStart+13,phase:0},{s:gatesStart+28,phase:2}];
   for(let s=14,i=0;s<this.total-8;s+=21,i++){const q=this.at(s);if(q.gap)continue;this.cells.push({s,offset:q.width<2?0:(i%2?-.7:.7),taken:false});}
+ }
+ buildAdvanced(){
+  const level=this.index,t=this.track;let p=[0,6,0],heading=0,section=0;
+  const distance=()=>this.points.length?this.points[this.points.length-1].s:0;
+  const add=(position,width,gap=false)=>{const previous=this.points[this.points.length-1];this.points.push({p:position,width,section,gap,s:previous?previous.s+Math.hypot(position[0]-previous.p[0],position[2]-previous.p[2]):0});};
+  const prepare=(width,gap)=>{if(!this.points.length)add(p.slice(),width,gap);else{const last=this.points[this.points.length-1];last.section=section;last.gap=gap;}};
+  const line=(length,dy=0,width=2.8,gap=false)=>{
+   prepare(width,gap);const start=p.slice(),n=Math.ceil(length);
+   for(let i=1;i<=n;i++){const u=i/n;add([start[0]+Math.sin(heading)*length*u,start[1]+dy*u,start[2]+Math.cos(heading)*length*u],width,gap);}
+   p=this.points[this.points.length-1].p.slice();
+  };
+  const arc=(degrees,radius,dy=0,width=2.6)=>{
+   prepare(width,false);const start=p.slice(),angle=degrees*Math.PI/180,sign=Math.sign(angle),initial=heading,n=Math.ceil(Math.abs(angle)*radius);
+   for(let i=1;i<=n;i++){const u=i/n,a=initial+angle*u;add([start[0]+radius*sign*(Math.cos(initial)-Math.cos(a)),start[1]+dy*u,start[2]+radius*sign*(Math.sin(a)-Math.sin(initial))],width);}
+   p=this.points[this.points.length-1].p.slice();heading+=angle;
+  };
+  const mark=(name,hint)=>{section=this.sections.length;this.sections.push({name,hint,s:distance()});};
+  const checkpoint=label=>this.checkpoints.push({s:distance()+2,label});
+  const gates=(count,length=38)=>{const start=distance();line(length,-.4,3-level*.1);for(let i=0;i<count;i++)this.gates.push({s:start+8+i*(length-16)/Math.max(1,count-1),phase:i*1.7+level*.4});};
+  const jump=(length=4.7+level*.3)=>{
+   line(10,0,2.7-level*.12);line(9,2.8,2.7-level*.12);
+   const start=distance();line(length,-.65,2.7-level*.12,true);this.gaps.push({start,end:distance()});line(13,-.6,2.7-level*.12);
+  };
+  const bridge=(length=28)=>line(length,-.6,t.bridge);
+  this.checkpoints.push({s:2,label:'Start'});
+  if(level===1){
+   mark('Coastal departure','Settle into a gentle rhythm.');line(30,-.5,3.8);arc(65,25,-.5,3.3);
+   mark('Long crossing','Hold your line. This bridge is longer.');checkpoint('Crossing');bridge(36);line(9,0,3);arc(-100,22,-1,3);
+   mark('Tidal gates','Time your approach through three moving openings.');gates(3,48);
+   mark('Across the inlet','Build speed and hop at the ramp lip.');checkpoint('Inlet');jump(5);
+   mark('Far shore','Brake before the bend, then balance across.');arc(150,21,-1.5,2.8);bridge(28);line(12,0,3);
+   mark('Homeward','A final sweep back toward the finish.');checkpoint('Homeward');arc(-100,25,-1.2,3);line(30,-.5,4);
+  }else if(level===2){
+   mark('Warm-up bend','Brake before a tight turn.');line(24,-.4,3.5);arc(75,16,-.8,2.8);
+   mark('The hairpins','Lean into each hairpin. Keep your speed down.');checkpoint('Hairpins');arc(-150,12,-1,2.5);line(18,0,2.5);arc(150,12,-1,2.5);
+   mark('First flight','Hop just before the first gap.');checkpoint('First flight');jump(5.3);
+   mark('Narrow escape','A tight bridge leads to faster gates.');bridge(34);line(9,0,3);gates(3,44);
+   mark('Second flight','Reset your balance before the next jump.');checkpoint('Second flight');arc(-90,18,-.5,2.5);jump(5.3);
+   mark('The last switch','Slow down for one last hairpin.');arc(150,13,-1,2.4);line(25,-.5,4);
+  }else if(level===3){
+   mark('Cloud approach','Climb steadily. Keep some momentum.');line(30,2,3.3);arc(90,20,2,2.6);
+   mark('The corkscrew','A rising spiral: steer smoothly, avoid the edge.');checkpoint('Corkscrew');arc(-270,17,9,2.3);
+   mark('High crossing','A very narrow bridge high above the clouds.');bridge(38);line(9,0,3);gates(2,34);
+   mark('Cloud leap','Jump from the ramp and settle before the turn.');checkpoint('Cloud leap');jump(5.6);arc(100,15,-2,2.4);
+   mark('Thin air','Two faster gates, then another launch.');gates(2,34);jump(5.6);
+   mark('Spiral home','Control your speed down the final spiral.');arc(-210,19,-9,2.2);line(26,-.5,4);
+  }else if(level===4){
+   mark('Broken coast','Balance early. The causeway gets narrow.');line(26,-.4,3.2);arc(-60,18,-1,2.4);bridge(30);
+   mark('First fracture','Line up the landing before you jump.');jump(5.9);arc(110,14,-1,2.2);
+   mark('Moving walls','Three fast gates need patient timing.');checkpoint('Moving walls');gates(3,44);bridge(32);line(9,0,2.5);
+   mark('Island chain','Two gaps. Land, settle, and jump again.');jump(5.9);arc(-75,15,-1,2.2);jump(5.9);
+   mark('Needle passage','The narrowest bridge so far. Gentle movements.');checkpoint('Needle passage');bridge(40);line(9,0,2.5);gates(2,34);
+   mark('The broken ring','Hold your line through a long final bend.');arc(230,16,-4,2.1);line(24,-.5,4);
+  }else{
+   mark('The final ascent','A demanding course. Build a steady rhythm.');line(26,2,3);gates(2,34);arc(105,15,2,2.1);
+   mark('Razor crossing','Stay centered on the narrowest crossing.');bridge(40);line(9,0,2.3);jump(6.2);
+   mark('Eventide spiral','Climb the spiral, then align for the gate.');arc(-270,14,7,2);gates(1,24);
+   mark('Last refuge','Final checkpoint. Three jumps remain.');checkpoint('Last refuge');jump(6.2);arc(125,13,-2,2);jump(6.2);
+   mark('The gauntlet','Three fast gates and a long, thin crossing.');gates(3,44);bridge(44);line(10,0,2.2);
+   mark('Beyond the horizon','One final jump. Bring it home.');jump(6.2);arc(-210,15,-6,1.9);line(28,-.5,4);
+  }
+  this.total=distance();this.gapStart=this.gaps[0].start;this.gapEnd=this.gaps[0].end;
+  for(let s=14,i=0;s<this.total-8;s+=22,i++){
+   const q=this.at(s);if(q.gap||this.gaps.some(g=>Math.abs(g.start-s)<4||Math.abs(g.end-s)<5))continue;
+   this.cells.push({s,offset:q.width<2?0:(i%2?-.55:.55),taken:false});
+  }
  }
  at(s){
   s=clamp(s,0,this.total===undefined?this.points[this.points.length-1].s:this.total);
@@ -84,7 +161,7 @@ class Course{
   }
   best.offset=dot(sub(p,best.p),best.right);return best;
  }
- gateCenter(gate,time){const q=this.at(gate.s);return Math.sin(time*.8+gate.phase)*(q.width-1.65);}
+ gateCenter(gate,time){const q=this.at(gate.s);return Math.sin(time*this.track.gateSpeed+gate.phase)*Math.max(0,q.width-this.track.opening-.45);}
  cellPosition(cell){const q=this.at(cell.s);return [q.p[0]+q.right[0]*cell.offset,q.p[1]+.8,q.p[2]+q.right[2]*cell.offset];}
 }
 class Run{
@@ -131,7 +208,7 @@ class Run{
   }
   for(const gate of this.course.gates){
    const g=this.course.at(gate.s),rel=sub(this.position,g.p),a=dot(rel,g.tangent),b=dot(rel,g.right),opening=this.course.gateCenter(gate,this.time);
-   if(Math.abs(a)<.28+this.radius&&Math.abs(b-opening)>1.2-this.radius&&Math.abs(b)<g.width+.3&&this.position[1]<g.p[1]+1.9&&this.position[1]>g.p[1]-.5&&this.gateCooldown<=0){
+   if(Math.abs(a)<.28+this.radius&&Math.abs(b-opening)>this.course.track.opening-this.radius&&Math.abs(b)<g.width+.3&&this.position[1]<g.p[1]+1.9&&this.position[1]>g.p[1]-.5&&this.gateCooldown<=0){
     const sign=a<0?-1:1,push=sign*(.3+this.radius)-a;this.position[0]+=g.tangent[0]*push;this.position[2]+=g.tangent[2]*push;
     const v=dot(this.velocity,g.tangent);this.velocity[0]-=g.tangent[0]*v*1.35;this.velocity[2]-=g.tangent[2]*v*1.35;
     this.gateCooldown=.25;this.event='Find the opening';this.flash=.9;
@@ -151,14 +228,14 @@ class Run{
   const q=this.surface,s=this.progress,course=this.course;
   let speed=5.2,offset=0;
   if(q.width<2)speed=4.2;
-  if(s>course.gapStart-12&&s<course.gapEnd+6)speed=7;
+  if(course.gaps.some(g=>s>g.start-14&&s<g.end+6))speed=7+course.index*.12;
   for(const gate of course.gates)if(gate.s-s>-1&&gate.s-s<15){speed=3.6;offset=course.gateCenter(gate,this.time+Math.max(0,gate.s-s)/speed);}
   const aim=course.at(Math.min(course.total,s+3.2)),delta=[aim.p[0]+aim.right[0]*offset-this.position[0],0,aim.p[2]+aim.right[2]*offset-this.position[2]];
   const desired=norm(delta).map(v=>v*speed),acc=desired.map((v,i)=>(v-this.velocity[i])*3.5+this.velocity[i]*.46);
-  const burst=(s>course.gapStart-1.7&&s<course.gapStart-.15&&this.grounded&&this.jumpCooldown<=0)?[0,1,0]:[0,0,0];
+  const burst=(course.gaps.some(g=>s>g.start-1.7&&s<g.start-.15)&&this.grounded&&this.jumpCooldown<=0)?[0,1,0]:[0,0,0];
   return {throttle:clamp((dot(acc,q.tangent)+12.5*q.slope)/13,-1,1),steer:clamp(dot(acc,q.right)/17,-1,1),turn:0,burst};
  }
 }
-const api={clamp,mix,len,norm,dot,cross,sub,calibrate,motionControls,displayLayout,Course,Run};
+const api={clamp,mix,len,norm,dot,cross,sub,calibrate,motionControls,displayLayout,TRACKS,Course,Run};
 root.GravityRun=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(globalThis);

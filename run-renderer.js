@@ -32,16 +32,22 @@ class Renderer{
  init(){
   const gl=this.gl;
   const vs='attribute vec3 aPosition;attribute vec3 aNormal;attribute vec4 aColor;uniform mat4 uModel;uniform mat4 uVP;varying vec3 vNormal;varying vec3 vWorld;varying vec4 vColor;void main(){vec4 w=uModel*vec4(aPosition,1.0);vWorld=w.xyz;vNormal=normalize(mat3(uModel)*aNormal);vColor=aColor;gl_Position=uVP*w;}';
-  const fs='precision mediump float;varying vec3 vNormal;varying vec3 vWorld;varying vec4 vColor;uniform vec3 uEye;uniform vec4 uTint;void main(){float light=0.53+0.47*max(dot(normalize(vNormal),normalize(vec3(-0.4,0.85,-0.3))),0.0);vec3 color=vColor.rgb*uTint.rgb*light;float fog=smoothstep(34.0,108.0,distance(vWorld,uEye));color=mix(color,vec3(0.73,0.86,0.90),fog);gl_FragColor=vec4(color,vColor.a*uTint.a);}';
+  const fs='precision mediump float;varying vec3 vNormal;varying vec3 vWorld;varying vec4 vColor;uniform vec3 uEye;uniform vec3 uSky;uniform vec4 uTint;void main(){float light=0.53+0.47*max(dot(normalize(vNormal),normalize(vec3(-0.4,0.85,-0.3))),0.0);vec3 color=vColor.rgb*uTint.rgb*light;float fog=smoothstep(34.0,108.0,distance(vWorld,uEye));color=mix(color,uSky,fog);gl_FragColor=vec4(color,vColor.a*uTint.a);}';
   const shader=(type,src)=>{const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s;};
   this.program=gl.createProgram();gl.attachShader(this.program,shader(gl.VERTEX_SHADER,vs));gl.attachShader(this.program,shader(gl.FRAGMENT_SHADER,fs));gl.linkProgram(this.program);if(!gl.getProgramParameter(this.program,gl.LINK_STATUS))throw Error('Could not link the 3D renderer.');
-  gl.useProgram(this.program);this.attributes=['aPosition','aNormal','aColor'].map(n=>gl.getAttribLocation(this.program,n));this.uniforms={};for(const n of ['uModel','uVP','uEye','uTint'])this.uniforms[n]=gl.getUniformLocation(this.program,n);
+  gl.useProgram(this.program);this.attributes=['aPosition','aNormal','aColor'].map(n=>gl.getAttribLocation(this.program,n));this.uniforms={};for(const n of ['uModel','uVP','uEye','uTint','uSky'])this.uniforms[n]=gl.getUniformLocation(this.program,n);
   gl.enable(gl.DEPTH_TEST);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.clearColor(...SKY,1);
   const cube=[];box(cube,[0,0,0],[1,1,1],[1,1,1]);this.cube=this.mesh(cube);
   const orb=[];sphere(orb,[0,0,0],[1,1,1],[1,1,1],12,18);this.orb=this.mesh(orb);
   const gem=[];crystal(gem);this.gem=this.mesh(gem);
   const disc=[];for(let i=0;i<32;i++){const a=i*Math.PI/16,b=(i+1)*Math.PI/16;tri(disc,[0,0,0],[Math.cos(a),0,Math.sin(a)],[Math.cos(b),0,Math.sin(b)],[.06,.24,.29,.24],[0,1,0]);}this.disc=this.mesh(disc);
+  this.setCourse(this.course);
+ }
+ setCourse(course){
+  for(const key of ['track','scenery','landmarks'])if(this[key])this.gl.deleteBuffer(this[key].buffer);
+  this.course=course;this.eye=[-7,11,-9];this.target=[0,5,7];
   this.track=this.mesh(this.buildTrack());this.scenery=this.mesh(this.buildScenery());this.landmarks=this.mesh(this.buildLandmarks());
+  this.gl.clearColor(...course.track.sky,1);
  }
  mesh(vertices){const gl=this.gl,b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vertices),gl.STATIC_DRAW);return {buffer:b,count:vertices.length/10};}
  draw(mesh,m=identity(),tint=[1,1,1,1]){
@@ -109,11 +115,11 @@ class Renderer{
   const blend=1-Math.exp(-Math.min(dt,.1)*5);
   this.eye=this.eye.map((v,i)=>G.mix(v,desired[i],blend));this.target=this.target.map((v,i)=>G.mix(v,target[i],blend));
   const vp=multiply(perspective(Math.PI/3,width/height,.12,140),lookAt(this.eye,this.target));
-  gl.uniformMatrix4fv(this.uniforms.uVP,false,vp);gl.uniform3fv(this.uniforms.uEye,this.eye);
+  gl.uniformMatrix4fv(this.uniforms.uVP,false,vp);gl.uniform3fv(this.uniforms.uEye,this.eye);gl.uniform3fv(this.uniforms.uSky,this.course.track.sky);
   this.draw(this.scenery);this.draw(this.track);this.draw(this.landmarks);
   for(const gate of this.course.gates){
    const q=this.course.at(gate.s),c=this.course.gateCenter(gate,run.time),yaw=Math.atan2(q.tangent[0],q.tangent[2]);
-   for(const range of [[-q.width,c-1.2],[c+1.2,q.width]]){
+   for(const range of [[-q.width,c-this.course.track.opening],[c+this.course.track.opening,q.width]]){
     const length=range[1]-range[0];if(length<=0)continue;const mid=(range[0]+range[1])/2;
     this.draw(this.cube,model([q.p[0]+q.right[0]*mid,q.p[1]+.85,q.p[2]+q.right[2]*mid],[length,1.7,.5],yaw),[...CORAL,1]);
    }
