@@ -4,3 +4,22 @@
 @media(max-width:900px){.app{padding:0 28px}main{gap:24px;grid-template-columns:.85fr 1.15fr}.stage{height:510px}.gesture-guide{gap:18px}.gesture-guide div>span:last-child{max-width:65px;line-height:1.5}h1{font-size:55px}.description{font-size:14px}.eyebrow{font-size:8px;letter-spacing:.8px}.stage-top,.stage-bottom{left:18px;right:18px}.stage-title{font-size:17px}.primary{min-width:220px}}
 @media(max-width:660px){.app{padding:0 20px}.masthead{height:74px}.brand{font-size:16px;gap:8px}.brand-mark{width:26px;height:26px;font-size:22px}.edition{display:none}.text-button{font-size:11px;min-height:40px}.text-button span{margin-left:8px;font-size:16px}main{display:flex;flex-direction:column;gap:21px;padding:30px 0 23px;align-items:stretch}.intro{display:contents}.intro>.eyebrow{order:0;font-size:8px;letter-spacing:1.1px}h1{order:1;font-size:49px;letter-spacing:-2.7px;line-height:1.02;margin:-5px 0 0}h1 br{display:none}h1 em{letter-spacing:-2.7px}.description{order:2;font-size:12px;line-height:1.65;margin:-6px 0 0;max-width:320px}.description br{display:none}.description br::after{content:' '}.stage{order:3;height:350px;border-radius:11px}.stage-top{top:18px}.stage-title{font-size:17px;margin-top:5px}.mode-badge{font-size:7px;padding:6px 8px}.stage-bottom{bottom:18px}.start-controls{order:4;flex-direction:row;align-items:stretch;gap:15px}.start-controls .primary{flex:1;min-width:0;font-size:12px;padding:14px 15px;gap:12px}.start-controls .secondary{font-size:11px;padding:0;gap:6px;min-width:100px}.permission-note{order:5;max-width:100%;font-size:9px;margin:-12px 0 0}.status-message{order:6;max-width:100%;margin:-5px 0 0}.gesture-guide{order:7;justify-content:space-between;margin:8px 0 0;padding:0 10px}.gesture-guide div>span:last-child{max-width:none;font-size:9px}.gesture-guide strong{font-size:11px}.gesture-symbol{font-size:25px}footer{padding:20px 0;font-size:7px;letter-spacing:.8px}.playing main{padding:17px 0 12px;gap:15px}.playing .intro{display:none}.playing .stage{height:calc(100svh - 238px);min-height:325px;max-height:720px}.playing .play-controls{order:4;gap:9px;justify-content:center}.playing .play-controls p{flex-basis:100%;font-size:11px;text-align:center}.control-buttons{gap:18px}.compact{padding:10px 20px}.playing footer{padding:15px 0}.playing .stage-title{font-size:20px}}
 @media(prefers-reduced-motion:reduce){.button,.capture-track div{transition:none}}
+
+/* The complete game, including its HUD, is fixed to the handset during play. */
+.game-shell{min-width:0}
+body.playing{position:fixed;inset:0;overflow:hidden;overscroll-behavior:none}
+.playing .app{max-width:none;padding:0}
+.playing .masthead,.playing .intro,.playing footer{display:none!important}
+.playing main{display:block;margin:0;padding:0}
+.playing .game-shell{--safe-edge:max(16px,env(safe-area-inset-top),env(safe-area-inset-right),env(safe-area-inset-bottom),env(safe-area-inset-left));position:fixed;left:50%;top:50%;width:var(--play-width,100vw);height:var(--play-height,100dvh);transform:translate(-50%,-50%) rotate(var(--play-rotation,0deg));transform-origin:center;z-index:10;overflow:hidden;background:var(--paper);touch-action:none;overscroll-behavior:none}
+.playing main .stage{width:100%;height:100%;min-height:0;max-height:none;border:0;border-radius:0}
+.playing canvas{touch-action:none}
+.playing .stage-top{left:var(--safe-edge);right:var(--safe-edge);top:var(--safe-edge)}
+.playing .stage-bottom{left:var(--safe-edge);right:var(--safe-edge);bottom:calc(125px + var(--safe-edge))}
+.playing .play-controls{position:absolute;left:var(--safe-edge);right:var(--safe-edge);bottom:var(--safe-edge);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;z-index:3;padding-top:12px;background:linear-gradient(transparent,#e9eddfcc 40%)}
+.playing .play-controls p{flex:0 0 auto;min-width:0;width:100%;font-size:11px;line-height:1.5;text-align:center}
+.playing .control-buttons{gap:10px;flex-wrap:wrap;justify-content:center}
+.playing .compact{min-height:44px;padding:10px 15px;font-size:12px;background:#f4f3ecb8;border-color:#bdc8ae;backdrop-filter:blur(8px)}
+.playing .sensor-notice{flex:0 0 auto!important;max-width:450px;font-size:10px!important}
+.playing .result-panel{padding-bottom:140px}
+@media(max-width:660px){.game-shell{order:3}.playing .game-shell .stage-title{font-size:23px}.playing .stage-bottom{bottom:calc(130px + var(--safe-edge))}.playing .control-buttons .text-button{padding:8px}}

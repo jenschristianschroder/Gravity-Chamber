@@ -9,9 +9,9 @@ Plain HTML, CSS, and JavaScript. No dependencies, build step, player accounts, A
 This repository contains the game at its root, with `index.html` alongside `styles.css`, `physics.js`, and `game.js`.
 
 1. Open the repository's **Settings → Pages**. Under **Build and deployment**, set **Source** to **GitHub Actions**.
-2. Push changes to `main`, or run **Test and deploy Gravity Chamber** from the **Actions** tab. The workflow checks JavaScript syntax, runs the automated tests, and deploys the five runtime files to Pages only if the checks pass.
+2. Push changes to `main`, or run **Test and deploy Gravity Chamber** from the **Actions** tab. The workflow checks JavaScript syntax, runs the automated tests, and deploys the static game files to Pages only if the checks pass.
 3. Once the deployment finishes, open the HTTPS address displayed in Pages settings on your phone. Enable **Enforce HTTPS** when available.
-4. Tap **Enable motion & play**, allow the browser's motion permission, and hold the phone still briefly.
+4. Tap **Enable motion & play**, allow the browser's motion permission, and hold the phone upright and still with its physical top edge up for about one second.
 
 Play at [jenschristianschroder.github.io/Gravity-Chamber/](https://jenschristianschroder.github.io/Gravity-Chamber/). GitHub Actions deploys updates from `main` after the checks pass.
 
@@ -26,7 +26,15 @@ Official instructions: [configure a Pages publishing source](https://docs.github
 - **Turn:** angular velocity and changes in angular velocity contribute rotating-frame effects on all three axes.
 - **Collect:** bring the orb into the amber beacon and slow it briefly. Six corners light up in sequence, including front, back, and upper corners.
 
-Keep hold of the phone; gentle motions are sufficient. The chamber has real depth, so bringing the orb toward the screen and sending it away from the screen both matter. Turn the phone in its plane to reach the upper corners. Automatic screen rotation adjusts the view without resetting the physical state.
+Keep hold of the phone; gentle motions are sufficient. The chamber has real depth, so bringing the orb toward the screen and sending it away from the screen both matter. Turn the phone in its plane to reach the upper corners. The chamber, camera, and controls stay fixed to the phone rather than rotating with the operating system's display orientation.
+
+## Fullscreen and orientation
+
+Gameplay fills the viewport, with the landing page hidden and controls over the chamber. Start requests native fullscreen and a `portrait-primary` orientation lock where supported. If fullscreen is available but the request fails, the in-game **Full screen** button can retry from a fresh tap.
+
+When orientation locking is unsupported, the entire game surface counter-rotates against the operating system's screen angle, with its layout dimensions swapped in landscape. The 3D camera and sensor coordinate frame never rotate in response to screen-orientation events. Exiting the game releases the native lock and fullscreen mode.
+
+On iPhone, Safari does not provide arbitrary-element fullscreen. Use **Share → Add to Home Screen**, then open the game from that icon for play without browser bars. The web app manifest and Apple standalone metadata support this mode. No account or server is needed; there is no service worker caching old versions.
 
 The desktop **Watch the demo** button supplies synthetic movement. It is a separate demonstration, does not access sensors, and does not save a personal best.
 
@@ -34,7 +42,7 @@ The desktop **Watch the demo** button supplies synthetic movement. It is a separ
 
 The simulation keeps a sphere inside six rigid walls, with dissipative collisions, contact friction, and mild damping. It advances at a fixed 120 Hz while rendering follows the display refresh rate. It does not require or promise sensor delivery at 120 Hz; it uses the latest filtered reading.
 
-`DeviceMotionEvent.accelerationIncludingGravity` is accelerometer specific force, `f = a_origin - g`. The chamber's translational apparent acceleration is therefore `-f`, including both gravity and phone acceleration. Gravity is not added a second time.
+The solver uses normalized accelerometer specific force, `f = a_origin - g`. Browser conventions differ: WebKit on iOS forwards Core Motion's gravity-inclusive readings with the opposite stationary gravity sign from the convention originally assumed here. During the initial known upright pose, the game measures and fixes the input polarity for that session. Subsequent acceleration readings on all three axes use that same polarity, even when the phone is inverted. The chamber's translational apparent acceleration is then `-f`; gravity is not added a second time.
 
 The complete approximate acceleration in the chamber frame is:
 
@@ -54,7 +62,7 @@ This design never integrates phone acceleration into a real-world phone position
 
 - Motion access is requested directly from the Start button when `requestPermission()` exists.
 - Motion needs HTTPS, a compatible browser, and finite acceleration readings on all three axes.
-- A short stationary sample can remove a small gyro bias. It does not subtract gravity or redefine which direction is down.
+- A short stationary, upright sample determines accelerometer polarity and can remove a small gyro bias. The top edge must point up during this step; flat or unstable readings wait for a valid pose. It does not subtract gravity or continuously reinterpret which direction is down.
 - Unavailable gyroscope readings are disclosed in the game. Gravity and linear movement can still work, but complete rotation effects require a functioning gyroscope.
 - Missing readings time out with recovery guidance. Interrupted readings and backgrounding pause the game.
 - Open the page directly in the phone browser; embedded and in-app browsers may restrict sensors.
@@ -67,7 +75,7 @@ Run the dependency-free Node tests with:
 node --test tests/*.test.cjs
 ```
 
-Sixteen automated checks cover all six wall directions, accelerometer signs, rotation-force directions, collision energy loss, numerical stability, permission denial, missing and stale sensor readings, pause/resume, and completion/replay of the six-beacon demo. HTML asset references and JavaScript syntax were also checked.
+Twenty-one automated checks cover all six wall directions, both phone accelerometer polarities, inversion after calibration, invalid calibration poses, rotation-force directions, collision energy loss, numerical stability, permission denial, missing and stale sensor readings, pause/resume, completion/replay of the demo, native fullscreen/lock cleanup, and the orientation fallback. HTML asset references, manifest, workflow, and JavaScript syntax were also checked.
 
 The GitHub Actions deployment passed all checks. The published desktop page was visually inspected, and demo startup, beacon collection, pause, resume, and exit were checked in the browser.
 
@@ -79,4 +87,6 @@ The GitHub Actions deployment passed all checks. The published desktop page was 
 - [MDN accelerationIncludingGravity](https://developer.mozilla.org/en-US/docs/Web/API/DeviceMotionEvent/accelerationIncludingGravity)
 - [MDN rotationRate](https://developer.mozilla.org/en-US/docs/Web/API/DeviceMotionEvent/rotationRate)
 - [MDN motion permission](https://developer.mozilla.org/en-US/docs/Web/API/DeviceMotionEvent/requestPermission_static)
+- [WebKit iOS motion implementation](https://github.com/WebKit/WebKit/blob/main/Source/WebCore/platform/ios/WebCoreMotionManager.mm)
+- [Apple standalone web app metadata](https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariHTMLRef/Articles/MetaTags.html)
 - [Cambridge: An introduction to inertial navigation](https://www.cl.cam.ac.uk/techreports/UCAM-CL-TR-696.html)

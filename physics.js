@@ -17,6 +17,16 @@
     const d=Math.PI/180;
     return [rate.alpha*d,rate.beta*d,rate.gamma*d];
   }
+  function calibrateAccelerometer(samples) {
+    // A known initial pose resolves opposite browser accelerometer conventions.
+    // Hold the phone still, portrait, with its physical top edge pointing up.
+    if(samples.length<8) return null;
+    const mean=[0,1,2].map(i=>samples.reduce((sum,v)=>sum+v[i],0)/samples.length);
+    const spread=Math.max(...samples.map(v=>length(v.map((x,i)=>x-mean[i]))));
+    if(length(mean)<8 || length(mean)>12 || Math.abs(mean[1])<6 || spread>.8) return null;
+    const polarity=mean[1]<0?-1:1;
+    return {polarity,force:mean.map(v=>v*polarity)};
+  }
   class Chamber {
     constructor() { this.bounds=[1.45,1.85,1.15];this.radius=.18;this.restitution=.3;this.friction=.16;this.reset(); }
     reset() { this.position=[0,-.2,0];this.velocity=[0,0,0]; }
@@ -45,7 +55,7 @@
       return impact;
     }
   }
-  const api={cross,length,limit,apparentAcceleration,rotationVector,Chamber};
+  const api={cross,length,limit,apparentAcceleration,rotationVector,calibrateAccelerometer,Chamber};
   root.GravityPhysics=api;
   if(typeof module!=='undefined' && module.exports) module.exports=api;
 })(globalThis);
