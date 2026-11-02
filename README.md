@@ -65,6 +65,10 @@ Gameplay requests fullscreen, portrait locking, and a screen wake lock where sup
 
 ## Presentation and performance
 
+Outside the course, a native-style app shell uses four destinations: Play, Worlds, Challenges, and Courier. Phone screens fill the viewport, with safe-area spacing, persistent navigation on the main destinations, fixed screen headers, independently scrolling content, and large controls. Secondary screens have a consistent back action.
+
+The little robot is the recurring identity on the home screen, every menu, calibration, pause, and results. Shared SVG artwork stays sharp and reflects the selected courier color, including a live preview in Courier. Small character animations and screen transitions respect reduced motion. App artwork is hidden during gameplay, and the 3D renderer stops drawing while the app screens cover it. Resuming or starting a run cuts the camera directly to the robot.
+
 The ceramic courier has a fitted visor, casing details, side pivots, an underside drive ring, and a lit rear battery panel. Track slabs have joints, edge lighting, maintenance hardware, exposed ends, and braces. Floating islands have layered rock, foliage, trees, and hanging vegetation. Lighting distinguishes ceramic, metal, and illuminated materials.
 
 All sound is synthesized with Web Audio after a user gesture: rolling, hopping, landing, collisions, cells, checkpoints, recovery, and completion. A remembered mute setting, master limiter, and bounded voices keep playback controllable. Sound pauses when play pauses.
@@ -85,7 +89,7 @@ Physics runs at 120 Hz. All accepted active frame time is simulated, with scorin
 - `run-renderer.js`: WebGL geometry, lighting, camera, robot pose, shadows, and effects.
 - `run-audio.js` / `run-guide.js`: synthesized audio and animated movement lessons.
 - `game.js`: menus, activities, permissions, run states, scoring, and browser integrations.
-- `index.html` / `styles.css`: responsive interface and accessible labels.
+- `index.html` / `styles.css` / `app-shell.css`: shared robot artwork, native-style app screens, course HUD, and accessible navigation.
 - `sw.js` / `manifest.webmanifest`: offline releases and installation.
 
 No package installation or build tool is required. Run checks with Node.js:

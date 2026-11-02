@@ -44,7 +44,7 @@ jobs:
       - name: Assemble static site
         run: |
           mkdir -p _site
-          cp index.html styles.css run-core.js run-journey.js run-progress.js run-share.js run-input.js run-audio.js run-renderer.js run-guide.js game.js sw.js manifest.webmanifest icon.svg icon-192.png icon-512.png icon-maskable-512.png apple-touch-icon.png social-card.png .nojekyll _site/
+          cp index.html styles.css app-shell.css run-core.js run-journey.js run-progress.js run-share.js run-input.js run-audio.js run-renderer.js run-guide.js game.js sw.js manifest.webmanifest icon.svg icon-192.png icon-512.png icon-maskable-512.png apple-touch-icon.png social-card.png .nojekyll _site/
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload static site

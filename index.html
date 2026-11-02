@@ -23,23 +23,49 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="stylesheet" href="styles.css?v=journey21">
+<link rel="stylesheet" href="app-shell.css?v=native1">
 <script src="run-core.js?v=journey21" defer></script>
 <script src="run-journey.js?v=journey21" defer></script>
 <script src="run-progress.js?v=journey21" defer></script>
 <script src="run-share.js?v=journey21" defer></script>
 <script src="run-input.js?v=journey21" defer></script>
 <script src="run-audio.js?v=journey21" defer></script>
-<script src="run-renderer.js?v=journey21" defer></script>
+<script src="run-renderer.js?v=native1" defer></script>
 <script src="run-guide.js?v=journey21" defer></script>
-<script src="game.js?v=journey21" defer></script>
+<script src="game.js?v=native1" defer></script>
 </head>
 <body>
 <main id="app">
+ <svg class="brand-sprite" xmlns="http://www.w3.org/2000/svg" width="0" height="0" aria-hidden="true" focusable="false"><defs>
+  <linearGradient id="brand-sky" x2="0" y2="1"><stop stop-color="#b8dce6"/><stop offset="1" stop-color="#d3e7dd"/></linearGradient>
+  <radialGradient id="brand-shell" cx="34%" cy="23%" r="79%"><stop stop-color="#fffef1"/><stop offset=".52" stop-color="#f4f8e9"/><stop offset="1" stop-color="#a5c5ba"/></radialGradient>
+  <linearGradient id="brand-visor" x2="0" y2="1"><stop stop-color="#28636a"/><stop offset="1" stop-color="#153d46"/></linearGradient>
+  <clipPath id="brand-body"><circle cx="256" cy="254" r="114"/></clipPath>
+ </defs><symbol id="courier-art" viewBox="96 42 320 340"> <path d="M256 144V96" stroke="#174b53" stroke-width="13" stroke-linecap="round"/>
+ <ellipse cx="256" cy="145" rx="23" ry="9" fill="#245a62"/>
+ <circle cx="256" cy="81" r="23" fill="#f77956"/>
+ <ellipse cx="250" cy="74" rx="9" ry="5" fill="#ffd397" opacity=".8"/>
+ <g fill="#2b666c" stroke="#174b53" stroke-width="4">
+  <ellipse cx="140" cy="254" rx="20" ry="35"/><ellipse cx="372" cy="254" rx="20" ry="35"/>
+ </g>
+ <g fill="#f77956"><ellipse cx="132" cy="254" rx="9" ry="24"/><ellipse cx="380" cy="254" rx="9" ry="24"/></g>
+ <circle cx="256" cy="254" r="114" fill="var(--courier-shell, url(#brand-shell))" stroke="#6d9d96" stroke-width="3"/>
+ <g clip-path="url(#brand-body)">
+  <path d="M135 226q121 31 242 0v66q-121 28-242 0z" fill="url(#brand-visor)"/>
+  <path d="M135 225q121 31 242 0m-242 68q121 28 242 0" fill="none" stroke="#457c7d" stroke-width="5"/>
+  <ellipse cx="256" cy="352" rx="65" ry="16" fill="#23545c"/>
+  <path d="M210 353q46 13 92 0" fill="none" stroke="#80e3be" stroke-width="5"/>
+ </g>
+ <g fill="#a4f6d5"><rect x="211" y="253" width="19" height="27" rx="9.5"/><rect x="282" y="253" width="19" height="27" rx="9.5"/></g>
+ <g fill="#f77956"><path d="m227 151 10-2-2 23-10 2z"/><path d="m277 149 10 2 2 23-10-2z"/></g>
+ <path d="M184 197q20-31 52-33" fill="none" stroke="#fffef5" stroke-opacity=".72" stroke-width="12" stroke-linecap="round"/>
+ <path d="M235 327h11m10 2h11m10-2h11" stroke="#739c95" stroke-width="5" stroke-linecap="round"/>
+</symbol></svg>
  <canvas id="world" aria-label="A third-person view of a rolling robot on a floating obstacle course."></canvas>
  <div class="vignette" aria-hidden="true"></div>
  <div id="feedback-wash" aria-hidden="true"></div>
  <header class="topbar">
-  <div class="wordmark"><span class="logo-orb" aria-hidden="true"></span>gravity<span>run</span></div>
+  <div class="wordmark"><svg class="robot-art brand-courier" viewBox="96 42 320 340" aria-hidden="true" focusable="false"><use href="#courier-art"/></svg><span class="logo-orb" aria-hidden="true"></span>gravity<span>run</span></div>
   <div id="edition" class="edition">A WORLD IN YOUR HANDS</div>
   <div class="top-controls">
   <div id="hud-stats" class="hud-stats" hidden>
@@ -55,31 +81,37 @@
   <div class="route-track"><div id="route-fill"></div><span id="route-marker-1"></span><span id="route-marker-2"></span><span id="route-marker-3"></span></div>
  </div>
  <section class="panel menu-panel" id="menu" aria-labelledby="title">
-  <div class="eyebrow"><span class="status-dot"></span><span id="course-label">COURSE 01 / SKYWAY</span></div>
-  <h1 id="title">Find your <br><em>flow.</em></h1>
-  <p class="intro">Tilt your phone to guide a little robot.<br>Find a faster line. Challenge a friend.</p>
-  <button id="choose-track" class="course-choice" aria-haspopup="dialog"><span><strong id="track-name">Skyway</strong><small id="track-difficulty">Easy · 1 / 6</small></span><span class="change-track">Change track ↗</span></button>
-  <p class="track-description" id="track-description">Find your balance above the coast.</p>
-  <div class="course-facts"><span id="course-distance">334 metres</span><span id="course-sections">6 sections</span><span id="course-cells">15 energy cells</span></div>
-  <button class="button primary" id="start">Play with motion <span aria-hidden="true">↗</span></button>
-  <div class="menu-secondary"><button id="demo" class="text-button">Watch a demo <span aria-hidden="true">▷</span></button><button id="how" class="text-button">How to move <span aria-hidden="true">?</span></button></div>
-  <button id="daily-play" class="daily-card"><span><small>THE DAILY FLIGHT</small><strong id="daily-name">Today’s short challenge</strong><span id="daily-record">A fresh route to master</span></span><span aria-hidden="true">↗</span></button>
-  <div class="menu-secondary"><button id="open-challenges" class="text-button">Quick challenges</button><button id="open-party" class="text-button">Pass the phone</button></div>
-  <div id="challenge-invite" class="invite-note" hidden></div>
-  <button id="back-campaign" class="text-button" hidden>Back to my campaign</button>
-  <p class="micro">Phone movement controls every run. Start with its top edge up.</p>
-  <p class="error" id="status" role="status" aria-live="polite"></p>
-  <p class="best" id="best"></p>
-  <p class="campaign-count" id="campaign-count">1 / 6 tracks unlocked</p>
+  <div class="home-layout">
+   <div class="home-welcome">
+    <div class="welcome-copy"><div class="eyebrow">A LITTLE ROBOT. A BIG ADVENTURE.</div><h1 id="title">Ready to<br><span>roll?</span></h1><p class="intro">Big skies. Small movements.</p></div>
+    <div class="mascot-scene"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="mascot-shadow"></div><svg class="robot-art home-robot" viewBox="96 42 320 340" aria-hidden="true" focusable="false"><use href="#courier-art"/></svg><span class="robot-speech">You tilt. I roll.</span><span class="scene-spark spark-one">✦</span><span class="scene-spark spark-two">✧</span></div>
+   </div>
+   <div class="home-actions">
+    <article class="launch-card">
+     <div class="eyebrow"><span class="status-dot"></span><span id="course-label">COURSE 01 / CAMPAIGN</span></div>
+     <button id="choose-track" class="course-choice" aria-haspopup="dialog"><span><strong id="track-name">Skyway</strong><small id="track-difficulty">Easy · 1 / 6</small></span><span class="change-track">Change <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></span></button>
+     <p class="track-description" id="track-description">Find your balance above the coast.</p>
+     <div class="course-facts"><span id="course-distance">334 metres</span><span id="course-sections">6 sections</span><span id="course-cells">15 energy cells</span></div>
+     <div id="challenge-invite" class="invite-note" hidden></div>
+     <button class="button primary" id="start">Start run</button><p class="best" id="best"></p>
+     <button id="back-campaign" class="text-button" hidden>Back to my campaign</button>
+    </article>
+    <button id="daily-play" class="daily-card"><span class="daily-symbol" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 3h8v7a4 4 0 0 1-8 0zM8 5H4v3a4 4 0 0 0 4 4m8-7h4v3a4 4 0 0 1-4 4m-4 2v6m-4 1h8"/></svg></span><span><small>THE DAILY FLIGHT</small><strong id="daily-name">Today’s short challenge</strong><span id="daily-record">A fresh route to master</span></span><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
+    <div class="home-tiles"><button id="open-challenges"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m13 2-9 12h7l-1 8 10-13h-7z"/></svg><span><strong>A quick run</strong><small>Find a new challenge</small></span></button><button id="open-party"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="8" cy="7" r="3"/><path d="M2 21v-3a6 6 0 0 1 12 0v3m2-17a3 3 0 0 1 0 6m2 5a5 5 0 0 1 4 5"/></svg><span><strong>Play together</strong><small>Pass the phone</small></span></button></div>
+    <div class="home-tools"><button id="demo" class="text-button">Watch a demo</button><button id="how" class="text-button">Learn the moves</button></div>
+    <p class="campaign-count" id="campaign-count">1 / 6 tracks unlocked</p><p class="error" id="status" role="status" aria-live="polite"></p>
+   </div>
+  </div>
  </section>
- <section class="panel center-panel" id="calibrating" hidden aria-labelledby="calibration-title">
-  <div class="phone-icon" aria-hidden="true">↟</div><div class="eyebrow">FINDING YOUR BALANCE</div>
+ <nav class="hub-nav" id="app-nav" aria-label="Main navigation"><button id="home-nav-play" aria-current="page"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m9 5 11 7-11 7z"/></svg><span>Play</span></button><button id="home-nav-worlds"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15m6-12v15"/></svg><span>Worlds</span></button><button id="home-nav-challenges"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 3h8v7a4 4 0 0 1-8 0zM8 5H4v3a4 4 0 0 0 4 4m8-7h4v3a4 4 0 0 1-4 4m-4 2v6m-4 1h8"/></svg><span>Challenges</span></button><button id="home-nav-courier"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="4" y="6" width="16" height="14" rx="7"/><path d="M12 6V3m-9 8H1m20 0h2M8 12h.1m7.9 0h.1M9 16h6"/></svg><span>Courier</span></button></nav>
+ <section class="panel center-panel" id="calibrating" hidden aria-labelledby="calibration-title"><div class="state-content">
+  <div class="mascot-emblem balance-bot"><svg class="robot-art " viewBox="96 42 320 340" aria-hidden="true" focusable="false"><use href="#courier-art"/></svg></div><div class="eyebrow">GETTING IN SYNC</div>
   <h2 id="calibration-title">Find your balance.</h2><p id="calibration-copy">Hold your phone comfortably, with its top edge up. Stay still for about one second.</p>
   <div class="calibration-loader" role="progressbar" id="calibration-progress" aria-label="Calibration readiness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="calibration-fill"></span></div>
   <p id="calibration-status" role="status">Waiting for motion readings…</p>
   <button class="text-button" id="cancel-calibration">Back to start</button>
- </section>
- <section class="panel center-panel" id="countdown" hidden aria-labelledby="countdown-title"><div class="eyebrow">YOUR PHONE IS READY</div><h2 id="countdown-title">Ready to roll.</h2><div id="ready-number" class="ready-number">1</div><p id="ready-caption">Hold your starting angle. Small tilts are enough.</p></section>
+ </div></section>
+ <section class="panel center-panel" id="countdown" hidden aria-labelledby="countdown-title"><div class="state-content"><div class="mascot-emblem ready-bot"><svg class="robot-art " viewBox="96 42 320 340" aria-hidden="true" focusable="false"><use href="#courier-art"/></svg></div><div class="eyebrow">LET’S DO THIS</div><h2 id="countdown-title">Ready to roll.</h2><div id="ready-number" class="ready-number">1</div><p id="ready-caption">Hold your starting angle. Small tilts are enough.</p></div></section>
  <div class="bottom-hud" id="bottom-hud" hidden>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <div class="driving-hint" id="hint">Tilt forward to roll. Lean to steer.</div>
@@ -88,8 +120,8 @@
   <div class="bottom-row"><span class="checkpoint" id="checkpoint">CHECKPOINT 1 / 4</span><div class="game-buttons"><button id="fullscreen" class="glass-button" hidden>Full screen</button><button id="pause" class="glass-button">Pause</button></div><span class="speed" id="speed">0 km/h</span></div>
  </div>
  <div class="training-status" id="training-status" hidden><strong id="training-step"></strong><span id="training-goal"></span><div class="tilt-meter" aria-hidden="true"><i id="tilt-dot"></i></div><button id="skip-training" class="text-button">Skip practice</button></div>
- <section class="panel center-panel" id="paused" hidden aria-labelledby="pause-title">
-  <div class="eyebrow">A MOMENT OF STILLNESS</div><h2 id="pause-title">Take a breath.</h2>
+ <section class="panel center-panel" id="paused" hidden aria-labelledby="pause-title"><div class="state-content">
+  <div class="mascot-emblem pause-bot"><svg class="robot-art " viewBox="96 42 320 340" aria-hidden="true" focusable="false"><use href="#courier-art"/></svg><span class="robot-speech">I’ll wait here.</span></div><div class="eyebrow">PAUSED</div><h2 id="pause-title">Take a breath.</h2>
   <p id="pause-message">The course will be right here.</p>
   <button id="resume" class="button primary">Keep rolling <span aria-hidden="true">↗</span></button>
   <button id="restart-pause" class="button secondary">Restart course</button>
@@ -97,9 +129,9 @@
   <button id="open-practice" class="text-button">Practise a section</button>
   <button id="pause-how" class="text-button">How to move</button>
   <button id="exit-pause" class="text-button">Back to start</button>
- </section>
- <section class="panel center-panel finish-panel" id="finish" hidden aria-labelledby="finish-title">
-  <div class="finish-orb" aria-hidden="true">✦</div><div id="finish-kicker" class="eyebrow">COURSE COMPLETE</div>
+ </div></section>
+ <section class="panel center-panel finish-panel" id="finish" hidden aria-labelledby="finish-title"><div class="state-content">
+  <div class="mascot-emblem finish-bot"><svg class="robot-art " viewBox="96 42 320 340" aria-hidden="true" focusable="false"><use href="#courier-art"/></svg><span class="celebrate-star">✦</span><span class="celebrate-star small">✧</span></div><div id="finish-kicker" class="eyebrow">COURSE COMPLETE</div>
   <h2 id="finish-title">You found<br>your flow.</h2>
   <div id="finish-time" class="finish-time">01:06.0</div>
   <div class="finish-stats"><div><strong id="finish-energy">0 / 15</strong><span>ENERGY CELLS</span></div><div><strong id="finish-falls">0</strong><span>RECOVERIES</span></div></div>
@@ -115,9 +147,9 @@
   <button id="party-next" class="button primary" hidden>Next player</button>
   <div id="keep-game" class="keep-game" hidden><p>Keep Gravity Run close. Play offline after your first visit.</p><button id="install-finish" class="text-button">Add to Home Screen</button></div>
   <div class="finish-navigation"><button id="finish-tracks" class="text-button">Choose track</button><button id="exit-finish" class="text-button">Back to start</button></div>
- </section>
- <dialog id="help" class="guide-dialog" aria-labelledby="help-title">
-  <button id="close-help" class="close" aria-label="Close instructions">×</button>
+ </div></section>
+ <dialog id="help" class="guide-dialog" aria-labelledby="help-title"><header class="screen-header"><button id="close-help" class="close" aria-label="Close instructions"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 12H5m6-6-6 6 6 6"/></svg></button><div class="screen-caption"><strong>Flight school</strong><span>How to move</span></div><div class="screen-avatar"><svg class="robot-art " viewBox="96 42 320 340" aria-hidden="true" focusable="false"><use href="#courier-art"/></svg></div></header><div class="screen-body">
+  
   <div class="eyebrow">YOUR PHONE IS THE CONTROLLER</div><h2 id="help-title">Watch. Tilt. Roll.</h2>
   <p class="guide-intro">See the movement, then make it your own. Start with your phone upright and its top edge up.</p>
   <div class="guide-lessons" role="group" aria-label="Choose a movement">
@@ -175,42 +207,42 @@
   <p class="micro">Gameplay fills the screen and stays fixed to your phone. On iPhone: Safari → Share → Add to Home Screen, then launch from the new icon. Sensor readings stay on your device.</p>
   </details>
   <button id="help-done" class="button primary">Ready to roll <span aria-hidden="true">↗</span></button>
- </dialog>
- <dialog id="tracks" class="tracks-dialog" aria-labelledby="tracks-title">
-  <button id="close-tracks" class="close" aria-label="Close track selector">×</button>
-  <div class="eyebrow">SIX WORLDS / ONE JOURNEY</div><h2 id="tracks-title">Find your next challenge.</h2>
+ </div></dialog>
+ <dialog id="tracks" class="tracks-dialog" aria-labelledby="tracks-title"><header class="screen-header"><button id="close-tracks" class="close" aria-label="Close track selector"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 12H5m6-6-6 6 6 6"/></svg></button><div class="screen-caption"><strong>Worlds</strong><span>Choose your course</span></div><div class="screen-avatar"><svg class="robot-art " viewBox="96 42 320 340" aria-hidden="true" focusable="false"><use href="#courier-art"/></svg></div></header><div class="screen-body">
+  
+  <div class="eyebrow">SIX WORLDS / ONE JOURNEY</div><h2 id="tracks-title">Six worlds to explore.</h2>
   <p class="tracks-intro">Finish each track to unlock the next. Preview any course before you play.</p>
   <div class="track-list">
-   <button id="track-0" class="track-option" aria-pressed="true"><span class="track-number">01</span><span class="track-info"><strong>Skyway <small>Easy</small></strong><span>Wide turns, a skybridge, and your first jump.</span><span id="track-record-0" class="track-record">Ready to roll</span></span><span id="track-status-0" class="track-status">Unlocked</span></button>
-   <button id="track-1" class="track-option" aria-pressed="false"><span class="track-number">02</span><span class="track-info"><strong>Seabreeze <small>Steady</small></strong><span>Longer bridges and three moving gates.</span><span id="track-record-1" class="track-record"></span></span><span id="track-status-1" class="track-status">Locked · preview</span></button>
-   <button id="track-2" class="track-option" aria-pressed="false"><span class="track-number">03</span><span class="track-info"><strong>Switchback <small>Tricky</small></strong><span>Tight hairpins and two committed jumps.</span><span id="track-record-2" class="track-record"></span></span><span id="track-status-2" class="track-status">Locked · preview</span></button>
-   <button id="track-3" class="track-option" aria-pressed="false"><span class="track-number">04</span><span class="track-info"><strong>Cloudspire <small>Hard</small></strong><span>A rising corkscrew and thinner crossings.</span><span id="track-record-3" class="track-record"></span></span><span id="track-status-3" class="track-status">Locked · preview</span></button>
-   <button id="track-4" class="track-option" aria-pressed="false"><span class="track-number">05</span><span class="track-info"><strong>Fracture <small>Expert</small></strong><span>Three broken causeways. Five fast gates.</span><span id="track-record-4" class="track-record"></span></span><span id="track-status-4" class="track-status">Locked · preview</span></button>
-   <button id="track-5" class="track-option" aria-pressed="false"><span class="track-number">06</span><span class="track-info"><strong>Eventide <small>Master</small></strong><span>Four leaps. Six gates. Find your perfect line.</span><span id="track-record-5" class="track-record"></span></span><span id="track-status-5" class="track-status">Locked · preview</span></button>
+   <button id="track-0" class="track-option" aria-pressed="true"><span class="track-number"><svg viewBox="0 0 72 52" aria-hidden="true"><path d="M9 42c0-23 38-3 38-24S21 4 63 8"/></svg><b>01</b></span><span class="track-info"><strong>Skyway <small>Easy</small></strong><span>Wide turns, a skybridge, and your first jump.</span><span id="track-record-0" class="track-record">Ready to roll</span></span><span id="track-status-0" class="track-status">Unlocked</span></button>
+   <button id="track-1" class="track-option" aria-pressed="false"><span class="track-number"><svg viewBox="0 0 72 52" aria-hidden="true"><path d="M7 44 7 20c0-15 20-15 20 0s25 15 25-4V5"/></svg><b>02</b></span><span class="track-info"><strong>Seabreeze <small>Steady</small></strong><span>Longer bridges and three moving gates.</span><span id="track-record-1" class="track-record"></span></span><span id="track-status-1" class="track-status">Locked · preview</span></button>
+   <button id="track-2" class="track-option" aria-pressed="false"><span class="track-number"><svg viewBox="0 0 72 52" aria-hidden="true"><path d="M6 43h37c18 0 18-15 0-15H25c-18 0-18-15 0-15h37"/></svg><b>03</b></span><span class="track-info"><strong>Switchback <small>Tricky</small></strong><span>Tight hairpins and two committed jumps.</span><span id="track-record-2" class="track-record"></span></span><span id="track-status-2" class="track-status">Locked · preview</span></button>
+   <button id="track-3" class="track-option" aria-pressed="false"><span class="track-number"><svg viewBox="0 0 72 52" aria-hidden="true"><path d="M5 45c0-18 51-18 51-32S17-4 17 12s50 20 50 35"/></svg><b>04</b></span><span class="track-info"><strong>Cloudspire <small>Hard</small></strong><span>A rising corkscrew and thinner crossings.</span><span id="track-record-3" class="track-record"></span></span><span id="track-status-3" class="track-status">Locked · preview</span></button>
+   <button id="track-4" class="track-option" aria-pressed="false"><span class="track-number"><svg viewBox="0 0 72 52" aria-hidden="true"><path d="M6 43 18 29m8-8L38 9m8 3 12 12m-8 11L35 47"/></svg><b>05</b></span><span class="track-info"><strong>Fracture <small>Expert</small></strong><span>Three broken causeways. Five fast gates.</span><span id="track-record-4" class="track-record"></span></span><span id="track-status-4" class="track-status">Locked · preview</span></button>
+   <button id="track-5" class="track-option" aria-pressed="false"><span class="track-number"><svg viewBox="0 0 72 52" aria-hidden="true"><path d="M7 44 25 8l18 36L61 8"/></svg><b>06</b></span><span class="track-info"><strong>Eventide <small>Master</small></strong><span>Four leaps. Six gates. Find your perfect line.</span><span id="track-record-5" class="track-record"></span></span><span id="track-status-5" class="track-status">Locked · preview</span></button>
   </div>
- </dialog>
- <dialog id="settings" class="settings-dialog" aria-labelledby="settings-title">
-  <button id="close-settings" class="close" aria-label="Close settings">×</button><div class="eyebrow">MAKE IT YOURS</div><h2 id="settings-title">Your way to roll.</h2>
+ </div><nav class="hub-nav" aria-label="Main navigation"><button id="tracks-nav-play"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m9 5 11 7-11 7z"/></svg><span>Play</span></button><button id="tracks-nav-worlds" aria-current="page"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15m6-12v15"/></svg><span>Worlds</span></button><button id="tracks-nav-challenges"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 3h8v7a4 4 0 0 1-8 0zM8 5H4v3a4 4 0 0 0 4 4m8-7h4v3a4 4 0 0 1-4 4m-4 2v6m-4 1h8"/></svg><span>Challenges</span></button><button id="tracks-nav-courier"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="4" y="6" width="16" height="14" rx="7"/><path d="M12 6V3m-9 8H1m20 0h2M8 12h.1m7.9 0h.1M9 16h6"/></svg><span>Courier</span></button></nav></dialog>
+ <dialog id="settings" class="settings-dialog" aria-labelledby="settings-title"><header class="screen-header"><button id="close-settings" class="close" aria-label="Close settings"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 12H5m6-6-6 6 6 6"/></svg></button><div class="screen-caption"><strong>Courier</strong><span>Make it yours</span></div><div class="screen-avatar"><svg class="robot-art " viewBox="96 42 320 340" aria-hidden="true" focusable="false"><use href="#courier-art"/></svg></div></header><div class="screen-body">
+  <div class="eyebrow">MAKE IT YOURS</div><h2 id="settings-title">Meet your co-pilot.</h2><div class="courier-showcase" id="courier-preview"><div class="courier-platform"></div><svg class="robot-art " viewBox="96 42 320 340" aria-hidden="true" focusable="false"><use href="#courier-art"/></svg><span id="courier-name">Ivory courier</span></div>  <p id="mastery-count">Earn mastery marks to unlock colors.</p>
+  <div class="appearance-list" role="group" aria-label="Courier color"><button id="color-ivory" data-color="ivory">Ivory</button><button id="color-coral" data-color="coral">Coral</button><button id="color-mint" data-color="mint">Mint</button><button id="color-sky" data-color="sky">Sky</button><button id="color-gold" data-color="gold">Gold</button></div>
+<h3 class="group-label">How you roll</h3><div class="settings-group">
   <label class="setting-row" for="sensitivity">Motion sensitivity<select id="sensitivity"><option value="gentle">Gentle</option><option value="balanced">Balanced</option><option value="responsive">Responsive</option></select></label>
   <label class="check-row"><input id="advanced-controls" type="checkbox"><span>Twist boosts &amp; directional nudges<small>Optional advanced movements. Hopping always works.</small></span></label>
   <label class="check-row"><input id="expert-mode" type="checkbox"><span>Expert checkpoints<small>Fewer recovery points. Separate records. Applies to the next campaign run.</small></span></label>
   <label class="setting-row" for="graphics-quality">Graphics<select id="graphics-quality"><option value="auto">Auto</option><option value="eco">Battery saver</option><option value="balanced">Balanced</option><option value="high">High detail</option></select></label>
   <label class="check-row"><input id="show-ghost" type="checkbox" checked><span>Race my best ghost<small>Stored on this device. No collision with the ghost.</small></span></label>
-  <h3>Your courier</h3><p id="mastery-count">Earn mastery marks to unlock colors.</p>
-  <div class="appearance-list" role="group" aria-label="Courier color"><button id="color-ivory" data-color="ivory">Ivory</button><button id="color-coral" data-color="coral">Coral</button><button id="color-mint" data-color="mint">Mint</button><button id="color-sky" data-color="sky">Sky</button><button id="color-gold" data-color="gold">Gold</button></div>
-  <div class="settings-actions"><button id="learn-controls" class="button secondary">Play flight school</button><button id="export-progress" class="text-button">Export my progress</button><button id="import-progress" class="text-button">Import a backup</button><input id="backup-file" type="file" accept="application/json,.json" hidden></div>
+  </div><h3 class="group-label">Your game</h3><div class="settings-actions"><button id="learn-controls" class="button secondary">Play flight school</button><button id="export-progress" class="text-button">Export my progress</button><button id="import-progress" class="text-button">Import a backup</button><input id="backup-file" type="file" accept="application/json,.json" hidden></div>
   <p class="micro">Progress stays in this browser. Import merges achievements and keeps your best times. Shared challenges are friendly, unverified competition.</p>
   <button id="install-settings" class="text-button">Keep on my Home Screen</button><p id="offline-status" class="micro" role="status">Checking offline availability…</p><button id="update-game" class="button secondary" hidden>Update &amp; reload</button><p id="settings-status" role="status"></p>
- </dialog>
- <dialog id="challenges" class="challenges-dialog" aria-labelledby="challenges-title">
-  <button id="close-challenges" class="close" aria-label="Close challenges">×</button><div class="eyebrow">A SMALL CHALLENGE. ONE MORE TRY.</div><h2 id="challenges-title">Find your next flight.</h2>
+ </div><nav class="hub-nav" aria-label="Main navigation"><button id="settings-nav-play"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m9 5 11 7-11 7z"/></svg><span>Play</span></button><button id="settings-nav-worlds"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15m6-12v15"/></svg><span>Worlds</span></button><button id="settings-nav-challenges"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 3h8v7a4 4 0 0 1-8 0zM8 5H4v3a4 4 0 0 0 4 4m8-7h4v3a4 4 0 0 1-4 4m-4 2v6m-4 1h8"/></svg><span>Challenges</span></button><button id="settings-nav-courier" aria-current="page"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="4" y="6" width="16" height="14" rx="7"/><path d="M12 6V3m-9 8H1m20 0h2M8 12h.1m7.9 0h.1M9 16h6"/></svg><span>Courier</span></button></nav></dialog>
+ <dialog id="challenges" class="challenges-dialog" aria-labelledby="challenges-title"><header class="screen-header"><button id="close-challenges" class="close" aria-label="Close challenges"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 12H5m6-6-6 6 6 6"/></svg></button><div class="screen-caption"><strong>Challenges</strong><span>One more flight</span></div><div class="screen-avatar"><svg class="robot-art " viewBox="96 42 320 340" aria-hidden="true" focusable="false"><use href="#courier-art"/></svg></div></header><div class="screen-body">
+  <div class="eyebrow">A SMALL CHALLENGE. ONE MORE TRY.</div><h2 id="challenges-title">Make it a good run.</h2>
   <h3>The daily archive</h3><p>One course for everyone. Changes at 00:00 UTC. Replay any of the last seven days.</p>
   <div class="daily-list"><button id="day-0"></button><button id="day-1"></button><button id="day-2"></button><button id="day-3"></button><button id="day-4"></button><button id="day-5"></button><button id="day-6"></button></div>
   <h3>Quick challenges</h3><p>Available to everyone. These runs keep separate records and do not unlock the campaign.</p>
   <div class="quick-list"><button id="challenge-0"></button><button id="challenge-1"></button><button id="challenge-2"></button><button id="challenge-3"></button><button id="challenge-4"></button><button id="challenge-5"></button></div>
- </dialog>
- <dialog id="practice" aria-labelledby="practice-title"><button id="close-practice" class="close" aria-label="Close practice">×</button><div class="eyebrow">BUILD YOUR CONFIDENCE</div><h2 id="practice-title">One section at a time.</h2><p>Practice runs do not change campaign records or unlocks.</p><div class="quick-list"><button id="practice-0"></button><button id="practice-1"></button><button id="practice-2"></button><button id="practice-3"></button><button id="practice-4"></button><button id="practice-5"></button></div></dialog>
- <dialog id="party" aria-labelledby="party-title"><button id="close-party" class="close" aria-label="Close pass-the-phone challenge">×</button><div class="eyebrow">SAME PHONE. SAME COURSE.</div><h2 id="party-title">Pass the phone.</h2><p>Two players. Three runs each on today’s challenge. Your fastest run counts. Each player finds their own starting angle.</p><label class="setting-row" for="player-one">Player one<input id="player-one" maxlength="18" value="Player 1"></label><label class="setting-row" for="player-two">Player two<input id="player-two" maxlength="18" value="Player 2"></label><button id="start-party" class="button primary">Start the friendly rivalry ↗</button><p class="micro">These results stay here and do not replace personal records.</p></dialog>
+ </div><nav class="hub-nav" aria-label="Main navigation"><button id="challenges-nav-play"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m9 5 11 7-11 7z"/></svg><span>Play</span></button><button id="challenges-nav-worlds"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15m6-12v15"/></svg><span>Worlds</span></button><button id="challenges-nav-challenges" aria-current="page"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 3h8v7a4 4 0 0 1-8 0zM8 5H4v3a4 4 0 0 0 4 4m8-7h4v3a4 4 0 0 1-4 4m-4 2v6m-4 1h8"/></svg><span>Challenges</span></button><button id="challenges-nav-courier"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="4" y="6" width="16" height="14" rx="7"/><path d="M12 6V3m-9 8H1m20 0h2M8 12h.1m7.9 0h.1M9 16h6"/></svg><span>Courier</span></button></nav></dialog>
+ <dialog id="practice" aria-labelledby="practice-title"><header class="screen-header"><button id="close-practice" class="close" aria-label="Close practice"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 12H5m6-6-6 6 6 6"/></svg></button><div class="screen-caption"><strong>Practice</strong><span>Find your rhythm</span></div><div class="screen-avatar"><svg class="robot-art " viewBox="96 42 320 340" aria-hidden="true" focusable="false"><use href="#courier-art"/></svg></div></header><div class="screen-body"><div class="eyebrow">BUILD YOUR CONFIDENCE</div><h2 id="practice-title">One section at a time.</h2><p>Practice runs do not change campaign records or unlocks.</p><div class="quick-list"><button id="practice-0"></button><button id="practice-1"></button><button id="practice-2"></button><button id="practice-3"></button><button id="practice-4"></button><button id="practice-5"></button></div></div></dialog>
+ <dialog id="party" aria-labelledby="party-title"><header class="screen-header"><button id="close-party" class="close" aria-label="Close pass-the-phone challenge"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 12H5m6-6-6 6 6 6"/></svg></button><div class="screen-caption"><strong>Play together</strong><span>A little friendly rivalry</span></div><div class="screen-avatar"><svg class="robot-art " viewBox="96 42 320 340" aria-hidden="true" focusable="false"><use href="#courier-art"/></svg></div></header><div class="screen-body"><div class="eyebrow">SAME PHONE. SAME COURSE.</div><h2 id="party-title">Pass the phone.</h2><p>Two players. Three runs each on today’s challenge. Your fastest run counts. Each player finds their own starting angle.</p><label class="setting-row" for="player-one">Player one<input id="player-one" maxlength="18" value="Player 1"></label><label class="setting-row" for="player-two">Player two<input id="player-two" maxlength="18" value="Player 2"></label><button id="start-party" class="button primary">Start the friendly rivalry ↗</button><p class="micro">These results stay here and do not replace personal records.</p></div></dialog>
 </main>
 </body>
 </html>

@@ -39,7 +39,7 @@ function trackUI(){
  $('track-description').textContent=activity==='campaign'?track.description:activity==='training'?'Four small steps. Find your balance.':'A short flight. Everyone can take part.';
  $('campaign-count').textContent=progress.unlocked+' / 6 tracks unlocked · '+progress.marks()+' mastery marks';
  $('course-distance').textContent=Math.round(course.total)+' metres';$('course-sections').textContent=course.sections.length+' sections';$('course-cells').textContent=course.cells.length+' energy cells';
- $('start').textContent=!open?'Finish '+G.TRACKS[Math.max(0,selected-1)].name+' to unlock':!progress.tutorialDone&&activity!=='party'?'Learn & play ↗':activity==='challenge'?'Take the challenge ↗':'Play with motion ↗';
+ $('start').textContent=!open?'Finish '+G.TRACKS[Math.max(0,selected-1)].name+' to unlock':!progress.tutorialDone&&activity!=='party'?'Learn to play':activity==='challenge'?'Accept challenge':'Start run';
  $('start').disabled=!renderer||!open;$('demo').disabled=!renderer;$('demo').textContent=open?'Watch a demo ▷':'Preview this track ▷';
  $('best').textContent=[r?(r.legacy?'Previous rules · ':'Your best · ')+time(r.time)+(r.medal?' · '+J.MEDALS[r.medal]:'' ):'',!progress.saved?'Progress is kept for this session only.':''].filter(Boolean).join(' · ');
  $('challenge-invite').hidden=activity!=='challenge';$('challenge-invite').textContent=challenge?.target?'Your friend’s target: '+time(challenge.target)+'. Same course, same rules. Beat it and send a rematch.':challenge?.day?'Today’s route is the same for everyone. Your best result is saved on this device.':'A short course, open to everyone. Campaign unlocks stay separate.';
@@ -77,8 +77,9 @@ function leaveFullscreen(){
 }
 function ui(){
  document.body.classList.toggle('active',state!=='menu');
+ document.body.classList.toggle('playing',state==='playing');$('app-nav').hidden=state!=='menu';
  $('menu').hidden=state!=='menu';$('calibrating').hidden=state!=='waiting';$('countdown').hidden=state!=='ready';$('paused').hidden=state!=='paused';$('finish').hidden=state!=='finished';
- const hud=['playing','paused','finished'].includes(state);$('hud-stats').hidden=!hud;$('route-hud').hidden=!hud;$('bottom-hud').hidden=state!=='playing';$('edition').hidden=state!=='menu';
+ const hud=state==='playing';$('hud-stats').hidden=!hud;$('route-hud').hidden=!hud;$('bottom-hud').hidden=state!=='playing';$('edition').hidden=state!=='menu';
  $('training-status').hidden=activity!=='training'||state!=='playing';$('recenter').hidden=mode==='demo';$('open-practice').hidden=activity==='training'||activity==='party';
  $('open-settings').hidden=state==='waiting'||state==='ready';display();trackUI();soundUI();hudUpdate();
 }
@@ -115,7 +116,7 @@ function menu(message=''){
 }
 function begin(){
  if(!recentering){run.reset();run.externalClock=true;baseline=record();recorder=new J.Recorder();if(activity==='training')training=new J.Training();}
- recentering=false;if(renderer)renderer.resetEffects();state='playing';accumulator=0;lastFrame=0;lastHUD=-Infinity;motion.clearImpulses();void wake.set(true);sound.play('start');
+ recentering=false;if(renderer){renderer.resetEffects();renderer.cameraCut=true;}state='playing';accumulator=0;lastFrame=0;lastHUD=-Infinity;motion.clearImpulses();void wake.set(true);sound.play('start');
  run.event=mode==='demo'?'Demo running · your phone is not controlling this run':activity==='party'?party.players[party.turn%2].name+' · run '+(Math.floor(party.turn/2)+1)+' / 3':'Motion ready · tilt forward to roll';run.flash=3;ui();
 }
 function onMotion(event){
@@ -205,6 +206,9 @@ function openChallenges(){
 }
 function settingsUI(){
  $('learn-controls').disabled=!renderer;$('start-party').disabled=!renderer;
+ const appearance=J.APPEARANCES.find(a=>a.id===settings.appearance)||J.APPEARANCES[0];
+ $('courier-name').textContent=appearance.name+' courier';
+ $('app').style.setProperty('--courier-shell',({ivory:'url(#brand-shell)',coral:'#f1c7b5',mint:'#b8ebcc',sky:'#bbdcec',gold:'#f0d992'})[appearance.id]);
  $('sensitivity').value=settings.sensitivity;$('advanced-controls').checked=settings.advanced;$('expert-mode').checked=settings.expert;$('graphics-quality').value=settings.quality;$('show-ghost').checked=settings.ghost;
  $('mastery-count').textContent=progress.marks()+' mastery marks. Medals, clean runs, and all-cells badges unlock colors.';
  for(const a of J.APPEARANCES){const b=$('color-'+a.id),open=progress.appearanceUnlocked(a.id);b.disabled=!open;b.setAttribute('aria-pressed',String(a.id===settings.appearance));b.setAttribute('title',open?a.name:a.description);b.textContent=a.name+(open?'':' · '+a.need);}
@@ -212,6 +216,12 @@ function settingsUI(){
 function changeSettings(){
  settings.sensitivity=$('sensitivity').value;settings.advanced=$('advanced-controls').checked;settings.expert=$('expert-mode').checked;settings.quality=$('graphics-quality').value;settings.ghost=$('show-ghost').checked;progress.save();
  if(state==='menu'&&activity==='campaign')prepare(new G.Course(selected,{expert:settings.expert}));settingsUI();trackUI();
+}
+function openHub(destination){
+ for(const id of ['tracks','challenges','settings'])if($(id).open)$(id).close();
+ if(destination==='worlds'){trackUI();$('tracks').showModal();}
+ else if(destination==='challenges')openChallenges();
+ else if(destination==='courier'){settingsUI();$('settings').showModal();}
 }
 function install(){
  if(installPrompt){void installPrompt.prompt();installPrompt=null;}
@@ -243,6 +253,7 @@ function frame(timestamp){
  sound.update(run,state==='playing');
  if(timestamp-lastHUD>100){hudUpdate();lastHUD=timestamp;}
  if(renderer){
+  renderer.sceneVisible=state==='playing';
   renderer.pixelRatio=quality.update(raw,settings.quality,state==='playing');renderer.appearance=J.APPEARANCES.find(a=>a.id===settings.appearance)?.color||[1,1,1];
   run.trainingStage=activity==='training'?training?.stage:null;
   if(state!=='menu'||timestamp-lastRender>50){renderer.render(run,dt,state!=='menu',state==='playing'||state==='finished');lastRender=timestamp;}
@@ -250,6 +261,7 @@ function frame(timestamp){
  requestAnimationFrame(frame);
 }
 $('start').addEventListener('click',play);$('demo').addEventListener('click',startDemo);
+for(const origin of ['home','tracks','challenges','settings'])for(const destination of ['play','worlds','challenges','courier'])$(origin+'-nav-'+destination).addEventListener('click',()=>openHub(destination));
 $('sound-toggle').addEventListener('click',()=>{sound.setEnabled(sound.failed||!sound.enabled);soundUI();if(sound.enabled)void sound.unlock().then(ok=>{soundUI();if(ok)sound.play('ui');});});
 $('cancel-calibration').addEventListener('click',()=>menu());$('pause').addEventListener('click',()=>pause());$('resume').addEventListener('click',resume);
 $('restart-pause').addEventListener('click',()=>mode==='demo'?startDemo():startMotion());$('recenter').addEventListener('click',()=>void startMotion({fresh:true,recenter:true}));

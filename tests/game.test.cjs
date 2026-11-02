@@ -96,3 +96,12 @@ test('animated instructions open without WebGL and can be viewed during a paused
  f.click('pause-how');assert.ok(f.guide.opened);f.frame(100);assert.equal(f.run.elapsed,elapsed);
  f.click('help-done');assert.equal(f.guide.opened,false);assert.equal(f.elements.paused.hidden,false);
 });
+test('app navigation switches one screen at a time and settings preserve a paused attempt',()=>{
+ const f=fixture();f.click('home-nav-worlds');assert.ok(f.elements.tracks.open);
+ f.click('tracks-nav-challenges');assert.equal(f.elements.tracks.open,false);assert.ok(f.elements.challenges.open);
+ f.click('challenges-nav-courier');assert.equal(f.elements.challenges.open,false);assert.ok(f.elements.settings.open);
+ f.click('settings-nav-play');assert.equal(f.elements.settings.open,false);assert.equal(f.elements.menu.hidden,false);
+ f.click('demo');f.frame();assert.equal(f.elements['app-nav'].hidden,true);assert.equal(f.document.body.classList.playing,true);
+ f.click('open-settings');const elapsed=f.run.elapsed;assert.equal(f.elements.paused.hidden,false);assert.equal(f.document.body.classList.playing,false);
+ f.frame(200);assert.equal(f.run.elapsed,elapsed);f.click('close-settings');assert.equal(f.elements.paused.hidden,false);f.click('resume');f.frame();assert.ok(f.run.elapsed>elapsed);
+});

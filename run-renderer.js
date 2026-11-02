@@ -330,6 +330,7 @@ class Renderer{
   return batch(parts);
  }
  render(run,dt,active,animate=active){
+  if(this.sceneVisible===false)return;
   const gl=this.gl,canvas=this.canvas,dpr=Math.min(root.devicePixelRatio||1,this.pixelRatio||2),width=Math.max(1,canvas.clientWidth),height=Math.max(1,canvas.clientHeight);
   if(canvas.width!==Math.round(width*dpr)||canvas.height!==Math.round(height*dpr)){canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);}
   gl.viewport(0,0,canvas.width,canvas.height);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.useProgram(this.program);
