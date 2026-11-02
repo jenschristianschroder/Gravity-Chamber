@@ -11,6 +11,7 @@ let renderer,rendererError='',state='menu',mode='motion',activity='campaign',cha
 let listener=false,session=0,immersive=false,displaySession=0,permissionGranted=false,recentering=false,readyAt=0;
 let accumulator=0,lastFrame=0,lastHUD=-Infinity,waitingSince=0,lastRender=0,baseline=null,recorder=null,nextAction=null,shareSpec=null,shareBlob=null,shareGeneration=0;
 let installPrompt=null,registration=null,reloadForUpdate=false;
+let carouselDrag=null,carouselDragged=false;
 const quickSections=[3,2,1,3,4,4];
 const hints=['Tilt forward to roll. Lean left or right to steer.','Ease into the bends. Tilt back to slow down.','Small movements. Keep the robot on the bridge.','Aim for the moving opening. Slow down to line it up.','Build speed, then nudge upward just before the gap.','Follow the spiral. The finish is just ahead.'];
 const time=S.formatTime,now=()=>performance.now();
@@ -39,8 +40,9 @@ function trackUI(){
  $('track-description').textContent=activity==='campaign'?track.description:activity==='training'?'Four small steps. Find your balance.':'A short flight. Everyone can take part.';
  $('campaign-count').textContent=progress.unlocked+' / 6 tracks unlocked · '+progress.marks()+' mastery marks';
  $('course-distance').textContent=Math.round(course.total)+' metres';$('course-sections').textContent=course.sections.length+' sections';$('course-cells').textContent=course.cells.length+' energy cells';
- $('start').textContent=!open?'Finish '+G.TRACKS[Math.max(0,selected-1)].name+' to unlock':!progress.tutorialDone&&activity!=='party'?'Learn to play':activity==='challenge'?'Accept challenge':'Start run';
- $('start').disabled=!renderer||!open;$('demo').disabled=!renderer;$('demo').textContent=open?'Watch a demo ▷':'Preview this track ▷';
+ $('start').textContent=!open?'Locked':!progress.tutorialDone&&activity!=='party'?'Learn to play':activity==='challenge'?'Accept challenge':'Start run';
+ $('start').disabled=!renderer||!open;$('start').classList.toggle('locked',!open);$('demo').disabled=!renderer;$('demo').textContent='Preview';
+ $('course-lock-note').hidden=open;$('course-lock-note').textContent=open?'':'Finish '+G.TRACKS[Math.max(0,selected-1)].name+' to unlock.';
  $('best').textContent=[r?(r.legacy?'Previous rules · ':'Your best · ')+time(r.time)+(r.medal?' · '+J.MEDALS[r.medal]:'' ):'',!progress.saved?'Progress is kept for this session only.':''].filter(Boolean).join(' · ');
  $('challenge-invite').hidden=activity!=='challenge';$('challenge-invite').textContent=challenge?.target?'Your friend’s target: '+time(challenge.target)+'. Same course, same rules. Beat it and send a rematch.':challenge?.day?'Today’s route is the same for everyone. Your best result is saved on this device.':'A short course, open to everyone. Campaign unlocks stay separate.';
  $('back-campaign').hidden=activity==='campaign';
@@ -52,11 +54,47 @@ function trackUI(){
   b.classList.toggle('selected',activity==='campaign'&&i===selected);b.classList.toggle('locked',!unlocked);b.setAttribute('aria-pressed',String(activity==='campaign'&&i===selected));
   $('track-status-'+i).textContent=best&&!best.legacy?(J.MEDALS[best.medal]+(best.clean?' · Clean':'')+(best.allCells?' · All cells':'')):best?'Completed':unlocked?'Unlocked':'Locked · preview';
   $('track-record-'+i).textContent=best?(best.legacy?'Previous rules ':'Best ')+time(best.time):unlocked?'Ready to roll':'Finish '+G.TRACKS[Math.max(0,i-1)].name+' first';
+  const card=$('carousel-track-'+i),dot=$('carousel-dot-'+i),current=i===selected;
+  card.classList.toggle('selected',current);card.classList.toggle('locked',!unlocked);card.setAttribute('aria-pressed',String(current));card.setAttribute('aria-hidden',String(!current));card.setAttribute('tabindex',current?'0':'-1');
+  card.setAttribute('aria-label',G.TRACKS[i].name+', '+G.TRACKS[i].level+', '+(unlocked?'unlocked':'locked'));
+  dot.setAttribute('aria-pressed',String(current));dot.setAttribute('aria-label','Select '+G.TRACKS[i].name+(unlocked?'':', locked'));
+  $('carousel-state-'+i).textContent=!unlocked?'Locked':best&&!best.legacy&&best.medal?J.MEDALS[best.medal]:'Ready';
  }
+ $('campaign-carousel').hidden=activity!=='campaign';$('special-course').hidden=activity==='campaign';
+ $('track-reel').style.setProperty('--page',selected);$('carousel-prev').disabled=selected===0;$('carousel-next').disabled=selected===G.TRACKS.length-1;
+ $('carousel-announcement').textContent=G.TRACKS[selected].name+', track '+(selected+1)+' of '+G.TRACKS.length;
+}
+function carouselSelect(index){
+ if(state!=='menu'||activity!=='campaign'||index<0||index>=G.TRACKS.length||index===selected)return;
+ selectTrack(index);
+}
+function carouselReset(){
+ carouselDrag=null;$('track-reel').classList.toggle('dragging',false);$('track-reel').style.setProperty('--drag-x','0px');
+}
+function carouselPointerDown(event){
+ if(state!=='menu'||activity!=='campaign'||event.isPrimary===false||event.button!==undefined&&event.button!==0)return;
+ carouselDragged=false;carouselDrag={id:event.pointerId,x:event.clientX,y:event.clientY,dx:0,horizontal:false,width:$('carousel-window').clientWidth||320};
+}
+function carouselPointerMove(event){
+ const drag=carouselDrag;if(!drag||event.pointerId!==drag.id)return;
+ const dx=event.clientX-drag.x,dy=event.clientY-drag.y;
+ if(!drag.horizontal){
+  if(Math.max(Math.abs(dx),Math.abs(dy))<8)return;
+  if(Math.abs(dy)>Math.abs(dx)){carouselReset();return;}
+  drag.horizontal=true;carouselDragged=true;$('track-reel').classList.toggle('dragging',true);$('carousel-window').setPointerCapture?.(event.pointerId);
+ }
+ event.preventDefault();drag.dx=dx;
+ const resistance=(selected===0&&dx>0||selected===G.TRACKS.length-1&&dx<0)?.2:1;
+ $('track-reel').style.setProperty('--drag-x',Math.max(-drag.width,Math.min(drag.width,dx*resistance))+'px');
+}
+function carouselPointerUp(event){
+ const drag=carouselDrag;if(!drag||event.pointerId!==drag.id)return;
+ const next=drag.horizontal&&Math.abs(drag.dx)>Math.min(55,drag.width*.16)?selected+(drag.dx<0?1:-1):selected;
+ carouselReset();carouselSelect(next);
 }
 function selectTrack(index){
  if(!progress.select(index))return;selected=index;party=null;training=null;trainingReturn=null;prepare(new G.Course(index,{expert:settings.expert}));state='menu';setURL();
- $('status').textContent=rendererError||(progress.isUnlocked(index)?'':'Finish the previous track to unlock campaign play. You can preview it now.');ui();
+ $('status').textContent=rendererError;ui();
 }
 function chooseChallenge(spec,type='challenge'){
  training=null;prepare(J.makeCourse(spec),type,spec);state='menu';$('status').textContent=rendererError;setURL(J.encode(spec));ui();
@@ -176,12 +214,12 @@ function finish(){
  if(scored&&!progress.saved)note+=' Saving is unavailable; export your progress before leaving.';
  $('finish-note').textContent=note;
  nextAction=null;
- if(activity==='training'){nextAction=()=>returnFromTraining();$('next-track').textContent='Start the course ↗';}
- else if(activity==='practice'){nextAction=()=>{selectTrack(selected);void startMotion();};$('next-track').textContent='Back to my campaign ↗';}
- else if(activity==='campaign'&&mode==='motion'&&selected<5&&progress.isUnlocked(selected+1)){nextAction=()=>{selectTrack(selected+1);void startMotion();};$('next-track').textContent='Next: '+G.TRACKS[selected+1].name+' ↗';}
+ if(activity==='training'){nextAction=()=>returnFromTraining();$('next-track').textContent='Start the course';}
+ else if(activity==='practice'){nextAction=()=>{selectTrack(selected);void startMotion();};$('next-track').textContent='Back to my campaign';}
+ else if(activity==='campaign'&&mode==='motion'&&selected<5&&progress.isUnlocked(selected+1)){nextAction=()=>{selectTrack(selected+1);void startMotion();};$('next-track').textContent='Next: '+G.TRACKS[selected+1].name+'';}
  $('next-track').hidden=!nextAction;
  $('again').hidden=activity==='training'||activity==='party'||mode==='demo'&&activity==='campaign'&&!progress.isUnlocked(selected);
- $('again').textContent=mode==='demo'?'Play with motion ↗':challenge?.target?'Retry the challenge ↻':scored?goal.label+' ↻':'Practise again ↻';
+ $('again').textContent=mode==='demo'?'Play with motion':challenge?.target?'Retry the challenge':scored?goal.label+'':'Practise again';
  $('again').classList.toggle('secondary',!!nextAction);$('again').classList.toggle('primary',!nextAction);
  $('party-results').hidden=activity!=='party'||mode==='demo';$('party-next').hidden=activity!=='party'||mode==='demo';$('share-result').hidden=!scored&&!(activity==='party'&&mode==='motion');$('share-options').hidden=true;$('share-status').textContent='';
  if(activity==='party'&&party&&mode==='motion'){
@@ -191,7 +229,7 @@ function finish(){
   party.turn++;$('party-next').hidden=party.turn>=6;
   $('finish-kicker').textContent=party.turn>=6?'FRIENDLY RIVALRY COMPLETE':'PASS THE PHONE';
   $('finish-note').textContent=party.turn>=6?(standings[0].best===standings[1].best?'A tie!':standings[0].name+' takes this round.')+' Start another rivalry from the menu.':party.players[party.turn%2].name+' is next. Find a comfortable starting angle.';
-  $('party-next').textContent=party.turn<6?'Next: '+party.players[party.turn%2].name+' ↗':'';
+  $('party-next').textContent=party.turn<6?'Next: '+party.players[party.turn%2].name+'':'';
  }
  shareSpec=scored||activity==='party'&&mode==='motion'?{...(challenge||{track:selected,section:null,expert:course.expert}),target:run.elapsed}:null;shareBlob=null;
  if(shareSpec){const generation=++shareGeneration;S.card(document,{name:course.track.name,time:run.elapsed,medal:J.MEDALS[rank],cells:run.collected,falls:run.falls}).then(blob=>{if(generation===shareGeneration)shareBlob=blob;});$('share-link').value=S.challengeURL(shareSpec);}
@@ -261,6 +299,14 @@ function frame(timestamp){
  requestAnimationFrame(frame);
 }
 $('start').addEventListener('click',play);$('demo').addEventListener('click',startDemo);
+$('carousel-prev').addEventListener('click',()=>carouselSelect(selected-1));$('carousel-next').addEventListener('click',()=>carouselSelect(selected+1));
+for(let i=0;i<G.TRACKS.length;i++){
+ $('carousel-dot-'+i).addEventListener('click',()=>carouselSelect(i));
+ $('carousel-track-'+i).addEventListener('click',()=>{if(carouselDragged){carouselDragged=false;return;}carouselSelect(i);});
+}
+$('campaign-carousel').addEventListener('keydown',event=>{const index=event.key==='ArrowLeft'?selected-1:event.key==='ArrowRight'?selected+1:event.key==='Home'?0:event.key==='End'?G.TRACKS.length-1:null;if(index!==null){event.preventDefault();carouselSelect(index);}});
+$('carousel-window').addEventListener('pointerdown',carouselPointerDown);$('carousel-window').addEventListener('pointermove',carouselPointerMove);
+$('carousel-window').addEventListener('pointerup',carouselPointerUp);$('carousel-window').addEventListener('pointercancel',carouselReset);
 for(const origin of ['home','tracks','challenges','settings'])for(const destination of ['play','worlds','challenges','courier'])$(origin+'-nav-'+destination).addEventListener('click',()=>openHub(destination));
 $('sound-toggle').addEventListener('click',()=>{sound.setEnabled(sound.failed||!sound.enabled);soundUI();if(sound.enabled)void sound.unlock().then(ok=>{soundUI();if(ok)sound.play('ui');});});
 $('cancel-calibration').addEventListener('click',()=>menu());$('pause').addEventListener('click',()=>pause());$('resume').addEventListener('click',resume);

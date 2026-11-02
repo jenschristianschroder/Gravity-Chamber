@@ -105,3 +105,33 @@ test('app navigation switches one screen at a time and settings preserve a pause
  f.click('open-settings');const elapsed=f.run.elapsed;assert.equal(f.elements.paused.hidden,false);assert.equal(f.document.body.classList.playing,false);
  f.frame(200);assert.equal(f.run.elapsed,elapsed);f.click('close-settings');assert.equal(f.elements.paused.hidden,false);f.click('resume');f.frame();assert.ok(f.run.elapsed>elapsed);
 });
+test('the track carousel selects, persists, and previews every course without bypassing locks',()=>{
+ const saved=new Map(),f=fixture({saved});assert.equal(f.elements['carousel-prev'].disabled,true);
+ f.click('carousel-next');assert.equal(f.elements['track-name'].textContent,'Seabreeze');assert.equal(f.elements.start.disabled,true);
+ assert.equal(f.elements['carousel-dot-1']['aria-pressed'],'true');assert.equal(f.elements['carousel-track-1'].tabindex,'0');
+ assert.equal(f.elements['course-lock-note'].textContent,'Finish Skyway to unlock.');assert.equal(f.elements.status.textContent,'');
+ f.click('carousel-dot-5');assert.equal(f.elements['carousel-next'].disabled,true);assert.equal(f.elements['track-name'].textContent,'Eventide');
+ const reload=fixture({saved});assert.equal(reload.elements['track-name'].textContent,'Eventide');assert.equal(reload.elements.start.disabled,true);
+ reload.click('demo');reload.frame();assert.equal(reload.run.course.index,5);
+ f.click('carousel-dot-0');assert.equal(f.elements.start.disabled,false);assert.equal(f.elements['course-lock-note'].hidden,true);
+});
+test('horizontal swipes select a track while vertical scrolling, cancelled drags, and boundary swipes do not',()=>{
+ const f=fixture(),surface=f.elements['carousel-window'],event=(x,y)=>({pointerId:1,button:0,isPrimary:true,clientX:x,clientY:y,preventDefault(){}});
+ surface.handlers.pointerdown(event(220,100));surface.handlers.pointermove(event(120,103));surface.handlers.pointerup(event(120,103));
+ assert.equal(f.elements['track-name'].textContent,'Seabreeze');assert.equal(f.elements['track-reel'].style['--drag-x'],'0px');
+ f.click('carousel-track-0');assert.equal(f.elements['track-name'].textContent,'Seabreeze','A drag must not select the card under the released pointer');
+ surface.handlers.pointerdown(event(200,100));surface.handlers.pointermove(event(190,200));surface.handlers.pointerup(event(190,200));
+ assert.equal(f.elements['track-name'].textContent,'Seabreeze');
+ surface.handlers.pointerdown(event(220,100));surface.handlers.pointermove(event(100,100));surface.handlers.pointercancel();
+ assert.equal(f.elements['track-name'].textContent,'Seabreeze');assert.equal(f.elements['track-reel'].style['--drag-x'],'0px');
+ f.click('carousel-dot-0');surface.handlers.pointerdown(event(100,100));surface.handlers.pointermove(event(240,100));surface.handlers.pointerup(event(240,100));
+ assert.equal(f.elements['track-name'].textContent,'Skyway');
+});
+test('carousel keyboard controls work without motion support and preserve incoming challenges',()=>{
+ const f=fixture({webgl:false});f.elements['campaign-carousel'].handlers.keydown({key:'End',preventDefault(){}});
+ assert.equal(f.elements['track-name'].textContent,'Eventide');assert.equal(f.elements['carousel-dot-5']['aria-pressed'],'true');
+ f.elements['campaign-carousel'].handlers.keydown({key:'Home',preventDefault(){}});assert.equal(f.elements['track-name'].textContent,'Skyway');
+ const incoming=fixture({hash:'#c=2~3~full~n~60000~'});assert.equal(incoming.elements['campaign-carousel'].hidden,true);assert.equal(incoming.elements['special-course'].hidden,false);
+ incoming.click('carousel-dot-1');assert.equal(incoming.elements['track-name'].textContent,'Cloudspire');
+ incoming.click('back-campaign');assert.equal(incoming.elements['campaign-carousel'].hidden,false);assert.equal(incoming.elements['special-course'].hidden,true);
+});
