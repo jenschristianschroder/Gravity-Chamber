@@ -32,7 +32,7 @@ test('renderer uploads finite geometry and draws the course at phone and desktop
  };
  const c=new G.Course(),run=new G.Run(c),canvas={clientWidth:390,clientHeight:844,width:0,height:0,getContext:()=>gl};
  const renderer=new R.Renderer(canvas,c);renderer.render(run,1/60,false);
- assert.deepEqual(viewport,[390,844]);assert.equal(uploads,10);assert.ok(draws>8&&draws<80);
+ assert.deepEqual(viewport,[390,844]);assert.equal(uploads,11);assert.ok(draws>8&&draws<80);
  assert.deepEqual(matrices.get(renderer.robotShell.buffer),matrices.get(renderer.robotTrim.buffer));
  assert.deepEqual(matrices.get(renderer.robotShell.buffer),matrices.get(renderer.robotLights.buffer));
  assert.ok(drawn.includes(renderer.disc.buffer));
@@ -46,7 +46,7 @@ test('renderer uploads finite geometry and draws the course at phone and desktop
  assert.deepEqual(viewport,[1280,720]);assert.ok(renderer.eye.every(Number.isFinite));
  for(let i=0;i<6;i++){
   const next=new G.Course(i),player=new G.Run(next);renderer.setCourse(next);
-  assert.equal(liveBuffers.size,10,'changing tracks releases the previous scene buffers');
+  assert.equal(liveBuffers.size,11,'changing tracks releases the previous scene buffers');
   assert.ok([...liveBuffers].reduce((sum,b)=>sum+b.count*40,0)<12*1024*1024,'geometry must stay below the 12 MiB GPU buffer budget');
   for(let s=5;s<next.total;s+=30){
    player.place(s);renderer.cameraCut=true;renderer.render(player,1/60,true);
@@ -83,6 +83,14 @@ test('jump shadows soften with height and stay within narrow edges',()=>{
  r.position=r.position.map((v,i)=>v+q.right[i]*(q.width-.12));
  const edge=R.contactShadow(r);assert.ok(edge);assert.ok(edge.radius<.12);assert.ok(edge.alpha<ground.alpha);
  r.position[1]+=7;assert.equal(R.contactShadow(r),null);
+});
+test('shadows follow banked surfaces and remain clipped to the moving platform',()=>{
+ const r=new G.Run(new G.Course(4));r.place(r.course.sections[5].s+14);const q=r.surface;
+ r.position=r.position.map((v,i)=>v+q.right[i]*.5+(i===1?q.bank*.5:0));const bank=R.contactShadow(r);assert.ok(bank);assert.ok(Math.abs(bank.matrix[1])>.01);
+ r.position[1]-=1;assert.equal(R.contactShadow(r),null);
+ const p=r.course.platformAt(0,0);r.position=[p.p[0],p.p[1]+r.radius,p.p[2]];r.surface=r.course.surfaceAt(r.position,p.index,0);
+ const platform=R.contactShadow(r);assert.ok(platform);assert.ok(Math.hypot(platform.matrix[8],platform.matrix[10])<p.length/2);
+ r.position[1]-=1;assert.equal(R.contactShadow(r),null);
 });
 test('the shadow follows ramp slope and stops before the launch gap',()=>{
  const r=new G.Run();r.place(r.course.gapStart-4);const shadow=R.contactShadow(r),q=r.surface;

@@ -24,12 +24,15 @@ function calibrate(samples){
  const polarity=mean[1]<0?-1:1,g=mean.map(x=>x*polarity);
  return {polarity,pitch:Math.atan2(g[2],g[1]),roll:Math.atan2(g[0],g[1])};
 }
-function motionControls(gravity,rotation,calibration){
+function motionControls(gravity,rotation,calibration,options={}){
  const g=gravity.map(v=>v*calibration.polarity);
+ const sensitivity=({gentle:.75,balanced:1,responsive:1.25})[options.sensitivity]||1;
+ const dead=.022,axis=(angle,gain)=>Math.sign(angle)*clamp((Math.max(0,Math.abs(angle)-dead))*gain*sensitivity,-1,1);
  return {
-  throttle:clamp((Math.atan2(g[2],g[1])-calibration.pitch)*2.4,-1,1),
-  steer:clamp(-(Math.atan2(g[0],g[1])-calibration.roll)*2.2,-1,1),
-  turn:clamp((rotation.beta||0)/100,-1,1)
+  throttle:axis(Math.atan2(g[2],g[1])-calibration.pitch,2.55),
+  steer:axis(-(Math.atan2(g[0],g[1])-calibration.roll),2.35),
+  // gamma is rotation about the phone's bottom-to-top (Y) axis.
+  turn:options.advanced===false?0:clamp((rotation.gamma||0)/100*sensitivity,-1,1)
  };
 }
 function displayLayout(width,height,angle){
@@ -37,10 +40,33 @@ function displayLayout(width,height,angle){
  return {width:q?height:width,height:q?width:height,rotation:-a||0};
 }
 class Course{
- constructor(trackIndex=0){
+ constructor(trackIndex=0,options={}){
   this.index=Number.isInteger(trackIndex)?clamp(trackIndex,0,TRACKS.length-1):0;this.track=TRACKS[this.index];
   this.points=[];this.sections=[];this.gates=[];this.gaps=[];this.checkpoints=[];this.cells=[];
-  if(this.index){this.buildAdvanced();return;}
+  this.expert=!!options.expert;this.routes=[];this.platforms=[];
+  if(this.index)this.buildAdvanced();else this.buildSkyway();
+  this.expertCheckpoints=this.checkpoints.map(cp=>({...cp}));
+  if(!this.expert)this.addCheckpoints();
+  this.addVariety();
+ }
+ addCheckpoints(){
+  const candidates=[...this.checkpoints,...this.sections.slice(1).map(section=>({s:section.s+2,label:section.name}))];
+  for(let s=60;s<this.total-12;s+=60){const gap=this.gaps.find(g=>s>g.start-10&&s<g.end+5);candidates.push({s:gap?gap.end+6:s,label:'Rest point'});}
+  this.checkpoints=[];
+  for(const cp of candidates.sort((a,b)=>a.s-b.s))if(!this.at(cp.s).gap&&(!this.checkpoints.length||cp.s-this.checkpoints[this.checkpoints.length-1].s>10))this.checkpoints.push(cp);
+ }
+ addVariety(){
+  if(this.index===1||this.index===4){
+   const start=this.sections[this.index===1?4:5].s+1,end=start+(this.index===1?52:43),a=this.at(start),b=this.at(end),n=Math.ceil(len(sub(b.p,a.p))/.85),points=[];
+   for(let i=0;i<=n;i++){const t=i/n;points.push({p:a.p.map((v,k)=>mix(v,b.p[k],t)),s:mix(start,end,t),width:i<3||i>n-3?mix(1.1,2,Math.max(0,1-Math.min(i,n-i)/3)):1.1,section:a.section,gap:false,bank:0});}
+   this.routes.push({id:'shortcut',start,end,points,first:a.index,last:b.index});
+   this.sections[a.section].hint='Gold edges mark a narrow shortcut. The wide route is safer.';
+   const cell=this.cells.find(c=>c.s>start+10&&c.s<end-8);if(cell){cell.route='shortcut';cell.offset=0;}
+  }
+  if(this.index===4){this.platforms.push({gap:1,width:1.3,length:2.4,amplitude:.9,speed:.75,phase:.6});this.sections[3].hint='A drifting platform can break up the first gap. Watch its timing.';}
+  if(this.index===5&&!this.expert)this.sections[3].hint='A new rest point. Settle your balance before the next jumps.';
+ }
+ buildSkyway(){
   const add=(p,width,section,gap=false)=>{const prev=this.points[this.points.length-1];this.points.push({p,width,section,gap,s:prev?prev.s+Math.hypot(p[0]-prev.p[0],p[2]-prev.p[2]):0});};
   const bezier=(a,b,c,d,width,section,gap=false)=>{
    const estimate=len(sub(a,b))+len(sub(b,c))+len(sub(c,d)),n=Math.ceil(estimate/1.1);
@@ -77,7 +103,7 @@ class Course{
  buildAdvanced(){
   const level=this.index,t=this.track;let p=[0,6,0],heading=0,section=0;
   const distance=()=>this.points.length?this.points[this.points.length-1].s:0;
-  const add=(position,width,gap=false)=>{const previous=this.points[this.points.length-1];this.points.push({p:position,width,section,gap,s:previous?previous.s+Math.hypot(position[0]-previous.p[0],position[2]-previous.p[2]):0});};
+  const add=(position,width,gap=false,bank=0)=>{const previous=this.points[this.points.length-1];this.points.push({p:position,width,section,gap,bank,s:previous?previous.s+Math.hypot(position[0]-previous.p[0],position[2]-previous.p[2]):0});};
   const prepare=(width,gap)=>{if(!this.points.length)add(p.slice(),width,gap);else{const last=this.points[this.points.length-1];last.section=section;last.gap=gap;}};
   const line=(length,dy=0,width=2.8,gap=false)=>{
    prepare(width,gap);const start=p.slice(),n=Math.ceil(length);
@@ -86,7 +112,7 @@ class Course{
   };
   const arc=(degrees,radius,dy=0,width=2.6)=>{
    prepare(width,false);const start=p.slice(),angle=degrees*Math.PI/180,sign=Math.sign(angle),initial=heading,n=Math.ceil(Math.abs(angle)*radius);
-   for(let i=1;i<=n;i++){const u=i/n,a=initial+angle*u;add([start[0]+radius*sign*(Math.cos(initial)-Math.cos(a)),start[1]+dy*u,start[2]+radius*sign*(Math.sin(a)-Math.sin(initial))],width);}
+   for(let i=1;i<=n;i++){const u=i/n,a=initial+angle*u;add([start[0]+radius*sign*(Math.cos(initial)-Math.cos(a)),start[1]+dy*u,start[2]+radius*sign*(Math.sin(a)-Math.sin(initial))],width,false,level>=3?-sign*Math.sin(Math.PI*u)*.07:0);}
    p=this.points[this.points.length-1].p.slice();heading+=angle;
   };
   const mark=(name,hint)=>{section=this.sections.length;this.sections.push({name,hint,s:distance()});};
@@ -146,10 +172,15 @@ class Course{
   while(lo<hi){const m=Math.ceil((lo+hi)/2);if(this.points[m].s<=s)lo=m;else hi=m-1;}
   return this.segment(lo,clamp((s-this.points[lo].s)/(this.points[lo+1].s-this.points[lo].s||1),0,1));
  }
- segment(i,t){
-  const a=this.points[i],b=this.points[i+1],dx=b.p[0]-a.p[0],dz=b.p[2]-a.p[2],horizontal=Math.hypot(dx,dz)||1;
+ segment(i,t,points=this.points){
+  const a=points[i],b=points[i+1],dx=b.p[0]-a.p[0],dz=b.p[2]-a.p[2],horizontal=Math.hypot(dx,dz)||1;
   const tangent=[dx/horizontal,0,dz/horizontal];
-  return {p:a.p.map((v,k)=>mix(v,b.p[k],t)),width:mix(a.width,b.width,t),section:a.section,gap:a.gap,s:mix(a.s,b.s,t),index:i,tangent,right:[tangent[2],0,-tangent[0]],slope:(b.p[1]-a.p[1])/horizontal};
+  return {p:a.p.map((v,k)=>mix(v,b.p[k],t)),width:mix(a.width,b.width,t),bank:mix(a.bank||0,b.bank||0,t),section:a.section,gap:a.gap,s:mix(a.s,b.s,t),index:i,tangent,right:[tangent[2],0,-tangent[0]],slope:(b.p[1]-a.p[1])/horizontal};
+ }
+ routeAt(s,id){
+  const route=this.routes?.find(r=>r.id===id&&s>=r.start&&s<=r.end);if(!route)return this.at(s);
+  const points=route.points;let i=0;while(i<points.length-2&&points[i+1].s<s)i++;
+  const q=this.segment(i,clamp((s-points[i].s)/(points[i+1].s-points[i].s),0,1),points);q.index=this.at(q.s).index;q.route=id;return q;
  }
  closest(p,hint){
   let best=null,min=Infinity;
@@ -161,29 +192,56 @@ class Course{
   }
   best.offset=dot(sub(p,best.p),best.right);return best;
  }
+ surfaceAt(p,hint,time=0){
+  let best=this.closest(p,hint),distance=len(sub([p[0],0,p[2]],[best.p[0],0,best.p[2]]));
+  for(const route of this.routes||[]){
+   if(hint<route.first-8||hint>route.last+8)continue;
+   for(let i=0;i<route.points.length-1;i++){
+    const a=route.points[i],b=route.points[i+1],dx=b.p[0]-a.p[0],dz=b.p[2]-a.p[2],t=clamp(((p[0]-a.p[0])*dx+(p[2]-a.p[2])*dz)/(dx*dx+dz*dz||1),0,1),q=this.segment(i,t,route.points);
+    const rel=sub(p,q.p),d=Math.hypot(rel[0],rel[2]);q.offset=dot(rel,q.right);
+    const inside=Math.abs(q.offset)<q.width&&Math.abs(dot(rel,q.tangent))<.6,bestInside=!best.gap&&Math.abs(best.offset)<best.width;
+    if((inside&&!bestInside)||(inside===bestInside&&d<distance)){q.index=this.at(q.s).index;q.route=route.id;best=q;distance=d;}
+   }
+  }
+  for(let i=0;i<(this.platforms||[]).length;i++){
+   const platform=this.platformAt(i,time),rel=sub(p,platform.p),along=dot(rel,platform.tangent),offset=dot(rel,platform.right);
+   if(Math.abs(along)<=platform.length/2&&Math.abs(offset)<platform.width&&p[1]>platform.p[1]-.5&&best.gap){
+    return {...platform,p:platform.p.map((v,k)=>v+platform.tangent[k]*along),s:platform.s+along,offset,platformAlong:along,platformId:i};
+   }
+  }
+  return best;
+ }
+ platformAt(index,time){
+  const platform=this.platforms[index],gap=this.gaps[platform.gap],q=this.at((gap.start+gap.end)/2),offset=Math.sin(time*platform.speed+platform.phase)*platform.amplitude;
+  return {...q,p:q.p.map((v,k)=>v+q.right[k]*offset+(k===1?-.15:0)),width:platform.width,length:platform.length,slope:0,bank:0,gap:false,platform:true};
+ }
  gateCenter(gate,time){const q=this.at(gate.s);return Math.sin(time*this.track.gateSpeed+gate.phase)*Math.max(0,q.width-this.track.opening-.45);}
- cellPosition(cell){const q=this.at(cell.s);return [q.p[0]+q.right[0]*cell.offset,q.p[1]+.8,q.p[2]+q.right[2]*cell.offset];}
+ cellPosition(cell){const q=this.routeAt(cell.s,cell.route);return [q.p[0]+q.right[0]*cell.offset,q.p[1]+.8+cell.offset*q.bank,q.p[2]+q.right[2]*cell.offset];}
 }
 class Run{
  constructor(course=new Course()){this.course=course;this.radius=.44;this.reset();}
  reset(){
   this.elapsed=0;this.time=0;this.falls=0;this.collected=0;this.checkpoint=0;this.maxProgress=2;this.finished=false;
-  this.event='';this.eventKind='';this.events=[];this.flash=0;this.jumpCooldown=0;this.gateCooldown=0;
+  this.event='';this.eventKind='';this.events=[];this.flash=0;this.jumpCooldown=0;this.nudgeCooldown=0;this.jumpBuffer=0;this.coyote=0;this.gateCooldown=0;
+  this.splits=[];this.lastSplit=null;this.sectionFalls={};this.recording=[];this.ghost=null;this.platformId=null;
   this.course.cells.forEach(c=>c.taken=false);this.place(2);
  }
  place(s){const q=this.course.at(s);this.position=[q.p[0],q.p[1]+this.radius,q.p[2]];this.velocity=[0,0,0];this.hint=q.index;this.grounded=true;this.falling=false;this.progress=q.s;this.surface=q;this.yaw=Math.atan2(q.tangent[0],q.tangent[2]);this.pose={pitch:0,roll:0,twist:0};}
  emit(type,details={}){this.events.push({type,position:this.position.slice(),...details});}
  announce(type,message,duration,details={}){this.event=message;this.eventKind=type;this.flash=duration;this.emit(type,details);}
  recover(){
-  this.falls++;this.elapsed+=2;this.place(this.course.checkpoints[this.checkpoint].s);this.jumpCooldown=.5;
+  const section=this.surface.section;this.sectionFalls[section]=(this.sectionFalls[section]||0)+1;
+  this.falls++;this.elapsed+=2;this.place(this.course.checkpoints[this.checkpoint].s);this.jumpCooldown=.18;this.jumpBuffer=0;this.coyote=0;
   this.announce('recover','Checkpoint recovery · +2s',1.8);
  }
  step(dt,input){
   if(!(dt>0&&dt<=1/30))throw new RangeError('Fixed physics step required.');
   this.events=[];
   if(this.finished)return;
-  this.elapsed+=dt;this.time+=dt;this.flash=Math.max(0,this.flash-dt);this.jumpCooldown-=dt;this.gateCooldown-=dt;
-  const q=this.course.closest(this.position,this.hint);this.hint=q.index;this.surface=q;this.progress=q.s;
+  if(!this.externalClock)this.elapsed+=dt;
+  this.time+=dt;this.flash=Math.max(0,this.flash-dt);this.jumpCooldown-=dt;this.nudgeCooldown-=dt;this.jumpBuffer=Math.max(0,this.jumpBuffer-dt);this.gateCooldown-=dt;
+  if(this.grounded&&this.surface.platformId!==undefined){const a=this.course.platformAt(this.surface.platformId,this.time-dt),b=this.course.platformAt(this.surface.platformId,this.time);this.position=this.position.map((v,i)=>v+b.p[i]-a.p[i]);}
+  const q=this.course.surfaceAt(this.position,this.hint,this.time);this.hint=q.index;this.surface=q;this.progress=q.s;
   const oldY=this.position[1],wasGrounded=this.grounded,groundBefore=this.grounded&&!q.gap&&Math.abs(q.offset)<q.width;
   const along=dot(this.velocity,q.tangent),lateral=dot(this.velocity,q.right);
   const throttle=clamp(input.throttle||0,-1,1),steer=clamp(input.steer||0,-1,1),turn=clamp(input.turn||0,-1,1);
@@ -192,26 +250,30 @@ class Run{
   this.pose.pitch=mix(this.pose.pitch,throttle*.28,poseBlend);
   this.pose.roll=mix(this.pose.roll,-steer*.35,poseBlend);
   this.pose.twist=mix(this.pose.twist,turn*.22,poseBlend);
-  let forward=(groundBefore?13:4)*throttle-(groundBefore?12.5*q.slope:0),side=(groundBefore?17:4)*steer+turn*5;
+  let forward=(groundBefore?13:4)*throttle-(groundBefore?12.5*q.slope:0),side=(groundBefore?17:4)*steer+turn*5-(groundBefore?12.5*q.bank:0);
   const burst=input.burst||[0,0,0];
-  if(this.jumpCooldown<=0&&len(burst)>0){
+  if(groundBefore)this.coyote=.085;else this.coyote=Math.max(0,this.coyote-dt);
+  if(burst[1]>.5)this.jumpBuffer=.14;
+  if(this.nudgeCooldown<=0&&(burst[0]||burst[2])){
    this.velocity[0]+=q.right[0]*clamp(burst[0],-2,2)+q.tangent[0]*clamp(burst[2],-2,2);
    this.velocity[2]+=q.right[2]*clamp(burst[0],-2,2)+q.tangent[2]*clamp(burst[2],-2,2);
-   if(!groundBefore&&burst[1]<-.5)this.velocity[1]-=1.8;
-   if(groundBefore&&burst[1]>.5){this.velocity[1]=Math.max(4.9,along*q.slope+4.5);this.grounded=false;this.announce('jump','Nice lift',.8);}
-   this.jumpCooldown=.65;
+   this.nudgeCooldown=.3;
   }
-  if(this.grounded&&groundBefore)this.velocity[1]=along*q.slope;
+  if(!groundBefore&&burst[1]<-.5)this.velocity[1]-=1.8;
+  if(this.jumpBuffer>0&&this.jumpCooldown<=0&&(groundBefore||this.coyote>0)){
+   this.velocity[1]=Math.max(4.9,along*q.slope+4.5);this.grounded=false;this.jumpBuffer=0;this.coyote=0;this.jumpCooldown=.42;this.announce('jump','Nice lift',.8);
+  }
+  if(this.grounded&&groundBefore)this.velocity[1]=along*q.slope+lateral*q.bank;
   const drag=Math.exp(-(groundBefore?.46:.08)*dt);
   this.velocity[0]=(this.velocity[0]+(q.tangent[0]*forward+q.right[0]*side)*dt)*drag;
   this.velocity[2]=(this.velocity[2]+(q.tangent[2]*forward+q.right[2]*side)*dt)*drag;
   const speed=Math.hypot(this.velocity[0],this.velocity[2]);if(speed>11){this.velocity[0]*=11/speed;this.velocity[2]*=11/speed;}
   this.velocity[1]-=12.5*dt;this.position=this.position.map((v,i)=>v+this.velocity[i]*dt);
-  const next=this.course.closest(this.position,this.hint);this.hint=next.index;this.surface=next;this.progress=next.s;
-  const floor=next.p[1]+this.radius,support=!next.gap&&Math.abs(next.offset)<next.width;
+  const next=this.course.surfaceAt(this.position,this.hint,this.time);this.hint=next.index;this.surface=next;this.progress=next.s;
+  const floor=next.p[1]+this.radius+next.offset*next.bank,support=!next.gap&&Math.abs(next.offset)<next.width;
   this.grounded=false;
   if(support&&this.position[1]<=floor&&oldY>=floor-.45){
-   const surfaceSpeed=dot(this.velocity,next.tangent)*next.slope,impact=surfaceSpeed-this.velocity[1];
+   const surfaceSpeed=dot(this.velocity,next.tangent)*next.slope+dot(this.velocity,next.right)*next.bank,impact=surfaceSpeed-this.velocity[1];
    this.position[1]=floor;this.velocity[1]=surfaceSpeed+(impact>3?Math.min(.65,impact*.08):0);this.grounded=impact<=3;
    if(!wasGrounded&&impact>2.2)this.emit('land',{strength:clamp(impact/9,.2,1)});
    this.falling=false;
@@ -226,11 +288,11 @@ class Run{
   }
   if(this.grounded){
    this.maxProgress=Math.max(this.maxProgress,this.progress);
-   this.course.checkpoints.forEach((cp,i)=>{if(i>this.checkpoint&&this.progress>=cp.s){this.checkpoint=i;this.announce('checkpoint','Checkpoint secured',1.8);}});
+   this.course.checkpoints.forEach((cp,i)=>{if(i>this.checkpoint&&this.progress>=cp.s){this.checkpoint=i;if(this.splits[i]===undefined){this.splits[i]=this.elapsed;this.lastSplit={index:i,time:this.elapsed};}this.announce('checkpoint','Checkpoint secured',1.8);}});
   }
   for(const cell of this.course.cells){if(!cell.taken&&Math.abs(cell.s-this.progress)<3&&len(sub(this.position,this.course.cellPosition(cell)))<1.05){cell.taken=true;this.collected++;this.announce('cell','Energy +1',.7,{variant:this.collected,position:this.course.cellPosition(cell)});}}
   if(!this.grounded&&!this.falling&&this.position[1]<next.p[1]-.8){this.falling=true;this.announce('fall','Returning to your checkpoint',1.5);}
-  if(this.position[1]<next.p[1]-9||this.position.some(v=>!Number.isFinite(v))){this.recover();return;}
+  if(this.position[1]<next.p[1]-4.5||this.position.some(v=>!Number.isFinite(v))){this.recover();return;}
   if(this.grounded&&this.progress>=this.course.total-2.2){this.finished=true;this.announce('finish','Course complete',2);}
   const planar=Math.hypot(this.velocity[0],this.velocity[2]);
   if(planar>.4){const target=Math.atan2(this.velocity[0],this.velocity[2]);this.yaw+=Math.atan2(Math.sin(target-this.yaw),Math.cos(target-this.yaw))*(1-Math.exp(-dt*7));}
@@ -244,7 +306,7 @@ class Run{
   const aim=course.at(Math.min(course.total,s+3.2)),delta=[aim.p[0]+aim.right[0]*offset-this.position[0],0,aim.p[2]+aim.right[2]*offset-this.position[2]];
   const desired=norm(delta).map(v=>v*speed),acc=desired.map((v,i)=>(v-this.velocity[i])*3.5+this.velocity[i]*.46);
   const burst=(course.gaps.some(g=>s>g.start-1.7&&s<g.start-.15)&&this.grounded&&this.jumpCooldown<=0)?[0,1,0]:[0,0,0];
-  return {throttle:clamp((dot(acc,q.tangent)+12.5*q.slope)/13,-1,1),steer:clamp(dot(acc,q.right)/17,-1,1),turn:0,burst};
+  return {throttle:clamp((dot(acc,q.tangent)+12.5*q.slope)/13,-1,1),steer:clamp((dot(acc,q.right)+12.5*q.bank)/17,-1,1),turn:0,burst};
  }
 }
 const api={clamp,mix,len,norm,dot,cross,sub,calibrate,motionControls,displayLayout,TRACKS,Course,Run};

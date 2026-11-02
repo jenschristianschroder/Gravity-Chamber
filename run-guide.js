@@ -7,8 +7,8 @@ const LESSONS=[
  {id:'roll',title:'Tilt forward to roll',text:'Tip the phone’s top edge away from you. The robot leans forward and picks up speed. Return toward your starting angle to ease off.',tip:'Start upright. Small tilts are enough.'},
  {id:'brake',title:'Tilt back to slow down',text:'Bring the top edge toward you to brake. Keep tilting back after the robot stops to reverse.',tip:'The robot has momentum. Brake before a tight bend.'},
  {id:'steer',title:'Lean left or right to steer',text:'Lower the side you want to move toward, like a small steering wheel. The robot banks in the same direction as it crosses the track.',tip:'Use gentle corrections, especially on the skybridge.'},
- {id:'twist',title:'Twist for an extra turn',text:'Turn the phone gently around its upright axis. The motion adds a brief steering boost. Holding a twisted position does not keep adding a boost.',tip:'Keep the phone upright as you twist.'},
- {id:'nudge',title:'Move the phone for a burst',text:'A short forward push adds speed. A brief sideways movement adds a sideways burst. Move the whole phone, then return gently.',tip:'These are small movements, not big shakes.'},
+ {id:'twist',title:'Twist for an extra turn',text:'Turn the phone gently around its upright axis. The motion adds a brief steering boost. Holding a twisted position does not keep adding a boost.',tip:'Optional: enable twist boosts in Settings. Keep the phone upright.'},
+ {id:'nudge',title:'Move the phone for a burst',text:'A short forward push adds speed. A brief sideways movement adds a sideways burst. Move the whole phone, then return gently.',tip:'Optional: enable directional nudges in Settings. Small movements are enough.'},
  {id:'hop',title:'Nudge upward to hop',text:'Lift the whole phone briefly to jump. A quick downward nudge while airborne brings the robot down sooner.',tip:'Hop at the coral takeoff markers. Keep hold of the phone.'}
 ];
 function sampleFrame(id,time){

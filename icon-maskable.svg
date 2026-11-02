@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Gravity Run robot">
+ <defs>
+  <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#b8dce6"/><stop offset="1" stop-color="#d3e7dd"/></linearGradient>
+  <radialGradient id="shell" cx="34%" cy="23%" r="79%"><stop stop-color="#fffef1"/><stop offset=".52" stop-color="#f4f8e9"/><stop offset="1" stop-color="#a5c5ba"/></radialGradient>
+  <linearGradient id="visor" x2="0" y2="1"><stop stop-color="#28636a"/><stop offset="1" stop-color="#153d46"/></linearGradient>
+  <clipPath id="body"><circle cx="256" cy="254" r="114"/></clipPath>
+ </defs>
+ <rect width="512" height="512" fill="url(#sky)"/>
+ <g transform="translate(46.08 46.08) scale(.82)">
+ <circle cx="258" cy="249" r="186" fill="#eff7e7" opacity=".22"/>
+ <path d="M79 411 207 354h101l125 57-177 73z" fill="#23545c"/>
+ <path d="M79 396 207 340h101l125 56-177 74z" fill="#f4f7e9"/>
+ <path d="m79 396 177 74 177-74m-223-56-118 53m211-53 118 53" fill="none" stroke="#82d5bb" stroke-width="7"/>
+ <ellipse cx="256" cy="386" rx="92" ry="20" fill="#3d7778" opacity=".16"/>
+ <path d="M256 144V96" stroke="#174b53" stroke-width="13" stroke-linecap="round"/>
+ <ellipse cx="256" cy="145" rx="23" ry="9" fill="#245a62"/>
+ <circle cx="256" cy="81" r="23" fill="#f77956"/>
+ <ellipse cx="250" cy="74" rx="9" ry="5" fill="#ffd397" opacity=".8"/>
+ <g fill="#2b666c" stroke="#174b53" stroke-width="4">
+  <ellipse cx="140" cy="254" rx="20" ry="35"/><ellipse cx="372" cy="254" rx="20" ry="35"/>
+ </g>
+ <g fill="#f77956"><ellipse cx="132" cy="254" rx="9" ry="24"/><ellipse cx="380" cy="254" rx="9" ry="24"/></g>
+ <circle cx="256" cy="254" r="114" fill="url(#shell)" stroke="#6d9d96" stroke-width="3"/>
+ <g clip-path="url(#body)">
+  <path d="M135 226q121 31 242 0v66q-121 28-242 0z" fill="url(#visor)"/>
+  <path d="M135 225q121 31 242 0m-242 68q121 28 242 0" fill="none" stroke="#457c7d" stroke-width="5"/>
+  <ellipse cx="256" cy="352" rx="65" ry="16" fill="#23545c"/>
+  <path d="M210 353q46 13 92 0" fill="none" stroke="#80e3be" stroke-width="5"/>
+ </g>
+ <g fill="#a4f6d5"><rect x="211" y="253" width="19" height="27" rx="9.5"/><rect x="282" y="253" width="19" height="27" rx="9.5"/></g>
+ <g fill="#f77956"><path d="m227 151 10-2-2 23-10 2z"/><path d="m277 149 10 2 2 23-10-2z"/></g>
+ <path d="M184 197q20-31 52-33" fill="none" stroke="#fffef5" stroke-opacity=".72" stroke-width="12" stroke-linecap="round"/>
+ <path d="M235 327h11m10 2h11m10-2h11" stroke="#739c95" stroke-width="5" stroke-linecap="round"/>
+ </g>
+</svg>

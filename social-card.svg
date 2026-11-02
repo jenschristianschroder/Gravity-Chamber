@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="Gravity Run. Tilt. Race. Challenge a friend.">
+ <defs>
+  <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#b8dce6"/><stop offset="1" stop-color="#d3e7dd"/></linearGradient>
+  <radialGradient id="shell" cx="34%" cy="23%" r="79%"><stop stop-color="#fffef1"/><stop offset=".52" stop-color="#f4f8e9"/><stop offset="1" stop-color="#a5c5ba"/></radialGradient>
+  <linearGradient id="visor" x2="0" y2="1"><stop stop-color="#28636a"/><stop offset="1" stop-color="#153d46"/></linearGradient>
+  <clipPath id="body"><circle cx="256" cy="254" r="114"/></clipPath>
+ </defs>
+ <rect width="1200" height="630" fill="#bddde5"/>
+ <path d="M0 390Q330 310 630 410T1200 400V630H0z" fill="#d3e8de"/>
+ <circle cx="935" cy="250" r="254" fill="#f2f7e7" opacity=".4"/>
+ <g fill="#f5faed" opacity=".72"><ellipse cx="1045" cy="104" rx="65" ry="23"/><ellipse cx="1094" cy="89" rx="43" ry="27"/><ellipse cx="1132" cy="109" rx="51" ry="20"/></g>
+ <g opacity=".58">
+  <path d="m630 350 42 31 53-28-51-21z" fill="#77ad95"/><path d="m630 350 44 78 51-75-51 30z" fill="#517e7a"/>
+  <path d="m1112 456 45 26 44-29-48-17z" fill="#77ad95"/><path d="m1112 456 46 74 43-77-44 29z" fill="#517e7a"/>
+ </g>
+ <path d="M692 472q100-132 224-106t284 22v79q-142-61-267-44T762 577z" fill="#285d65"/>
+ <path d="M692 452q100-132 224-106t284 22v79q-142-61-267-44T762 557z" fill="#f5f8eb"/>
+ <path d="M696 454q100-132 220-104t284 22M760 552q80-164 173-145t267 44" fill="none" stroke="#8bd8bc" stroke-width="7"/>
+ <path d="m830 381 48 39m79-67 2 52m87-45-7 53m81-37-14 57" fill="none" stroke="#c1d5c7" stroke-width="2"/>
+ <ellipse cx="952" cy="395" rx="98" ry="20" fill="#2f7170" opacity=".15"/>
+ <g transform="translate(629 22) scale(1.25)"> <path d="M256 144V96" stroke="#174b53" stroke-width="13" stroke-linecap="round"/>
+ <ellipse cx="256" cy="145" rx="23" ry="9" fill="#245a62"/>
+ <circle cx="256" cy="81" r="23" fill="#f77956"/>
+ <ellipse cx="250" cy="74" rx="9" ry="5" fill="#ffd397" opacity=".8"/>
+ <g fill="#2b666c" stroke="#174b53" stroke-width="4">
+  <ellipse cx="140" cy="254" rx="20" ry="35"/><ellipse cx="372" cy="254" rx="20" ry="35"/>
+ </g>
+ <g fill="#f77956"><ellipse cx="132" cy="254" rx="9" ry="24"/><ellipse cx="380" cy="254" rx="9" ry="24"/></g>
+ <circle cx="256" cy="254" r="114" fill="url(#shell)" stroke="#6d9d96" stroke-width="3"/>
+ <g clip-path="url(#body)">
+  <path d="M135 226q121 31 242 0v66q-121 28-242 0z" fill="url(#visor)"/>
+  <path d="M135 225q121 31 242 0m-242 68q121 28 242 0" fill="none" stroke="#457c7d" stroke-width="5"/>
+  <ellipse cx="256" cy="352" rx="65" ry="16" fill="#23545c"/>
+  <path d="M210 353q46 13 92 0" fill="none" stroke="#80e3be" stroke-width="5"/>
+ </g>
+ <g fill="#a4f6d5"><rect x="211" y="253" width="19" height="27" rx="9.5"/><rect x="282" y="253" width="19" height="27" rx="9.5"/></g>
+ <g fill="#f77956"><path d="m227 151 10-2-2 23-10 2z"/><path d="m277 149 10 2 2 23-10-2z"/></g>
+ <path d="M184 197q20-31 52-33" fill="none" stroke="#fffef5" stroke-opacity=".72" stroke-width="12" stroke-linecap="round"/>
+ <path d="M235 327h11m10 2h11m10-2h11" stroke="#739c95" stroke-width="5" stroke-linecap="round"/>
+</g>
+ <g transform="translate(1122 280)"><path d="m0-30 19 30L0 34-19 0z" fill="#e7ab3d"/><path d="m0-30 0 64-19-34z" fill="#ffd278"/><ellipse cy="5" rx="27" ry="7" fill="none" stroke="#fff2bd" stroke-width="3"/></g>
+ <g transform="translate(666 140) rotate(-15)">
+  <rect x="-29" y="-48" width="58" height="96" rx="11" fill="#f5f9ec" stroke="#326a70" stroke-width="4"/>
+  <rect x="-22" y="-36" width="44" height="68" rx="5" fill="#a4cfca"/>
+  <circle cy="-2" r="11" fill="#326a70"/><path d="M-8-41H8" stroke="#326a70" stroke-width="3" stroke-linecap="round"/>
+ </g>
+ <path d="M709 154q22-39-10-62" fill="none" stroke="#f07b5b" stroke-width="5" stroke-linecap="round"/>
+ <path d="m701 91-13-1 2 13" fill="none" stroke="#f07b5b" stroke-width="5" stroke-linejoin="round"/>
+ <rect x="64" y="62" width="330" height="34" rx="17" fill="#e9f3e7"/>
+ <text x="82" y="84" fill="#35676a" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="bold" letter-spacing="1.3">YOUR PHONE IS THE CONTROLLER</text>
+ <g fill="#183f47" font-family="DejaVu Sans, sans-serif" font-weight="bold" font-size="101" letter-spacing="-6"><text x="60" y="229">Gravity</text><text x="60" y="333">Run<tspan fill="#ed7958">.</tspan></text></g>
+ <text x="65" y="399" fill="#285d65" font-family="DejaVu Sans, sans-serif" font-size="31" font-weight="bold" letter-spacing="-.8">Tilt. Race.</text>
+ <text x="65" y="439" fill="#285d65" font-family="DejaVu Sans, sans-serif" font-size="31" letter-spacing="-.8">Challenge a friend.</text>
+ <rect x="64" y="494" width="281" height="57" rx="14" fill="#214e56"/>
+ <text x="86" y="529" fill="#f7f8ec" font-family="DejaVu Sans, sans-serif" font-size="16" font-weight="bold">PLAY IN YOUR BROWSER</text>
+ <path d="M312 527h15m-6-6 6 6-6 6" fill="none" stroke="#b4edce" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+ <text x="66" y="584" fill="#527b7a" font-family="DejaVu Sans, sans-serif" font-size="15">No account. Just your phone.</text>
+</svg>

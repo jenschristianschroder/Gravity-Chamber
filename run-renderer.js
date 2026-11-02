@@ -18,18 +18,19 @@ function robotModel(run){
 }
 function contactShadow(run){
  const q=run.surface,p=run.position,relative=G.sub(p,q.p),along=G.dot(relative,q.tangent);
- const floor=q.p[1]+along*q.slope,height=p[1]-run.radius-floor,clearance=q.width-Math.abs(G.dot(relative,q.right));
+ const floor=q.p[1]+along*q.slope+G.dot(relative,q.right)*(q.bank||0),height=p[1]-run.radius-floor,clearance=q.width-Math.abs(G.dot(relative,q.right));
  // A surface must be underneath the robot, never above it or beyond an edge.
  if(q.gap||height<-.015||height>6||clearance<=.025||Math.abs(along)>.35)return null;
  const radius=Math.min(.58+Math.max(0,height)*.08,clearance*.96);
  let length=radius;
- for(const gap of run.course.gaps)if(q.s<=gap.start)length=Math.min(length,gap.start-q.s);else if(q.s>=gap.end)length=Math.min(length,q.s-gap.end);
+ if(q.platform)length=Math.min(length,q.length/2-Math.abs(q.platformAlong||0));
+ else for(const gap of run.course.gaps)if(q.s<=gap.start)length=Math.min(length,gap.start-q.s);else if(q.s>=gap.end)length=Math.min(length,q.s-gap.end);
  length=Math.min(length,q.s,run.course.total-q.s);
  if(radius<=.025||length<=.025)return null;
- const tangent=[q.tangent[0],q.slope,q.tangent[2]],normal=G.norm(G.cross(tangent,q.right));
+ const tangent=[q.tangent[0],q.slope,q.tangent[2]],right=[q.right[0],q.bank||0,q.right[2]],normal=G.norm(G.cross(tangent,right));
  const alpha=.34*Math.exp(-Math.max(0,height)*.6)*G.clamp(clearance/.65,0,1);
  return {height,alpha,radius,matrix:[
-  q.right[0]*radius,0,q.right[2]*radius,0,
+  right[0]*radius,right[1]*radius,right[2]*radius,0,
   normal[0],normal[1],normal[2],0,
   tangent[0]*length,tangent[1]*length,tangent[2]*length,0,
   p[0]+normal[0]*.025,floor+normal[1]*.025,p[2]+normal[2]*.025,1
@@ -135,6 +136,11 @@ class Renderer{
   }this.disc=this.mesh(disc);
   const halo=[];torus(halo,[0,0,0],1,.045,[1,1,1],'y',24,5);this.halo=this.mesh(halo);
   this.gatePanel=this.mesh(this.buildGatePanel());
+  const platform=[];box(platform,[0,-.2,0],[2,.4,1],TEAL);box(platform,[0,.009,0],[1.94,.018,.96],WHITE);
+  for(const side of [-1,1])box(platform,[side*.94,.025,0],[.09,.02,.98],GOLD);
+  for(const z of [-.46,.46])box(platform,[0,.025,z],[1.95,.02,.06],CORAL);
+  cylinder(platform,[0,-.45,0],.22,.2,INK,12);torus(platform,[0,-.55,0],.19,.03,MINT);
+  this.platform=this.mesh(platform);
   const robot=this.buildRobot();this.robotShell=this.mesh(robot.shell);this.robotTrim=this.mesh(robot.trim);this.robotLights=this.mesh(robot.lights);
   this.setCourse(this.course);
  }
@@ -206,18 +212,20 @@ class Renderer{
   return out;
  }
  buildTrack(){
-  const parts=[],points=this.course.points;
+  const parts=[];
+  for(const path of [{points:this.course.points},...(this.course.routes||[])]){
+  const points=path.points,at=s=>this.course.routeAt(s,path.id);
   for(let i=0;i<points.length-1;i++){
-   const a=this.course.at(points[i].s),b=this.course.at(points[i+1].s);if(a.gap)continue;
-   const out=[],normal=G.norm(G.cross([a.tangent[0],a.slope,a.tangent[2]],a.right)),yaw=Math.atan2(a.tangent[0],a.tangent[2]);
-   const edge=(q,side,y=0,inset=0)=>[q.p[0]+q.right[0]*(q.width-inset)*side,q.p[1]+y,q.p[2]+q.right[2]*(q.width-inset)*side];
+   const a=at(points[i].s),b=at(points[i+1].s);if(a.gap)continue;
+   const out=[],normal=G.norm(G.cross([a.tangent[0],a.slope,a.tangent[2]],[a.right[0],a.bank,a.right[2]])),yaw=Math.atan2(a.tangent[0],a.tangent[2]);
+   const edge=(q,side,y=0,inset=0)=>[q.p[0]+q.right[0]*(q.width-inset)*side,q.p[1]+y+(q.bank||0)*(q.width-inset)*side,q.p[2]+q.right[2]*(q.width-inset)*side];
    const al=edge(a,-1),ar=edge(a,1),bl=edge(b,-1),br=edge(b,1);
    const color=i%12<6?WHITE:[.87,.92,.89];quad(out,al,bl,br,ar,color,normal);
    quad(out,edge(a,1,-.55),edge(b,1,-.55),edge(b,-1,-.55),edge(a,-1,-.55),INK,[0,-1,0]);
    for(const side of [-1,1]){
     quad(out,edge(a,side),edge(b,side),edge(b,side,-.55),edge(a,side,-.55),TEAL,mul(a.right,side));
     quad(out,edge(a,side,-.37,-.003),edge(b,side,-.37,-.003),edge(b,side,-.44,-.003),edge(a,side,-.44,-.003),[.25,.55,.54],mul(a.right,side));
-    quad(out,edge(a,side,.018),edge(b,side,.018),edge(b,side,.018,.13),edge(a,side,.018,.13),a.width<2?CORAL:MINT,normal);
+    quad(out,edge(a,side,.018),edge(b,side,.018),edge(b,side,.018,.13),edge(a,side,.018,.13),path.id?GOLD:a.width<2?CORAL:MINT,normal);
     quad(out,edge(a,side,.02,.17),edge(b,side,.02,.17),edge(b,side,.02,.19),edge(a,side,.02,.19),[.58,.73,.7],normal);
     if(i%4===0){
      const lamp=edge(a,side,-.18,-.012);box(out,lamp,[.035,.085,.48],a.width<2?GOLD:[.68,1,.88],yaw);
@@ -225,13 +233,13 @@ class Renderer{
     if(i%12===3){
      const plate=edge(a,side,.022,.36);
      // Flush hardware stays out of the robot's path and follows the ramp plane.
-     const point=(x,z,lift=0)=>[plate[0]+a.right[0]*x+a.tangent[0]*z,plate[1]+a.slope*z+lift,plate[2]+a.right[2]*x+a.tangent[2]*z];
+     const point=(x,z,lift=0)=>[plate[0]+a.right[0]*x+a.tangent[0]*z,plate[1]+a.slope*z+a.bank*x+lift,plate[2]+a.right[2]*x+a.tangent[2]*z];
      quad(out,point(-.11,-.25),point(-.11,.25),point(.11,.25),point(.11,-.25),[.67,.78,.74],normal);
      for(const z of [-.17,.17])quad(out,point(-.035,z-.025,.003),point(-.035,z+.025,.003),point(.035,z+.025,.003),point(.035,z-.025,.003),TEAL,normal);
     }
    }
    if(i%6===0){
-    const seam=this.course.at(Math.min(a.s+.035,b.s));
+    const seam=at(Math.min(a.s+.035,b.s));
     quad(out,edge(a,-1,.024,.2),edge(seam,-1,.024,.2),edge(seam,1,.024,.2),edge(a,1,.024,.2),[.64,.76,.72],normal);
     if(a.width>2){const center=q=>q.p.map((v,k)=>v+(k===1?.026:0));const p=center(a),q=center(b),r=a.right;quad(out,[p[0]-r[0]*.035,p[1],p[2]-r[2]*.035],[q[0]-r[0]*.035,q[1],q[2]-r[2]*.035],[q[0]+r[0]*.035,q[1],q[2]+r[2]*.035],[p[0]+r[0]*.035,p[1],p[2]+r[2]*.035],[.65,.78,.73],normal);}
    }
@@ -242,9 +250,10 @@ class Renderer{
     cylinder(out,keel,.21,.16,TEAL,10);cylinder(out,[keel[0],keel[1]-.09,keel[2]],.15,.035,MINT,10);
    }
    // Cap the exposed slab at each gap and both ends of the course.
-   if(i===0||this.course.at(Math.max(0,a.s-.05)).gap)quad(out,al,ar,edge(a,1,-.55),edge(a,-1,-.55),TEAL);
+   if(i===0||at(Math.max(0,a.s-.05)).gap)quad(out,al,ar,edge(a,1,-.55),edge(a,-1,-.55),TEAL);
    if(b.gap||i===points.length-2)quad(out,br,bl,edge(b,-1,-.55),edge(b,1,-.55),TEAL);
    parts.push({s:a.s,vertices:out});
+  }
   }
   // Finish line tiles sit on the actual collidable course surface.
   const out=[];
@@ -266,7 +275,7 @@ class Renderer{
   const parts=[],portals=[...this.course.checkpoints.slice(1).map(cp=>({s:cp.s,type:'checkpoint'})),...this.course.gates.map(g=>({s:g.s,type:'gate'})),{s:this.course.total-2,type:'finish'}];
   for(const portal of portals){
    const out=[],q=this.course.at(portal.s),yaw=Math.atan2(q.tangent[0],q.tangent[2]),gate=portal.type==='gate',finish=portal.type==='finish',height=finish?4.7:gate?3.6:3.8,color=finish?CORAL:gate?TEAL:MINT;
-   const at=(x,y,z=0)=>[q.p[0]+q.right[0]*x+q.tangent[0]*z,q.p[1]+y,q.p[2]+q.right[2]*x+q.tangent[2]*z];
+   const at=(x,y,z=0)=>[q.p[0]+q.right[0]*x+q.tangent[0]*z,q.p[1]+y+q.bank*x,q.p[2]+q.right[2]*x+q.tangent[2]*z];
    for(const sign of [-1,1]){
     const x=(q.width+.12)*sign;
     box(out,at(x,.14),[.5,.28,.58],INK,yaw);
@@ -321,11 +330,11 @@ class Renderer{
   return batch(parts);
  }
  render(run,dt,active,animate=active){
-  const gl=this.gl,canvas=this.canvas,dpr=Math.min(root.devicePixelRatio||1,2),width=Math.max(1,canvas.clientWidth),height=Math.max(1,canvas.clientHeight);
+  const gl=this.gl,canvas=this.canvas,dpr=Math.min(root.devicePixelRatio||1,this.pixelRatio||2),width=Math.max(1,canvas.clientWidth),height=Math.max(1,canvas.clientHeight);
   if(canvas.width!==Math.round(width*dpr)||canvas.height!==Math.round(height*dpr)){canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);}
   gl.viewport(0,0,canvas.width,canvas.height);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.useProgram(this.program);
   const speed=Math.hypot(run.velocity[0],run.velocity[2]);
-  const ahead=this.course.at(Math.min(this.course.total,run.progress+5)),dir=ahead.tangent,p=run.position;
+  const ahead=this.course.routeAt(Math.min(this.course.total,run.progress+5),run.surface.route),dir=ahead.tangent,p=run.position;
   const narrow=width/height<.8,back=narrow?10.8:7.8,raise=narrow?5.5:4.1;
   const desired=active?[p[0]-dir[0]*back,p[1]+raise,p[2]-dir[2]*back]:[-6.5,10.5,-8];
   const target=active?[p[0]+dir[0]*3.8,p[1]+.4,p[2]+dir[2]*3.8]:[1,5.4,8];
@@ -335,6 +344,10 @@ class Renderer{
   const vp=multiply(perspective(fov,width/height,.12,140),lookAt(this.eye,this.target));
   gl.uniformMatrix4fv(this.uniforms.uVP,false,vp);gl.uniform3fv(this.uniforms.uEye,this.eye);gl.uniform3fv(this.uniforms.uSky,this.course.track.sky);
   this.drawVisible(this.scenery);this.drawVisible(this.track);this.drawVisible(this.landmarks);
+  for(let i=0;i<(this.course.platforms||[]).length;i++){
+   const q=this.course.platformAt(i,run.time);if(Math.hypot(...G.sub(q.p,this.eye))>112)continue;
+   this.draw(this.platform,model(q.p,[q.width,1,q.length],Math.atan2(q.tangent[0],q.tangent[2])),[1,1,1,1],METAL);
+  }
   for(const gate of this.course.gates){
    const q=this.course.at(gate.s),c=this.course.gateCenter(gate,run.time),yaw=Math.atan2(q.tangent[0],q.tangent[2]);
    if(Math.hypot(...G.sub(q.p,this.eye))>112)continue;
@@ -350,6 +363,9 @@ class Renderer{
    this.draw(this.gem,model(p,[.23,.36,.23],phase),[...GOLD,1],CERAMIC);
    this.draw(this.halo,model(p,[.33,.33,.33],phase),[1,.86,.5,1],LIT);
   }
+  if(run.landingCue){const q=run.landingCue;this.draw(this.halo,model([q.p[0],q.p[1]+.045,q.p[2]],[Math.min(1.1,q.width*.6),.2,1.3]),[.22,.7,.53,.8],LIT);}
+  if(run.trainingStage===0){const q=this.course.at(8);this.draw(this.halo,model([q.p[0],q.p[1]+.045,q.p[2]],[1,.12,1]),[1,.63,.34,1],LIT);}
+  if(run.trainingStage===2){const q=this.course.at(16);for(const side of [-1,1])this.draw(this.halo,model([q.p[0]+side*1.1,q.p[1]+.045,q.p[2]],[.45,.12,.7]),[.3,.8,.62,1],LIT);}
   const shadow=contactShadow(run);
   if(shadow){
    gl.depthMask(false);this.draw(this.disc,shadow.matrix,[1,1,1,shadow.alpha]);gl.depthMask(true);
@@ -358,9 +374,13 @@ class Renderer{
   gl.depthMask(false);
   for(const particle of this.particles){const size=.055+.025*particle.life/particle.total;this.draw(this.gem,model(particle.p,[size,size,size],particle.life*4),[...particle.color,Math.min(1,particle.life/.25)]);}
   gl.depthMask(true);
+  if(run.ghost){
+   const ghost=model(run.ghost.position,[1,1,1],run.ghost.yaw);gl.depthMask(false);
+   this.draw(this.robotShell,ghost,[.35,.8,.9,.23],LIT);this.draw(this.robotTrim,ghost,[.4,.95,1,.2],LIT);gl.depthMask(true);
+  }
   // Three batched materials share the full phone-controlled pose.
   const sy=1-this.squash,sx=1+this.squash*.5,bodyY=.44*(sy-1),pose=multiply(robotModel(run),model([0,bodyY,0],[sx,sy,sx]));
-  this.draw(this.robotShell,pose,[1,1,1,1],CERAMIC);
+  this.draw(this.robotShell,pose,[...(this.appearance||[1,1,1]),1],CERAMIC);
   this.draw(this.robotTrim,pose,[1,1,1,1],METAL);
   this.draw(this.robotLights,pose,[1,1,1,1],LIT);
  }

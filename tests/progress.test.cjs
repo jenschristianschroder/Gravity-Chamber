@@ -5,7 +5,7 @@ const {Progress,KEY}=require('../run-progress.js');
 function memory(entries=[]){const data=new Map(entries);return {getItem:k=>data.get(k)||null,setItem:(k,v)=>data.set(k,v),data};}
 const finished=(elapsed=70,collected=10)=>({finished:true,elapsed,collected});
 test('six distinct courses progressively narrow bridges and speed up gates',()=>{
- const courses=G.TRACKS.map((_,i)=>new G.Course(i));
+ const courses=G.TRACKS.map((_,i)=>new G.Course(i,{expert:true}));
  assert.equal(courses.length,6);assert.equal(new Set(courses.map(c=>JSON.stringify(c.points))).size,6);
  for(let i=1;i<6;i++){
   assert.ok(courses[i].track.bridge<courses[i-1].track.bridge);

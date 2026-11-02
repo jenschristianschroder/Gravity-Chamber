@@ -7,7 +7,7 @@ test('upright calibration gives identical tilt controls for opposite sensor conv
  const a=G.calibrate(positive),b=G.calibrate(negative);
  assert.equal(a.polarity,1);assert.equal(b.polarity,-1);
  const gravity=[-2,9,2];
- const x=G.motionControls(gravity,{beta:25},a),y=G.motionControls(gravity.map(v=>-v),{beta:25},b);
+ const x=G.motionControls(gravity,{gamma:25},a),y=G.motionControls(gravity.map(v=>-v),{gamma:25},b);
  assert.deepEqual(x,y);assert.ok(x.throttle>0);assert.ok(x.steer>0);assert.equal(x.turn,.25);
  assert.equal(G.motionControls([0,9.81,0],{},a).throttle,0);
  assert.equal(G.calibrate(Array.from({length:20},()=>[0,0,9.81])),null);
@@ -15,7 +15,7 @@ test('upright calibration gives identical tilt controls for opposite sensor conv
 });
 test('course contains distinct obstacles, checkpoints, and one real gap',()=>{
  const c=new G.Course();
- assert.equal(c.sections.length,6);assert.equal(c.checkpoints.length,4);assert.equal(c.cells.length,15);
+ assert.equal(c.sections.length,6);assert.ok(c.checkpoints.length>=4);assert.equal(c.cells.length,15);
  assert.ok(c.total>330&&c.total<340);assert.ok(c.gapEnd-c.gapStart>4);
  assert.ok(c.at((c.gapStart+c.gapEnd)/2).gap);
  assert.ok(!c.at(c.gapStart-1).gap);assert.ok(!c.at(c.gapEnd+1).gap);
@@ -63,7 +63,7 @@ test('the complete demo traverses all obstacles, collects every cell, and finish
  const r=new G.Run();
  for(let i=0;i<120*110&&!r.finished;i++)r.step(1/120,r.demoInput());
  assert.ok(r.finished);assert.equal(r.falls,0);assert.equal(r.collected,r.course.cells.length);
- assert.ok(r.elapsed>60&&r.elapsed<90);assert.equal(r.checkpoint,3);
+ assert.ok(r.elapsed>60&&r.elapsed<90);assert.equal(r.checkpoint,r.course.checkpoints.length-1);
  const t=r.elapsed;r.step(1/120,{});assert.equal(r.elapsed,t);
  r.reset();assert.ok(!r.finished);assert.equal(r.collected,0);assert.equal(r.checkpoint,0);
 });

@@ -1,206 +1,298 @@
-/* Browser-only controller. Motion samples and records never leave this device. */
+/* All play remains controlled by device motion. Data stays in this browser. */
 (() => {
 'use strict';
-const G=GravityRun,$=id=>document.getElementById(id);
+const G=GravityRun,J=GravityJourney,S=GravityShare,$=id=>document.getElementById(id),nav=window.navigator||{};
 let storage;try{storage=localStorage;}catch{}
-const progress=new GravityProgress.Progress(storage);
+const progress=new GravityProgress.Progress(storage),settings=progress.settings;
 const sound=new GravityAudio.Sound(storage),reduced=!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-const guide=new GravityGuide.Guide(document,{reduced});
-let selected=progress.selected,course=new G.Course(selected),run=new G.Run(course);
-const motion=new GravityMotion.MotionInput(),STEP=1/120;
-let renderer,state='menu',mode='motion',listener=false,session=0,immersive=false,displaySession=0;
-let accumulator=0,lastFrame=0,lastHUD=-Infinity,waitingSince=0;
-const hints=[
- 'Tilt forward to roll. Lean left or right to steer.',
- 'Ease into the bends. Tilt back to slow down.',
- 'Small movements. Keep the robot on the bridge.',
- 'Aim for the moving opening. Slow down to line it up.',
- 'Build speed, then nudge upward just before the gap.',
- 'Follow the spiral. The finish is just ahead.'
-];
-function time(t){return String(Math.floor(t/60)).padStart(2,'0')+':'+(t%60).toFixed(1).padStart(4,'0');}
+const guide=new GravityGuide.Guide(document,{reduced}),wake=new S.Wake(nav),quality=new J.Quality(),motion=new GravityMotion.MotionInput(settings),STEP=1/120;
+let selected=progress.selected,course=new G.Course(selected,{expert:settings.expert}),run=new G.Run(course);
+let renderer,state='menu',mode='motion',activity='campaign',challenge=null,training=null,trainingReturn=null,party=null;
+let listener=false,session=0,immersive=false,displaySession=0,permissionGranted=false,recentering=false,readyAt=0;
+let accumulator=0,lastFrame=0,lastHUD=-Infinity,waitingSince=0,lastRender=0,baseline=null,recorder=null,nextAction=null,shareSpec=null,shareBlob=null,shareGeneration=0;
+let installPrompt=null,registration=null,reloadForUpdate=false;
+const quickSections=[3,2,1,3,4,4];
+const hints=['Tilt forward to roll. Lean left or right to steer.','Ease into the bends. Tilt back to slow down.','Small movements. Keep the robot on the bridge.','Aim for the moving opening. Slow down to line it up.','Build speed, then nudge upward just before the gap.','Follow the spiral. The finish is just ahead.'];
+const time=S.formatTime,now=()=>performance.now();
+function record(){return activity==='campaign'?progress.record(selected,course.expert):activity==='challenge'?progress.records[J.key(challenge)]||null:null;}
+function setURL(hash=''){try{window.history.replaceState(null,'',window.location.pathname+window.location.search+hash);}catch{}}
 function soundUI(){
  const unavailable=!sound.factory,label=unavailable?'Sound unavailable':!sound.enabled?'Sound off':sound.failed?'Enable sound':'Sound on';
- $('sound-label').textContent=label;$('sound-toggle').disabled=unavailable;
- $('sound-toggle').setAttribute('aria-pressed',String(sound.enabled&&!unavailable));
- $('sound-toggle').setAttribute('aria-label',unavailable?label:sound.enabled&&!sound.failed?'Mute sound':'Enable sound');
- $('sound-toggle').setAttribute('title',label);$('sound-toggle').classList.toggle('muted',!sound.enabled||unavailable);
+ $('sound-label').textContent=label;$('sound-toggle').disabled=unavailable;$('sound-toggle').setAttribute('aria-pressed',String(sound.enabled&&!unavailable));
+ $('sound-toggle').setAttribute('aria-label',unavailable?label:sound.enabled&&!sound.failed?'Mute sound':'Enable sound');$('sound-toggle').classList.toggle('muted',!sound.enabled||unavailable);
 }
 function unlockAudio(){void sound.unlock().then(soundUI);}
 function feedback(events){
  sound.handle(events);if(renderer)renderer.handleEvents(events);
  if(reduced)return;
- if(events.some(event=>event.type==='cell')&&$('energy').animate)$('energy').animate([{transform:'scale(1)'},{transform:'scale(1.18)',color:'#bb7a16'},{transform:'scale(1)'}],{duration:280,easing:'ease-out'});
- if(events.some(event=>event.type==='recover')&&$('feedback-wash').animate)$('feedback-wash').animate([{opacity:.25},{opacity:0}],{duration:450,easing:'ease-out'});
+ if(events.some(e=>e.type==='cell')&&$('energy').animate)$('energy').animate([{transform:'scale(1)'},{transform:'scale(1.15)'},{transform:'scale(1)'}],{duration:230});
+ if(events.some(e=>e.type==='recover')&&$('feedback-wash').animate)$('feedback-wash').animate([{opacity:.2},{opacity:0}],{duration:280});
 }
-function showBest(){const record=progress.record(selected);$('best').textContent=[record?'Your best · '+time(record.time):'',!progress.saved?'Progress is kept for this session only.':''].filter(Boolean).join(' · ');}
+function prepare(c,type='campaign',spec=null){
+ course=c;activity=type;challenge=spec;run=new G.Run(course);accumulator=0;lastHUD=-Infinity;baseline=null;
+ if(renderer){renderer.setCourse(course);renderer.appearance=J.APPEARANCES.find(a=>a.id===settings.appearance)?.color||[1,1,1];}
+}
 function trackUI(){
- const track=course.track,unlocked=progress.isUnlocked(selected);
- $('course-label').textContent='COURSE '+String(selected+1).padStart(2,'0')+' / '+track.name.toUpperCase();
- $('track-name').textContent=track.name;$('track-difficulty').textContent=track.level+' · '+(selected+1)+' / 6';
- $('track-description').textContent=track.description;
- $('campaign-count').textContent=progress.unlocked+' / 6 tracks unlocked';
+ const open=activity!=='campaign'||progress.isUnlocked(selected),r=record(),track=course.track;
+ $('course-label').textContent=activity==='campaign'?'COURSE '+String(selected+1).padStart(2,'0')+' / '+(course.expert?'EXPERT':'CAMPAIGN'):activity==='challenge'?(challenge.day?'DAILY FLIGHT / '+challenge.day:'FRIENDLY CHALLENGE'):activity==='party'?'PASS THE PHONE':activity==='practice'?'SECTION PRACTICE':'FLIGHT SCHOOL';
+ $('track-name').textContent=track.name;$('track-difficulty').textContent=activity==='campaign'?track.level+' · '+(selected+1)+' / 6':'Motion controls · separate results';
+ $('track-description').textContent=activity==='campaign'?track.description:activity==='training'?'Four small steps. Find your balance.':'A short flight. Everyone can take part.';
+ $('campaign-count').textContent=progress.unlocked+' / 6 tracks unlocked · '+progress.marks()+' mastery marks';
  $('course-distance').textContent=Math.round(course.total)+' metres';$('course-sections').textContent=course.sections.length+' sections';$('course-cells').textContent=course.cells.length+' energy cells';
- for(let i=1;i<=3;i++){const marker=$('route-marker-'+i),cp=course.checkpoints[i];marker.hidden=!cp;if(cp)marker.style.left=cp.s/course.total*100+'%';}
- $('start').textContent=unlocked?'Play with motion ↗':'Complete '+G.TRACKS[selected-1].name+' to unlock';
- $('start').disabled=!renderer||!unlocked;$('demo').textContent=unlocked?'Watch a demo ▷':'Preview this track ▷';
- for(let i=0;i<G.TRACKS.length;i++){
-  const button=$('track-'+i),record=progress.record(i),open=progress.isUnlocked(i);
-  button.classList.toggle('selected',i===selected);button.classList.toggle('locked',!open);button.setAttribute('aria-pressed',String(i===selected));
-  $('track-status-'+i).textContent=record?'Completed':open?'Unlocked':'Locked · preview';
-  $('track-record-'+i).textContent=record?'Best '+time(record.time):open?'Ready to roll':'Finish '+G.TRACKS[i-1].name+' first';
+ $('start').textContent=!open?'Finish '+G.TRACKS[Math.max(0,selected-1)].name+' to unlock':!progress.tutorialDone&&activity!=='party'?'Learn & play ↗':activity==='challenge'?'Take the challenge ↗':'Play with motion ↗';
+ $('start').disabled=!renderer||!open;$('demo').disabled=!renderer;$('demo').textContent=open?'Watch a demo ▷':'Preview this track ▷';
+ $('best').textContent=[r?(r.legacy?'Previous rules · ':'Your best · ')+time(r.time)+(r.medal?' · '+J.MEDALS[r.medal]:'' ):'',!progress.saved?'Progress is kept for this session only.':''].filter(Boolean).join(' · ');
+ $('challenge-invite').hidden=activity!=='challenge';$('challenge-invite').textContent=challenge?.target?'Your friend’s target: '+time(challenge.target)+'. Same course, same rules. Beat it and send a rematch.':challenge?.day?'Today’s route is the same for everyone. Your best result is saved on this device.':'A short course, open to everyone. Campaign unlocks stay separate.';
+ $('back-campaign').hidden=activity==='campaign';
+ const today=J.daily(),dailyRecord=progress.records[J.key(today)];
+ $('daily-name').textContent=G.TRACKS[today.track].name+' · daily flight';$('daily-record').textContent=dailyRecord?J.MEDALS[dailyRecord.medal]+' · '+time(dailyRecord.time):'A short challenge, open to everyone';
+ for(let i=1;i<=3;i++){const marker=$('route-marker-'+i),cp=course.checkpoints[Math.round(i*(course.checkpoints.length-1)/4)];marker.hidden=!cp||cp.s<=2;if(cp)marker.style.left=cp.s/course.total*100+'%';}
+ for(let i=0;i<6;i++){
+  const b=$('track-'+i),best=progress.record(i,settings.expert),unlocked=progress.isUnlocked(i);
+  b.classList.toggle('selected',activity==='campaign'&&i===selected);b.classList.toggle('locked',!unlocked);b.setAttribute('aria-pressed',String(activity==='campaign'&&i===selected));
+  $('track-status-'+i).textContent=best&&!best.legacy?(J.MEDALS[best.medal]+(best.clean?' · Clean':'')+(best.allCells?' · All cells':'')):best?'Completed':unlocked?'Unlocked':'Locked · preview';
+  $('track-record-'+i).textContent=best?(best.legacy?'Previous rules ':'Best ')+time(best.time):unlocked?'Ready to roll':'Finish '+G.TRACKS[Math.max(0,i-1)].name+' first';
  }
 }
 function selectTrack(index){
- if(!progress.select(index))return;
- selected=index;course=new G.Course(index);run=new G.Run(course);accumulator=0;lastHUD=-Infinity;
- if(renderer)renderer.setCourse(course);
- $('status').textContent=progress.isUnlocked(index)?'':'Finish the previous track to unlock motion play. You can preview this course now.';
- ui();
+ if(!progress.select(index))return;selected=index;party=null;training=null;trainingReturn=null;prepare(new G.Course(index,{expert:settings.expert}));state='menu';setURL();
+ $('status').textContent=progress.isUnlocked(index)?'':'Finish the previous track to unlock campaign play. You can preview it now.';ui();
 }
-function openTracks(){trackUI();$('tracks').showModal();}
+function chooseChallenge(spec,type='challenge'){
+ training=null;prepare(J.makeCourse(spec),type,spec);state='menu';$('status').textContent='';setURL(J.encode(spec));ui();
+}
 function display(){
- const angle=window.screen.orientation&&window.screen.orientation.angle;
- const layout=G.displayLayout(window.innerWidth,window.innerHeight,Number.isFinite(angle)?angle:Number(window.orientation)||0);
- const style=$('app').style;
+ const angle=window.screen.orientation&&window.screen.orientation.angle,layout=G.displayLayout(window.innerWidth,window.innerHeight,Number.isFinite(angle)?angle:Number(window.orientation)||0),style=$('app').style;
  style.setProperty('--play-width',layout.width+'px');style.setProperty('--play-height',layout.height+'px');style.setProperty('--play-rotation',layout.rotation+'deg');
  $('fullscreen').hidden=!document.documentElement.requestFullscreen||!!document.fullscreenElement||state!=='playing';
 }
 async function enterFullscreen(){
  immersive=true;const token=++displaySession;
  try{if(!document.fullscreenElement&&document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen({navigationUI:'hide'});}catch{}
- if(!immersive||token!==displaySession){
-  if(!immersive&&document.fullscreenElement&&document.exitFullscreen)Promise.resolve(document.exitFullscreen()).catch(()=>{});
-  return;
- }
- try{if(window.screen.orientation&&window.screen.orientation.lock)await window.screen.orientation.lock('portrait-primary');}catch{}
- display();
+ if(!immersive||token!==displaySession){if(!immersive&&document.fullscreenElement&&document.exitFullscreen)Promise.resolve(document.exitFullscreen()).catch(()=>{});return;}
+ try{if(window.screen.orientation?.lock)await window.screen.orientation.lock('portrait-primary');}catch{}display();
 }
 function leaveFullscreen(){
- immersive=false;displaySession++;
- try{if(window.screen.orientation&&window.screen.orientation.unlock)window.screen.orientation.unlock();}catch{}
- if(document.fullscreenElement&&document.exitFullscreen)Promise.resolve(document.exitFullscreen()).catch(()=>{});
+ immersive=false;displaySession++;try{window.screen.orientation?.unlock();}catch{}if(document.fullscreenElement&&document.exitFullscreen)Promise.resolve(document.exitFullscreen()).catch(()=>{});
 }
 function ui(){
- const active=state!=='menu',hud=['playing','paused','finished'].includes(state);
- document.body.classList.toggle('active',active);
- $('menu').hidden=state!=='menu';$('calibrating').hidden=state!=='waiting';
- $('paused').hidden=state!=='paused';$('finish').hidden=state!=='finished';
- $('hud-stats').hidden=!hud;$('route-hud').hidden=!hud;$('bottom-hud').hidden=state!=='playing';$('edition').hidden=active;
- $('demo').disabled=!renderer;
- display();trackUI();showBest();soundUI();hudUpdate();
+ document.body.classList.toggle('active',state!=='menu');
+ $('menu').hidden=state!=='menu';$('calibrating').hidden=state!=='waiting';$('countdown').hidden=state!=='ready';$('paused').hidden=state!=='paused';$('finish').hidden=state!=='finished';
+ const hud=['playing','paused','finished'].includes(state);$('hud-stats').hidden=!hud;$('route-hud').hidden=!hud;$('bottom-hud').hidden=state!=='playing';$('edition').hidden=state!=='menu';
+ $('training-status').hidden=activity!=='training'||state!=='playing';$('recenter').hidden=mode==='demo';$('open-practice').hidden=activity==='training'||activity==='party';
+ $('open-settings').hidden=state==='waiting'||state==='ready';display();trackUI();soundUI();hudUpdate();
 }
 function hudUpdate(){
  $('timer').textContent=time(run.elapsed);$('energy').textContent=run.collected+' / '+course.cells.length;
- $('section').textContent=course.track.name+' / '+course.sections[run.surface.section].name;
- const progress=Math.round(G.clamp(run.progress/course.total,0,1)*100);
- $('distance').textContent=progress+'%';$('route-fill').style.width=progress+'%';
- $('speed').textContent=Math.round(Math.hypot(run.velocity[0],run.velocity[2])*3.6)+' km/h';
- $('checkpoint').textContent='CHECKPOINT '+(run.checkpoint+1)+' / '+course.checkpoints.length;
- $('hint').textContent=(mode==='demo'?'DEMO · ':'')+(course.sections[run.surface.section].hint||hints[run.surface.section]);
- const message=run.flash>0?run.event:'';
- if($('toast').textContent!==message){$('toast').textContent=message;$('toast').setAttribute('data-kind',run.eventKind||'info');}
+ $('section').textContent=activity==='training'?training?.title||'Flight school':course.track.name+' / '+course.sections[run.surface.section].name;
+ const distance=Math.round(G.clamp(run.progress/course.total,0,1)*100);$('distance').textContent=distance+'%';$('route-fill').style.width=distance+'%';
+ const speed=Math.hypot(run.velocity[0],run.velocity[2]);$('speed').textContent=Math.round(speed*3.6)+' km/h';$('checkpoint').textContent='CHECKPOINT '+(run.checkpoint+1)+' / '+course.checkpoints.length;
+ let hint=course.sections[run.surface.section].hint||hints[run.surface.section]||'Find your line.';
+ for(const route of course.routes||[])if(run.progress>route.start-8&&run.progress<route.start+6)hint='Wide bend or narrow shortcut? The shortcut holds a bonus cell.';
+ if(activity==='training'&&training){hint='';$('training-step').textContent=training.title;$('training-goal').textContent=training.instruction;$('tilt-dot').style.transform='translateX('+(motion.controls.steer*58)+'px)';}
+ $('hint').textContent=(mode==='demo'?'DEMO · ':'')+hint;
+ const gap=course.gaps.find(g=>g.start-run.progress<15&&g.end>run.progress);
+ run.landingCue=gap?course.at(Math.min(course.total,gap.end+3)):null;
+ let jump='Hop ready ↑',jumpState='ready';
+ if(!run.grounded){jump=run.falling?'Returning to checkpoint':'Airborne · aim for the landing ring';jumpState='air';}
+ else if(run.jumpCooldown>0){jump='Settling…';jumpState='build';}
+ else if(gap&&gap.start>run.progress&&speed<5.5){jump='Build speed for the gap';jumpState='build';}
+ else if(gap&&gap.start-run.progress<2.5){jump='Hop now ↑';}
+ $('jump-status').textContent=jump;$('jump-status').setAttribute('data-state',jumpState);
+ let split='';const cp=run.lastSplit;
+ if(cp&&baseline?.splits?.[cp.index]!=null){const d=cp.time-baseline.splits[cp.index];split=(d<=0?'−':'+')+Math.abs(d).toFixed(2)+'s at checkpoint';}
+ else if(challenge?.target)split='Target '+time(challenge.target);
+ $('split-delta').textContent=split;
+ $('practice-suggestion').hidden=activity==='training'||activity==='party'||mode==='demo'||!(run.sectionFalls[run.surface.section]>=2);
+ const message=run.flash>0?run.event:'';if($('toast').textContent!==message){$('toast').textContent=message;$('toast').setAttribute('data-kind',run.eventKind||'info');}
+ if(state==='waiting'){const p=motion.calibration?100:Math.round(motion.readiness*100);$('calibration-fill').style.width=p+'%';$('calibration-progress').setAttribute('aria-valuenow',String(p));$('calibration-status').textContent=motion.calibration?'Starting angle saved. Waiting for a fresh reading…':motion.reason;}
+ if(state==='ready')$('ready-number').textContent=String(Math.max(1,Math.ceil((readyAt-now())/1000)));
 }
 function attach(){if(!listener){window.addEventListener('devicemotion',onMotion,{passive:true});listener=true;}}
 function detach(){if(listener){window.removeEventListener('devicemotion',onMotion);listener=false;}}
 function menu(message=''){
- session++;detach();state='menu';accumulator=0;motion.reset();run.reset();sound.silence();if(renderer)renderer.resetEffects();leaveFullscreen();
- $('status').textContent=message;ui();
+ session++;detach();state='menu';accumulator=0;motion.clearImpulses();run.reset();sound.silence();void wake.set(false);if(renderer)renderer.resetEffects();leaveFullscreen();$('status').textContent=message;ui();
 }
 function begin(){
- run.reset();if(renderer)renderer.resetEffects();state='playing';accumulator=0;lastHUD=-Infinity;sound.play('start');
- if(mode==='demo'){run.event='Demo running · your phone is not controlling this run';run.flash=4;}
- else{run.event='Motion ready · tilt forward to roll';run.flash=3;}
- ui();
+ if(!recentering){run.reset();run.externalClock=true;baseline=record();recorder=new J.Recorder();if(activity==='training')training=new J.Training();}
+ recentering=false;if(renderer)renderer.resetEffects();state='playing';accumulator=0;lastFrame=0;lastHUD=-Infinity;motion.clearImpulses();void wake.set(true);sound.play('start');
+ run.event=mode==='demo'?'Demo running · your phone is not controlling this run':activity==='party'?party.players[party.turn%2].name+' · run '+(Math.floor(party.turn/2)+1)+' / 3':'Motion ready · tilt forward to roll';run.flash=3;ui();
 }
 function onMotion(event){
- if(!['waiting','playing','paused'].includes(state))return;
- const ready=motion.feed(event,performance.now());
- if(state==='waiting'&&ready)begin();
+ if(!['waiting','ready','playing','paused'].includes(state))return;
+ const ready=motion.feed(event,now());
+ if(state==='waiting'&&ready){state='ready';readyAt=now()+700;motion.clearImpulses();ui();}
 }
-async function startMotion(){
- if(!renderer||state==='waiting'||!progress.isUnlocked(selected))return;
+async function startMotion({fresh=false,recenter=false}={}){
+ if(!renderer||state==='waiting'||state==='ready'||activity==='campaign'&&!progress.isUnlocked(selected))return;
+ if(activity==='campaign'&&course.expert!==settings.expert)prepare(new G.Course(selected,{expert:settings.expert}));
  const eventType=window.DeviceMotionEvent;
- if(!eventType){menu('Motion sensors are unavailable in this browser. Open on a phone, or watch the demo.');return;}
+ if(!eventType){menu('Motion sensors are unavailable here. Open this link on a phone, or watch the demo.');return;}
  if(window.isSecureContext===false){menu('Motion controls need HTTPS. Open the published GitHub Pages link.');return;}
- mode='motion';state='waiting';motion.reset();waitingSince=performance.now();const token=++session;
- $('status').textContent='';ui();
+ mode='motion';recentering=recenter;state='waiting';void wake.set(false);
+ if(fresh||!motion.calibration||now()-motion.last>120000)motion.reset();else motion.clearImpulses();
+ waitingSince=now();const token=++session;$('status').textContent='';ui();
  try{
-  // Both privileged requests begin directly inside the button's click gesture.
-  unlockAudio();
-  const permission=typeof eventType.requestPermission==='function'?eventType.requestPermission():Promise.resolve('granted');
-  void enterFullscreen();
-  if(await permission!=='granted')throw Error('Motion permission was not granted. Allow Motion & Orientation Access in your browser, then try again.');
-  if(token!==session)return;
-  waitingSince=performance.now();attach();
+  unlockAudio();const permission=permissionGranted?Promise.resolve('granted'):typeof eventType.requestPermission==='function'?eventType.requestPermission():Promise.resolve('granted');
+  void enterFullscreen();if(await permission!=='granted')throw Error('Motion permission was not granted. Allow Motion & Orientation Access in your browser, then try again.');
+  if(token!==session)return;permissionGranted=true;waitingSince=now();attach();
  }catch(error){if(token===session)menu(error.message||'Motion access failed. Please try again.');}
 }
+function launchTraining(){
+ trainingReturn={activity:activity==='training'?'campaign':activity,spec:challenge,selected};training=new J.Training();prepare(J.trainingCourse(),'training');state='menu';void startMotion();
+}
+function returnFromTraining(play=true){
+ const target=trainingReturn||{activity:'campaign',selected,spec:null};progress.tutorialDone=true;progress.save();training=null;trainingReturn=null;
+ if(target.activity==='challenge'&&target.spec)chooseChallenge(target.spec);else selectTrack(target.selected);
+ if(play)void startMotion();
+}
+function play(){if(!renderer)return;if(!progress.tutorialDone&&activity!=='training'&&activity!=='party')launchTraining();else void startMotion();}
 function startDemo(){
- if(!renderer)return;
- session++;detach();motion.reset();mode='demo';unlockAudio();void enterFullscreen();begin();
+ if(!renderer)return;session++;detach();motion.clearImpulses();mode='demo';recentering=false;unlockAudio();void enterFullscreen();begin();
 }
 function pause(message='The course will be right here.'){
- if(state!=='playing')return;state='paused';accumulator=0;sound.silence();$('pause-message').textContent=message;ui();
+ if(state!=='playing'&&state!=='ready')return;state='paused';accumulator=0;sound.silence();void wake.set(false);$('pause-message').textContent=message;ui();
 }
 function resume(){
  if(state!=='paused')return;
- if(mode==='motion'&&performance.now()-motion.last>1500){
-  $('pause-message').textContent='Waiting for motion readings. Keep this page visible, or restart to reconnect.';return;
- }
- motion.burst=[0,0,0];state='playing';accumulator=0;unlockAudio();void enterFullscreen();ui();
+ if(mode==='motion'&&now()-motion.last>1500){$('pause-message').textContent='Waiting for motion readings. Keep this page visible, or recenter to reconnect.';return;}
+ motion.clearImpulses();recentering=true;unlockAudio();void enterFullscreen();if(mode==='demo'){begin();return;}state='ready';readyAt=now()+700;ui();
 }
 function finish(){
- state='finished';accumulator=0;detach();
- const result=mode==='motion'?progress.complete(selected,run):null;
- const next=mode==='motion'&&selected<G.TRACKS.length-1&&progress.isUnlocked(selected+1);
- $('finish-kicker').textContent=mode==='demo'?'DEMO COMPLETE':result&&result.campaignComplete?'ALL SIX TRACKS COMPLETE':result&&result.record?'NEW PERSONAL BEST':'COURSE COMPLETE';
- $('finish-title').textContent=mode==='demo'?'Course previewed.':course.track.name+' complete.';
- $('finish-time').textContent=time(run.elapsed);$('finish-energy').textContent=run.collected+' / '+course.cells.length;
- $('finish-falls').textContent=String(run.falls);
- $('finish-note').textContent=mode==='demo'?(progress.isUnlocked(selected)?'Ready to try it? Take control with your phone.':'Complete '+G.TRACKS[selected-1].name+' to unlock this track. Demos do not unlock tracks.'):result&&result.newUnlock?G.TRACKS[selected+1].name+' is unlocked. Ready for the next challenge?':result&&result.campaignComplete?'Every track conquered. Replay any course to improve your records.':run.collected===course.cells.length?'Every energy cell. A beautiful run.':'Try another run to collect all '+course.cells.length+' energy cells.';
- if(mode==='motion'&&!progress.saved)$('finish-note').textContent+=' Saving is unavailable; progress lasts for this session.';
- $('next-track').hidden=!next;$('next-track').textContent=next?'Next: '+G.TRACKS[selected+1].name+' ↗':'';
- $('again').hidden=mode==='demo'&&!progress.isUnlocked(selected);$('again').classList.toggle('secondary',next);$('again').classList.toggle('primary',!next);
- $('again').textContent=mode==='demo'?'Play with motion ↗':'Roll again ↻';
- ui();
+ state='finished';accumulator=0;detach();sound.silence();void wake.set(false);run.ghost=null;run.replay=recorder?.finish();
+ let result=null;const scored=mode==='motion'&&(activity==='campaign'||activity==='challenge');
+ if(scored)result=activity==='campaign'?progress.complete(selected,run):progress.completeKey(J.key(challenge),run);
+ const rank=J.medal(run.elapsed,J.targets(course)),goal=J.nextGoal(run,result?.earned||record());
+ $('finish-kicker').textContent=mode==='demo'?'DEMO COMPLETE':activity==='training'?'FLIGHT SCHOOL COMPLETE':activity==='practice'?'PRACTICE COMPLETE':result?.campaignComplete?'ALL SIX TRACKS COMPLETE':result?.record?'NEW PERSONAL BEST':'FLIGHT COMPLETE';
+ $('finish-title').textContent=activity==='training'?'You’re ready to roll.':mode==='demo'?'Course previewed.':course.track.name+' complete.';
+ $('finish-time').textContent=time(run.elapsed);$('finish-energy').textContent=run.collected+' / '+course.cells.length;$('finish-falls').textContent=String(run.falls);
+ $('finish-badges').textContent=scored?[J.MEDALS[rank]+(rank?' medal':''),run.falls===0?'✓ Clean run':'',course.cells.length&&run.collected===course.cells.length?'◆ All cells':''].filter(Boolean).join(' · '):'';
+ $('finish-delta').textContent=baseline&&!baseline.legacy?(run.elapsed<baseline.time?'Improved by ':'Behind your best by ')+Math.abs(run.elapsed-baseline.time).toFixed(2)+'s':'';
+ let note=mode==='demo'?'Take control with your phone when you are ready.':activity==='practice'?'That section is yours to practise. Campaign records are unchanged.':activity==='training'?'Roll, brake, steer, and hop. Take those four moves into your first course.':goal.detail;
+ if(challenge?.target&&mode==='motion'){const delta=run.elapsed-challenge.target;note=delta<0?'You beat the challenge by '+(-delta).toFixed(2)+'s. Send a rematch!':delta===0?'A perfect tie. One more run?':delta.toFixed(2)+'s to beat your friend. Try another line.';}
+ if(result?.newUnlock)note+=' '+G.TRACKS[selected+1].name+' is unlocked.';
+ if(result?.newColors.length)note+=' New courier color: '+result.newColors.join(', ')+'.';
+ if(scored&&!progress.saved)note+=' Saving is unavailable; export your progress before leaving.';
+ $('finish-note').textContent=note;
+ nextAction=null;
+ if(activity==='training'){nextAction=()=>returnFromTraining();$('next-track').textContent='Start the course ↗';}
+ else if(activity==='practice'){nextAction=()=>{selectTrack(selected);void startMotion();};$('next-track').textContent='Back to my campaign ↗';}
+ else if(activity==='campaign'&&mode==='motion'&&selected<5&&progress.isUnlocked(selected+1)){nextAction=()=>{selectTrack(selected+1);void startMotion();};$('next-track').textContent='Next: '+G.TRACKS[selected+1].name+' ↗';}
+ $('next-track').hidden=!nextAction;
+ $('again').hidden=activity==='training'||activity==='party'||mode==='demo'&&activity==='campaign'&&!progress.isUnlocked(selected);
+ $('again').textContent=mode==='demo'?'Play with motion ↗':challenge?.target?'Retry the challenge ↻':scored?goal.label+' ↻':'Practise again ↻';
+ $('again').classList.toggle('secondary',!!nextAction);$('again').classList.toggle('primary',!nextAction);
+ $('party-results').hidden=activity!=='party'||mode==='demo';$('party-next').hidden=activity!=='party'||mode==='demo';$('share-result').hidden=!scored&&!(activity==='party'&&mode==='motion');$('share-options').hidden=true;$('share-status').textContent='';
+ if(activity==='party'&&party&&mode==='motion'){
+  const player=party.players[party.turn%2];player.runs.push(run.elapsed);
+  const standings=party.players.map(p=>({name:p.name,best:p.runs.length?Math.min(...p.runs):null})).sort((a,b)=>(a.best??Infinity)-(b.best??Infinity));
+  $('party-results').textContent=standings.map((p,i)=>(i+1)+'. '+p.name+' · '+(p.best===null?'Up next':time(p.best))).join('\n');
+  party.turn++;$('party-next').hidden=party.turn>=6;
+  $('finish-kicker').textContent=party.turn>=6?'FRIENDLY RIVALRY COMPLETE':'PASS THE PHONE';
+  $('finish-note').textContent=party.turn>=6?(standings[0].best===standings[1].best?'A tie!':standings[0].name+' takes this round.')+' Start another rivalry from the menu.':party.players[party.turn%2].name+' is next. Find a comfortable starting angle.';
+  $('party-next').textContent=party.turn<6?'Next: '+party.players[party.turn%2].name+' ↗':'';
+ }
+ shareSpec=scored||activity==='party'&&mode==='motion'?{...(challenge||{track:selected,section:null,expert:course.expert}),target:run.elapsed}:null;shareBlob=null;
+ if(shareSpec){const generation=++shareGeneration;S.card(document,{name:course.track.name,time:run.elapsed,medal:J.MEDALS[rank],cells:run.collected,falls:run.falls}).then(blob=>{if(generation===shareGeneration)shareBlob=blob;});$('share-link').value=S.challengeURL(shareSpec);}
+ $('keep-game').hidden=!scored||!!nav.standalone||!!(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);ui();
 }
-function frame(now){
- const dt=lastFrame?Math.min((now-lastFrame)/1000,.1):1/60;lastFrame=now;
- if(state==='waiting'&&now-waitingSince>14000)menu('No steady motion reading yet. Hold your phone upright and still, with its top edge up, then try again.');
- if(state==='playing'&&mode==='motion'&&now-motion.last>1500)pause('Motion readings paused. Keep the game visible, then tap Keep rolling.');
+function openPractice(){if(state==='playing')pause();const full=new G.Course(course.index);for(let i=0;i<6;i++)$('practice-'+i).textContent=full.sections[i]?.name||'Section '+(i+1);$('practice').showModal();}
+function practiceSection(section){const index=course.index;$('practice').close();training=null;party=null;prepare(J.sliceCourse(index,section,{single:true}),'practice');state='menu';void startMotion();}
+function openChallenges(){
+ const days=J.recentDays();for(let i=0;i<7;i++){const spec=J.daily(days[i]),r=progress.records[J.key(spec)];$('day-'+i).textContent=(i===0?'Today · ':days[i]+' · ')+G.TRACKS[spec.track].name+(r?'\n'+J.MEDALS[r.medal]+' · '+time(r.time):'\nA fresh flight');}
+ for(let i=0;i<6;i++)$('challenge-'+i).textContent=G.TRACKS[i].name+' · '+new G.Course(i).sections[quickSections[i]].name;
+ $('challenges').showModal();
+}
+function settingsUI(){
+ $('sensitivity').value=settings.sensitivity;$('advanced-controls').checked=settings.advanced;$('expert-mode').checked=settings.expert;$('graphics-quality').value=settings.quality;$('show-ghost').checked=settings.ghost;
+ $('mastery-count').textContent=progress.marks()+' mastery marks. Medals, clean runs, and all-cells badges unlock colors.';
+ for(const a of J.APPEARANCES){const b=$('color-'+a.id),open=progress.appearanceUnlocked(a.id);b.disabled=!open;b.setAttribute('aria-pressed',String(a.id===settings.appearance));b.setAttribute('title',open?a.name:a.description);b.textContent=a.name+(open?'':' · '+a.need);}
+}
+function changeSettings(){
+ settings.sensitivity=$('sensitivity').value;settings.advanced=$('advanced-controls').checked;settings.expert=$('expert-mode').checked;settings.quality=$('graphics-quality').value;settings.ghost=$('show-ghost').checked;progress.save();
+ if(state==='menu'&&activity==='campaign')prepare(new G.Course(selected,{expert:settings.expert}));settingsUI();trackUI();
+}
+function install(){
+ if(installPrompt){void installPrompt.prompt();installPrompt=null;}
+ else $('settings-status').textContent='On iPhone: open in Safari, tap Share, then Add to Home Screen. On Android: use your browser’s Install app or Add to Home Screen option. Offline play becomes ready after the first online visit finishes.';
+}
+async function share(){
+ if(!shareSpec)return;$('share-options').hidden=false;
+ const url=S.challengeURL(shareSpec),data={title:'Gravity Run · '+course.track.name,text:'I finished '+course.track.name+' in '+time(run.elapsed)+'. Can you beat me? Tilt your phone to play.',url};
+ try{
+  if(nav.share){if(shareBlob&&typeof File!=='undefined'&&nav.canShare){const file=new File([shareBlob],'gravity-run-result.png',{type:'image/png'});if(nav.canShare({files:[file]}))data.files=[file];}await nav.share(data);$('share-status').textContent='Challenge ready in your share sheet.';}
+  else $('share-status').textContent='Copy the challenge link or save your result card.';
+ }catch(error){$('share-status').textContent=error.name==='AbortError'?'Sharing cancelled. Your result is still here.':'Sharing is unavailable here. Copy the link below.';}
+}
+function frame(timestamp){
+ const raw=lastFrame?(timestamp-lastFrame)/1000:1/60;lastFrame=timestamp;const dt=Math.max(0,Math.min(raw,.1));
+ if(state==='waiting'&&timestamp-waitingSince>14000)menu('No steady motion reading yet. Keep the phone’s top edge up, hold still, and try again.');
+ if(['playing','ready'].includes(state)&&mode==='motion'&&timestamp-motion.last>1500)pause('Motion readings paused. Keep the game visible, then resume.');
+ if(state==='ready'&&timestamp>=readyAt)begin();
+ if(state==='playing'&&raw>.25)pause('The game paused during a long interruption. Resume when your phone is ready. Battery saver graphics can help.');
  if(state==='playing'){
-  accumulator=Math.min(accumulator+dt,.12);
-  while(accumulator>=STEP&&state==='playing'){
-   run.step(STEP,mode==='demo'?run.demoInput():motion.consume());feedback(run.events);accumulator-=STEP;
-   if(run.finished)finish();
+  // Fully simulate accepted active time. Score at each step, including the exact finish step.
+  accumulator+=raw;
+  while(accumulator+1e-9>=STEP&&state==='playing'){
+   run.elapsed+=STEP;run.step(STEP,mode==='demo'?run.demoInput():motion.consume());if(activity==='training'&&training&&mode==='motion')training.update(run,STEP);
+   feedback(run.events);accumulator-=STEP;if(run.finished)finish();
   }
+  if(state==='playing'){recorder?.add(run);run.ghost=settings.ghost&&!reduced?J.ghostAt(baseline?.ghost,run.elapsed):null;}
  }else if(state==='menu')run.time+=dt;
  sound.update(run,state==='playing');
- if(now-lastHUD>100){hudUpdate();lastHUD=now;}
- if(renderer)renderer.render(run,dt,state!=='menu',state==='playing'||state==='finished');
+ if(timestamp-lastHUD>100){hudUpdate();lastHUD=timestamp;}
+ if(renderer){
+  renderer.pixelRatio=quality.update(raw,settings.quality,state==='playing');renderer.appearance=J.APPEARANCES.find(a=>a.id===settings.appearance)?.color||[1,1,1];
+  run.trainingStage=activity==='training'?training?.stage:null;
+  if(state!=='menu'||timestamp-lastRender>50){renderer.render(run,dt,state!=='menu',state==='playing'||state==='finished');lastRender=timestamp;}
+ }
  requestAnimationFrame(frame);
 }
-$('start').addEventListener('click',startMotion);$('demo').addEventListener('click',startDemo);
-$('sound-toggle').addEventListener('click',()=>{
- sound.setEnabled(sound.failed||!sound.enabled);soundUI();
- if(sound.enabled)void sound.unlock().then(ok=>{soundUI();if(ok)sound.play('ui');});
-});
-$('cancel-calibration').addEventListener('click',()=>menu());
-$('pause').addEventListener('click',()=>pause());$('resume').addEventListener('click',resume);
-$('restart-pause').addEventListener('click',()=>mode==='demo'?startDemo():startMotion());
-$('exit-pause').addEventListener('click',()=>menu());$('exit-finish').addEventListener('click',()=>menu());
-$('again').addEventListener('click',startMotion);$('fullscreen').addEventListener('click',()=>void enterFullscreen());
-$('next-track').addEventListener('click',()=>{if(selected<G.TRACKS.length-1&&progress.isUnlocked(selected+1)){selectTrack(selected+1);return startMotion();}});
-$('choose-track').addEventListener('click',openTracks);$('finish-tracks').addEventListener('click',()=>{menu();openTracks();});
-$('close-tracks').addEventListener('click',()=>{$('tracks').close();});
-for(let i=0;i<G.TRACKS.length;i++)$('track-'+i).addEventListener('click',()=>{selectTrack(i);$('tracks').close();});
+$('start').addEventListener('click',play);$('demo').addEventListener('click',startDemo);
+$('sound-toggle').addEventListener('click',()=>{sound.setEnabled(sound.failed||!sound.enabled);soundUI();if(sound.enabled)void sound.unlock().then(ok=>{soundUI();if(ok)sound.play('ui');});});
+$('cancel-calibration').addEventListener('click',()=>menu());$('pause').addEventListener('click',()=>pause());$('resume').addEventListener('click',resume);
+$('restart-pause').addEventListener('click',()=>mode==='demo'?startDemo():startMotion());$('recenter').addEventListener('click',()=>void startMotion({fresh:true,recenter:true}));
+$('exit-pause').addEventListener('click',()=>{if(activity==='training')returnFromTraining(false);menu();});$('exit-finish').addEventListener('click',()=>{if(activity==='training')returnFromTraining(false);if(activity==='party')selectTrack(selected);menu();});
+$('again').addEventListener('click',()=>mode==='demo'?play():startMotion());$('fullscreen').addEventListener('click',()=>void enterFullscreen());
+$('next-track').addEventListener('click',()=>nextAction&&nextAction());$('choose-track').addEventListener('click',()=>{$('tracks').showModal();trackUI();});
+$('finish-tracks').addEventListener('click',()=>{menu();$('tracks').showModal();});$('close-tracks').addEventListener('click',()=>$('tracks').close());
+for(let i=0;i<6;i++)$('track-'+i).addEventListener('click',()=>{selectTrack(i);$('tracks').close();});
 for(const id of ['how','pause-how'])$(id).addEventListener('click',()=>{$('help').showModal();guide.open();});
 for(const id of ['close-help','help-done'])$(id).addEventListener('click',()=>{guide.close();$('help').close();});
-document.addEventListener('visibilitychange',()=>{if(document.hidden){sound.silence();if(state==='playing')pause('Your run paused while the page was away.');else if(state==='waiting')menu('Calibration paused. Tap Play with motion when you are ready.');}lastFrame=0;});
-document.addEventListener('fullscreenchange',display);window.addEventListener('resize',display);window.addEventListener('orientationchange',display);
-if(window.screen.orientation&&window.screen.orientation.addEventListener)window.screen.orientation.addEventListener('change',display);
-$('world').addEventListener('webglcontextlost',event=>{event.preventDefault();renderer=null;menu('The 3D scene was interrupted. Reload the page to reconnect.');});
-$('world').addEventListener('webglcontextrestored',()=>{window.location.reload();});
+$('open-settings').addEventListener('click',()=>{if(state==='playing')pause();settingsUI();$('settings').showModal();});$('close-settings').addEventListener('click',()=>$('settings').close());
+for(const id of ['sensitivity','advanced-controls','expert-mode','graphics-quality','show-ghost'])$(id).addEventListener('change',changeSettings);
+for(const a of J.APPEARANCES)$('color-'+a.id).addEventListener('click',()=>{if(progress.appearanceUnlocked(a.id)){settings.appearance=a.id;progress.save();settingsUI();}});
+$('learn-controls').addEventListener('click',()=>{$('settings').close();launchTraining();});$('skip-training').addEventListener('click',()=>returnFromTraining());
+$('daily-play').addEventListener('click',()=>{chooseChallenge(J.daily());play();});$('open-challenges').addEventListener('click',openChallenges);$('close-challenges').addEventListener('click',()=>$('challenges').close());
+for(let i=0;i<7;i++)$('day-'+i).addEventListener('click',()=>{$('challenges').close();chooseChallenge(J.daily(J.recentDays()[i]));play();});
+for(let i=0;i<6;i++)$('challenge-'+i).addEventListener('click',()=>{$('challenges').close();chooseChallenge({track:i,section:quickSections[i],expert:false,target:0});play();});
+$('back-campaign').addEventListener('click',()=>selectTrack(selected));$('open-practice').addEventListener('click',openPractice);$('close-practice').addEventListener('click',()=>$('practice').close());
+$('practice-suggestion').addEventListener('click',()=>{pause();practiceSection(run.surface.section);});
+for(let i=0;i<6;i++)$('practice-'+i).addEventListener('click',()=>practiceSection(i));
+$('open-party').addEventListener('click',()=>$('party').showModal());$('close-party').addEventListener('click',()=>$('party').close());
+$('start-party').addEventListener('click',()=>{party={turn:0,players:[{name:($('player-one').value||'Player 1').trim().slice(0,18)||'Player 1',runs:[]},{name:($('player-two').value||'Player 2').trim().slice(0,18)||'Player 2',runs:[]}]};$('party').close();chooseChallenge(J.daily(),'party');void startMotion({fresh:true});});
+$('party-next').addEventListener('click',()=>{if(party&&party.turn<6)void startMotion({fresh:true});});
+$('share-result').addEventListener('click',()=>void share());
+$('copy-challenge').addEventListener('click',async()=>{try{await nav.clipboard.writeText($('share-link').value);$('share-status').textContent='Challenge link copied.';}catch{$('share-link').select?.();$('share-status').textContent='Select and copy the link above.';}});
+$('save-card').addEventListener('click',()=>{if(shareBlob)S.download(document,shareBlob,'gravity-run-result.png');else $('share-status').textContent='The card is still preparing. Try again in a moment, or copy the link.';});
+$('export-progress').addEventListener('click',()=>{S.download(document,new Blob([progress.export()],{type:'application/json'}),'gravity-run-progress.json');$('settings-status').textContent='Backup exported. Keep it to restore your progress in another browser.';});
+$('import-progress').addEventListener('click',()=>$('backup-file').click());
+$('backup-file').addEventListener('change',async event=>{const file=event.target.files?.[0];if(!file)return;try{if(file.size>2500000)throw Error('Choose a backup smaller than 2.5 MB.');const result=progress.import(await file.text());$('settings-status').textContent='Backup merged. '+result.tracks+' tracks unlocked.'+(result.saved?'':' Saving is unavailable in this browser.');trackUI();settingsUI();}catch(error){$('settings-status').textContent=error.message;}event.target.value='';});
+$('install-settings').addEventListener('click',install);$('install-finish').addEventListener('click',()=>{settingsUI();$('settings').showModal();install();});
+$('update-game').addEventListener('click',()=>{if(!registration?.waiting)return;if(state==='playing')pause();reloadForUpdate=true;registration.waiting.postMessage({type:'ACTIVATE_UPDATE'});});
+window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){sound.silence();void wake.set(false);if(state==='playing'||state==='ready')pause('Your run paused while the page was away.');else if(state==='waiting')menu('Calibration paused. Tap Play with motion when you are ready.');}lastFrame=0;});
+document.addEventListener('fullscreenchange',display);window.addEventListener('resize',display);window.addEventListener('orientationchange',display);window.screen.orientation?.addEventListener('change',display);
+$('world').addEventListener('webglcontextlost',event=>{event.preventDefault();renderer=null;menu('The 3D scene was interrupted. Reload the page to reconnect.');});$('world').addEventListener('webglcontextrestored',()=>window.location.reload());
 try{renderer=new GravityRenderer.Renderer($('world'),course);}catch(error){$('status').textContent=error.message+' Enable WebGL or try another browser.';}
-showBest();ui();requestAnimationFrame(frame);
+try{const incoming=J.decode(window.location.hash||'');if(incoming)chooseChallenge(incoming);}catch(error){$('status').textContent=error.message;}
+if(nav.serviceWorker&&window.location.protocol==='https:'){
+ const updateReady=()=>{if(registration?.waiting){$('update-game').hidden=false;$('offline-status').textContent='An update is ready. Reload when you have finished your run.';}};
+ nav.serviceWorker.register('sw.js',{scope:'./',updateViaCache:'none'}).then(r=>{
+  registration=r;updateReady();r.addEventListener('updatefound',()=>{const worker=r.installing;worker?.addEventListener('statechange',()=>{if(worker.state==='installed')updateReady();});});
+  nav.serviceWorker.ready.then(()=>{if(!registration.waiting)$('offline-status').textContent='Ready to play offline on this device.';});
+ }).catch(()=>{$('offline-status').textContent='Offline saving is unavailable here. You can still play while this page is open.';});
+ nav.serviceWorker.addEventListener('controllerchange',()=>{if(reloadForUpdate)window.location.reload();});
+}else $('offline-status').textContent='This browser does not support offline installation.';
+settingsUI();ui();requestAnimationFrame(frame);
 })();

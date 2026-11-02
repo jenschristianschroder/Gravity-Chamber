@@ -1,112 +1,101 @@
 # Gravity Run
 
-A third-person motion-controlled browser game, hosted in the Gravity Chamber repository.
+A third-person browser game where your phone is the controller.
 
 **[Play Gravity Run](https://jenschristianschroder.github.io/Gravity-Chamber/)**
 
-Guide a little rolling robot across six floating courses. Tilt, twist, and nudge your phone to manage momentum, navigate moving gates, and jump the gaps. There are no accounts, third-party network requests, external libraries, or server-side logic.
+Guide a rolling robot across six floating courses. Learn to roll, brake, steer, and hop; then find faster lines, earn medals, race your own ghost, and challenge friends. The game runs entirely in the browser. No accounts, backend, external libraries, tracking, advertising, or third-party runtime requests. There are no touch, keyboard, or joystick movement controls.
 
-## Playing
+## Playing and learning
 
-1. Open the game on a phone over HTTPS and tap **Play with motion**.
-2. Allow motion access when prompted.
-3. Hold the phone upright and still, with its physical top edge up, for about one second.
-4. Tilt forward to accelerate; tilt back to brake or reverse.
-5. Lean left or right to steer. Twist gently around the phone's vertical axis for an extra turn.
-6. Move the phone briefly forward or sideways for a small impulse. Nudge upward to hop; downward to shorten a jump.
+Open the HTTPS link on a phone and choose **Learn & play**. Allow motion access when prompted. Hold the phone comfortably, with its top edge up, and keep still while the calibration bar fills. Flight school gives you four short, interactive goals: roll to a marker, stop, steer both ways, and hop across a gap. You can skip it or revisit it in Settings.
 
-Small movements are enough. Keep hold of the phone. The robot carries momentum, so slow down before a tight turn.
+Tilt the top edge away to accelerate, toward you to brake or reverse, and lean sideways to steer. Briefly lift the whole phone to hop; a downward nudge shortens airtime. Small movements are enough. Keep hold of the phone.
 
-Use **Change track** to choose a course. **Watch a demo** (or **Preview this track** for a locked course) runs a complete automated lap without sensor permission. Demos do not write personal bests or unlock tracks.
+Settings offers Gentle, Balanced, or Responsive sensitivity. A neutral dead zone reduces small accidental inputs. Optional **Twist boosts & directional nudges** enables additional steering and forward/sideways impulses. Hopping always works. Twist uses device-motion gamma, rotation about the phone’s upright Y axis. Tilt still works without gyroscope data.
 
-## Animated movement guide
+A new run reuses a recent calibration after a fresh sensor reading and a short ready pause. **Recenter my phone** in the pause menu changes the neutral angle without resetting your current attempt. Lost motion readings, hiding the page, or a long frame interruption pauses play. Brief jump buffering and edge grace make hops less brittle; side nudges have their own cooldown.
 
-Open **How to move** from the start screen or pause menu for six silent animations: roll, brake/reverse, steer, twist, nudge, and hop. Each pairs an animated phone with the robot's response, a directional arrow, and a plain-language explanation.
+**How to move** has six animated SVG lessons, each showing the phone movement beside the robot’s response. Animations can be paused or scrubbed, work without WebGL or sensor access, and respect reduced-motion settings. The entire robot leans with calibrated phone input; the follow camera keeps a level horizon.
 
-Pause an animation or drag its progress slider to inspect a movement. The guide works without motion permission or WebGL. It starts paused when reduced motion is preferred and stops rendering when closed or hidden.
+## Campaign and mastery
 
-During play, the entire robot leans forward/back, banks left/right, and swivels briefly with twist input. Its eyes and antenna follow the same pose. Lean uses the calibrated control frame, eases toward neutral, and remains bounded. It changes appearance only; collision physics and the level camera are unchanged.
+Finish a campaign course with motion controls to unlock the next. Normal play has frequent safe checkpoints. **Expert checkpoints** retains the original sparse recovery points and has separate records. Each fall adds two seconds.
 
-## Six-track campaign
-
-Finish each course with motion controls to unlock the next. Every course has a distinct route and sky palette. Later courses have narrower bridges, tighter turns, faster gates with smaller openings, more jumps, and fewer checkpoints.
-
-| Track | Difficulty | Length | Gates | Jumps | Checkpoints, including start |
+| Course | Difficulty | Length | Gates | Gaps | Normal / expert checkpoints |
 | --- | --- | ---: | ---: | ---: | ---: |
-| 01 Skyway | Easy | 334 m | 2 | 1 | 4 |
-| 02 Seabreeze | Steady | 395 m | 3 | 1 | 4 |
-| 03 Switchback | Tricky | 375 m | 3 | 2 | 4 |
-| 04 Cloudspire | Hard | 454 m | 4 | 2 | 3 |
-| 05 Fracture | Expert | 491 m | 5 | 3 | 3 |
-| 06 Eventide | Master | 589 m | 6 | 4 | 2 |
+| Skyway | Easy | 334 m | 2 | 1 | 8 / 4 |
+| Seabreeze | Steady | 395 m | 3 | 1 | 11 / 4 |
+| Switchback | Tricky | 375 m | 3 | 2 | 10 / 4 |
+| Cloudspire | Hard | 454 m | 4 | 2 | 11 / 3 |
+| Fracture | Expert | 491 m | 5 | 3 | 12 / 3 |
+| Eventide | Master | 589 m | 6 | 4 | 13 / 2 |
 
-Skyway teaches the basics. Seabreeze adds long coastal bridges; Switchback introduces hairpins and a second jump. Cloudspire climbs a corkscrew, Fracture crosses separated islands, and Eventide combines the hardest obstacles into the final gauntlet.
+Seabreeze and Fracture offer narrower gold-edged shortcuts with collectible detours. Later courses have gently banked turns. A moving platform in Fracture’s island chain provides an optional intermediate landing. Its rendered position and collision surface use the same animation.
 
-Collect energy cells along the way. Checkpoints preserve progress after a fall, with a two-second time penalty. Unlocks, the selected course, and separate best times are stored only in this browser. Existing Skyway records migrate automatically and unlock Seabreeze. If storage is blocked, progress still works for the current session.
+Earn Bronze, Silver, and Gold time medals, plus independent clean-run and all-cells badges. Your best medal contributes 1–3 mastery marks; each badge contributes one more. Campaign marks unlock Coral, Mint, Sky, and Gold courier colors without changing the physics. Results suggest a next goal and show the difference from your best time.
 
-Automated demos complete all six routes without falling, in roughly 66–120 seconds. These timings establish that the routes are traversable; a player's pace will depend on motion control and recovery time.
+A translucent, non-colliding ghost replays your fastest local attempt. Checkpoint splits show time gained or lost. Ghosts are bounded in storage and disabled with reduced motion or the ghost setting. Recovery jumps are not interpolated across the course.
 
-## Sound and feedback
+**Practise a section** opens any of the current course’s six sections with separate, unscored attempts. After repeated falls in a section, the HUD offers a direct practice shortcut. Demos and practice do not save personal records or unlock the campaign. Demos can preview locked courses.
 
-The speaker button switches sound on or off and remembers the preference on this device. Sound starts after a tap. A quiet rolling texture follows speed; jumps, landings, gate impacts, energy cells, checkpoints, falls, recovery, and finishing have distinct cues. Pausing or hiding the page silences playback.
+The initial campaign medal thresholds (Gold / Silver / Bronze, seconds) are 74/95/125, 92/118/150, 84/110/145, 103/132/170, 114/148/185, and 136/174/220. Short-course targets scale with length and obstacles. These are provisional targets, to be tuned through real phone playtests.
 
-All sounds are synthesized with the Web Audio API, with a master limiter and bounded simultaneous effects. There are no audio downloads. If audio is unavailable or blocked, the game remains playable.
+## Daily flights and friends
 
-Pickup sparks, checkpoint bursts, a finish celebration, gentle landing animation, and colored toast messages make events easier to recognize. Coral chevrons identify the takeoff area before every gap. Decorative particles, body deformation, and speed-related camera zoom respect reduced-motion preferences.
+- **Daily flight:** a deterministic short course shared by everyone, changing at 00:00 UTC. Replay the last seven days from the archive. The schedule cycles through 24 curated course/section combinations; it does not generate untested random geometry.
+- **Quick challenges:** six short routes, available without campaign unlocks, with separate local bests.
+- **Challenge a friend:** a finish-screen link includes the course, section, rules version, checkpoint mode, and target time. The receiver can play immediately even if their campaign has not reached that course. Beating it produces a rematch link.
+- **Result cards:** create a PNG on-device. Use the native share sheet where available, or copy the link and save the card. Sharing only happens after the player chooses it. Link previews use a static social image; individual scores live in the link fragment and result card.
+- **Pass the phone:** two named players take three attempts each on the same daily course. Recalibrate for each player; the fastest attempt wins. These results never overwrite personal records.
 
-Contact shadows soften as the robot rises, follow the slope of the track, and disappear over gaps, outside the track, or when the robot drops below the surface. Recovery cuts the camera back to the checkpoint.
+All competition is friendly and unverified. No global leaderboard or remote multiplayer service is involved. Shared challenge and daily records remain separate from campaign progression.
 
-## Graphics
+## Saving, installation, and updates
 
-The courier has a smooth ceramic shell, a fitted dark visor, casing seams, side pivots, an underside drive ring, and a lit rear battery panel. All its parts share the phone-controlled tilt and landing animation. Soft sky lighting, warm directional light, and material highlights distinguish the ceramic, metal, and illuminated details.
+Progress and settings stay in this browser. **Export my progress** saves a JSON backup. **Import a backup** merges achievements and keeps the fastest times, while retaining current settings. Moving between browsers/devices requires that backup; there is no automatic cloud sync.
 
-Tracks have expansion joints, flush maintenance plates, inset edge lights, layered sides, exposed end caps, and braces underneath. Gates have ribbed panels, hazard stripes, motor housings, and indicator lamps. Checkpoint and finish arches have matching hardware; energy cells have gold orbit rings.
+Version 1 campaign times remain visible as **Previous rules** and keep their unlocks. Version 2 times and ghosts are tracked separately because the controls, checkpoints, and routes changed. Imports validate record types, ranges, rules versions, dates, and ghost sizes before applying changes. If storage is unavailable, the game remains playable with session-only progress. If storage fills, saving retries without optional ghosts.
 
-Floating islands have layered rock faces, clustered trees, grass, stones, and hanging vegetation. Foliage colors vary by course. Scene geometry is generated locally and batched in shared buffers; geometry fully concealed by distance fog is skipped. The robot uses three draw calls, and course changes release the previous scene's buffers. Automated checks enforce a 12 MiB geometry buffer budget, fewer than 80 normal-play draw calls, and fewer than 100,000 visible triangles across sampled positions on all six courses. These are rendering budgets, not measured phone frame rates.
+After the first online visit finishes caching, the full game is playable offline. Settings confirms when it is ready. Supported browsers offer installation; on iPhone use Safari → Share → Add to Home Screen. Appropriate normal, maskable, and Apple icons are included.
 
-Collectible motion and decorative effects respect reduced-motion preferences. No textures, models, libraries, or other runtime downloads are added.
+A service worker installs the complete application shell before offering an update. It does not automatically replace an active run. When an update is waiting, Settings offers **Update & reload**. Each release must change both the worker cache name and the asset query version. Browser storage eviction or clearing site data removes offline files and local progress.
 
-## Fullscreen and orientation
+Gameplay requests fullscreen, portrait locking, and a screen wake lock where supported. The viewport counterrotates when native orientation locking is unavailable, keeping controls aligned with the physical phone. Wake locks release on pause, finish, or hiding the page. Optional browser feature failures do not prevent play.
 
-Gameplay fills the available viewport. It requests native fullscreen and portrait orientation locking where supported. The entire game surface counterrotates when the operating system changes screen orientation, keeping the game's axes aligned with the physical phone. The third-person camera follows the course with a level horizon.
+## Presentation and performance
 
-On iPhone, use Safari's **Share → Add to Home Screen** and launch the new icon to play without browser bars. Browsers can decline fullscreen or orientation-lock requests; the viewport and CSS fallback remain available.
+The ceramic courier has a fitted visor, casing details, side pivots, an underside drive ring, and a lit rear battery panel. Track slabs have joints, edge lighting, maintenance hardware, exposed ends, and braces. Floating islands have layered rock, foliage, trees, and hanging vegetation. Lighting distinguishes ceramic, metal, and illuminated materials.
 
-The page pauses if it loses visibility or motion samples stop arriving. Resume after fresh readings arrive, or restart to recalibrate.
+All sound is synthesized with Web Audio after a user gesture: rolling, hopping, landing, collisions, cells, checkpoints, recovery, and completion. A remembered mute setting, master limiter, and bounded voices keep playback controllable. Sound pauses when play pauses.
 
-## Implementation
+Takeoff chevrons, landing rings, hop readiness, speed hints, checkpoint feedback, and distinct sounds help explain what happened. Contact shadows follow slope and banking, clip to track/platform edges, and disappear below surfaces and over unsupported gaps.
 
-- `run-core.js`: deterministic 120 Hz physics, six course definitions, collisions, checkpoints, collectibles, and demo driver.
-- `run-progress.js`: campaign unlocks, per-track records, storage validation, and legacy record migration.
-- `run-input.js`: upright calibration, sensor sign normalization, smoothing, tilt controls, optional gyroscope twist, and one-shot motion impulses.
-- `run-audio.js`: gesture-activated sound synthesis, rolling texture, bounded effect voices, mute persistence, and pause cleanup.
-- `run-renderer.js`: dependency-free WebGL scene, material lighting, detailed batched geometry, distance culling, follow camera, robot pose, floating scenery, height-aware contact shadows, and visual effects.
-- `run-guide.js`: six SVG movement lessons, synchronized illustrations, playback/scrubbing, and reduced-motion support.
-- `game.js`: permissions, game state, fullscreen/orientation handling, HUD, and local records.
-- `index.html` / `styles.css`: responsive menu and game interface.
+Geometry is generated locally, batched, and culled beyond the fog distance. Course changes release old scene buffers. Tests enforce a 12 MiB geometry budget, fewer than 80 ordinary gameplay draw calls, and fewer than 100,000 visible triangles at sampled campaign positions. Auto quality adapts pixel resolution after sustained frame pressure; Battery saver, Balanced, and High detail are also available. These budgets are not measured phone frame rates.
 
-Phone movement controls simulated forces and impulses. It does not attempt to reconstruct absolute physical position by integrating noisy accelerometer readings. Gravity, track slope, inertia, drag, collisions, and jumping are simulated in the course's world coordinates.
+Physics runs at 120 Hz. All accepted active frame time is simulated, with scoring at the exact physics step that reaches the finish. Frames longer than 250 ms pause instead of discarding time from the score. Long background periods and sensor loss also pause. Sensor movement applies simulated forces and impulses; the game does not try to reconstruct absolute phone position by double-integrating acceleration.
 
-Calibration accommodates opposite accelerometer sign conventions. Tilt works when gyroscope data is unavailable; translation impulses also have a gravity-filter fallback when the browser does not expose linear acceleration separately. WebGL and device-motion availability depend on the browser and device.
+## Source and checks
 
-No build step or package installation is required. Serve this directory with any static HTTP server; actual phone motion access requires a secure context.
+- `run-core.js`: course geometry, forces, collision, recovery, and demo driving.
+- `run-input.js`: stable calibration, sensor normalization, filtering, and gestures.
+- `run-journey.js`: training, short-course slicing, challenge links, medals, ghosts, and quality policy.
+- `run-progress.js`: local records, progression, migration, backups, and validation.
+- `run-share.js`: time formatting, result cards, download, and wake locks.
+- `run-renderer.js`: WebGL geometry, lighting, camera, robot pose, shadows, and effects.
+- `run-audio.js` / `run-guide.js`: synthesized audio and animated movement lessons.
+- `game.js`: menus, activities, permissions, run states, scoring, and browser integrations.
+- `index.html` / `styles.css`: responsive interface and accessible labels.
+- `sw.js` / `manifest.webmanifest`: offline releases and installation.
 
-## Tests and deployment
+No package installation or build tool is required. Run checks with Node.js:
 
-Run the automated tests with Node.js:
-
-~~~sh
+```sh
 node --test tests/*.test.cjs
-~~~
+```
 
-The tests cover control direction across sensor conventions, missing sensors, bounded motion impulses, completion of every course, increasing difficulty, obstacles and falls, camera math and rendering data, renderer resource cleanup when switching courses, permission denial/cancellation, pause/resume, orientation fallback, the complete campaign flow, locked previews, migration, and persistence. Regression checks cover shadows below the track, gaps, edges and ramps, discrete event delivery, reduced-motion effects, sound scheduling, voice limits, mute persistence, and silencing on pause or page hiding.
+Tests cover the campaign, all 36 possible short-course slices and 36 practice slices, tutorial goals, calibration, gesture axes/cooldowns, buffered hops, moving-platform support, records and backups, ghosts, challenge validation, pass-the-phone turns, retry/recenter states, slow-frame scoring, sharing fallback, wake-lock races, offline cache routing, rendering budgets, shadows, sound, and the animated guide.
 
-Renderer and audio checks use mock WebGL and Web Audio APIs. Controller checks use a simulated DOM. These checks do not replace real rendering, listening, or physical iOS/Android testing.
+Controller tests use a simulated DOM; WebGL and audio tests use mocks. The actual geometry, shaders, transforms, and draw calls were also rendered in an offscreen OpenGL ES 2.0 context and visually inspected, including the new branches, banked turns, platform, ghost, and training deck. None of these substitutes for physical iOS/Android sensor tests, real-device performance measurements, or human difficulty/retention testing. There is no remote analytics collection.
 
-The graphics update was also checked by replaying the renderer's actual geometry, shaders, transforms, and draw calls in an offscreen OpenGL ES context, inspecting portrait and landscape scenes and robot close-ups. This validates shader compilation and visual output separately from the mock tests; it does not measure real-device performance or exercise browser sensor access.
-
-The guide and pose tests verify gesture directions, bounded animation geometry, pause/seek/close behavior, reduced-motion defaults, course-relative leaning, recovery resets, and identical physics with different visual poses.
-
-Pushes to `main` trigger `.github/workflows/pages.yml`, which checks JavaScript syntax, runs the tests, assembles the static files, and deploys them to GitHub Pages. Repository Pages must use **GitHub Actions** as its source.
-
-The previous Gravity Chamber game remains available in Git history.
+Pushes to `main` trigger `.github/workflows/pages.yml`: syntax checks, tests, static packaging, then GitHub Pages deployment. Pages must use **GitHub Actions** as its source. The previous Gravity Chamber game remains in Git history.

@@ -4,7 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#badbe6">
-<meta name="description" content="Six floating worlds. One little robot. Tilt, twist, and jump through progressively harder tracks in Gravity Run, a motion-controlled browser game.">
+<meta name="description" content="Tilt your phone to guide a little robot across floating courses. Earn medals, race your ghost, and challenge a friend. No account needed.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Gravity Run">
+<meta property="og:title" content="Gravity Run — Tilt. Race. Challenge a friend.">
+<meta property="og:description" content="Your phone is the controller. Earn medals and challenge a friend. No account needed.">
+<meta property="og:url" content="https://jenschristianschroder.github.io/Gravity-Chamber/">
+<meta property="og:image" content="https://jenschristianschroder.github.io/Gravity-Chamber/social-card.png">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Gravity Run robot beside a floating course. Tilt. Race. Challenge a friend.">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Gravity Run">
@@ -12,14 +21,17 @@
 <title>Gravity Run — a world in your hands</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="styles.css?v=detail1">
-<script src="run-core.js?v=detail1" defer></script>
-<script src="run-progress.js?v=detail1" defer></script>
-<script src="run-input.js?v=detail1" defer></script>
-<script src="run-audio.js?v=detail1" defer></script>
-<script src="run-renderer.js?v=detail1" defer></script>
-<script src="run-guide.js?v=detail1" defer></script>
-<script src="game.js?v=detail1" defer></script>
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="stylesheet" href="styles.css?v=journey2">
+<script src="run-core.js?v=journey2" defer></script>
+<script src="run-journey.js?v=journey2" defer></script>
+<script src="run-progress.js?v=journey2" defer></script>
+<script src="run-share.js?v=journey2" defer></script>
+<script src="run-input.js?v=journey2" defer></script>
+<script src="run-audio.js?v=journey2" defer></script>
+<script src="run-renderer.js?v=journey2" defer></script>
+<script src="run-guide.js?v=journey2" defer></script>
+<script src="game.js?v=journey2" defer></script>
 </head>
 <body>
 <main id="app">
@@ -35,6 +47,7 @@
    <span id="timer" class="timer">00:00.0</span>
   </div>
    <button id="sound-toggle" class="sound-button" aria-label="Mute sound" aria-pressed="true" title="Sound on"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="sound-waves" d="M16 8c2 2 2 6 0 8m3-11c4 4 4 10 0 14"/><path class="sound-slash" d="m4 3 16 18"/></svg><span id="sound-label">Sound on</span></button>
+   <button id="open-settings" class="settings-button" aria-label="Settings" aria-haspopup="dialog">⚙</button>
   </div>
  </header>
  <div class="route-hud" id="route-hud" hidden>
@@ -44,33 +57,44 @@
  <section class="panel menu-panel" id="menu" aria-labelledby="title">
   <div class="eyebrow"><span class="status-dot"></span><span id="course-label">COURSE 01 / SKYWAY</span></div>
   <h1 id="title">Find your <br><em>flow.</em></h1>
-  <p class="intro">A little robot. Six floating worlds. <br>Every turn is in your hands.</p>
+  <p class="intro">Tilt your phone to guide a little robot.<br>Find a faster line. Challenge a friend.</p>
   <button id="choose-track" class="course-choice" aria-haspopup="dialog"><span><strong id="track-name">Skyway</strong><small id="track-difficulty">Easy · 1 / 6</small></span><span class="change-track">Change track ↗</span></button>
   <p class="track-description" id="track-description">Find your balance above the coast.</p>
   <div class="course-facts"><span id="course-distance">334 metres</span><span id="course-sections">6 sections</span><span id="course-cells">15 energy cells</span></div>
   <button class="button primary" id="start">Play with motion <span aria-hidden="true">↗</span></button>
   <div class="menu-secondary"><button id="demo" class="text-button">Watch a demo <span aria-hidden="true">▷</span></button><button id="how" class="text-button">How to move <span aria-hidden="true">?</span></button></div>
-  <p class="micro">Start upright, with your phone’s top edge up.<br>On iPhone, add to Home Screen to hide the browser bars.</p>
+  <button id="daily-play" class="daily-card"><span><small>THE DAILY FLIGHT</small><strong id="daily-name">Today’s short challenge</strong><span id="daily-record">A fresh route to master</span></span><span aria-hidden="true">↗</span></button>
+  <div class="menu-secondary"><button id="open-challenges" class="text-button">Quick challenges</button><button id="open-party" class="text-button">Pass the phone</button></div>
+  <div id="challenge-invite" class="invite-note" hidden></div>
+  <button id="back-campaign" class="text-button" hidden>Back to my campaign</button>
+  <p class="micro">Phone movement controls every run. Start with its top edge up.</p>
   <p class="error" id="status" role="status" aria-live="polite"></p>
   <p class="best" id="best"></p>
   <p class="campaign-count" id="campaign-count">1 / 6 tracks unlocked</p>
  </section>
  <section class="panel center-panel" id="calibrating" hidden aria-labelledby="calibration-title">
   <div class="phone-icon" aria-hidden="true">↟</div><div class="eyebrow">FINDING YOUR BALANCE</div>
-  <h2 id="calibration-title">Hold steady.</h2><p>Phone upright. Physical top edge up.<br>Stay still for about one second.</p>
-  <div class="calibration-loader" aria-hidden="true"><span></span></div>
+  <h2 id="calibration-title">Find your balance.</h2><p id="calibration-copy">Hold your phone comfortably, with its top edge up. Stay still for about one second.</p>
+  <div class="calibration-loader" role="progressbar" id="calibration-progress" aria-label="Calibration readiness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="calibration-fill"></span></div>
+  <p id="calibration-status" role="status">Waiting for motion readings…</p>
   <button class="text-button" id="cancel-calibration">Back to start</button>
  </section>
+ <section class="panel center-panel" id="countdown" hidden aria-labelledby="countdown-title"><div class="eyebrow">YOUR PHONE IS READY</div><h2 id="countdown-title">Ready to roll.</h2><div id="ready-number" class="ready-number">1</div><p id="ready-caption">Hold your starting angle. Small tilts are enough.</p></section>
  <div class="bottom-hud" id="bottom-hud" hidden>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <div class="driving-hint" id="hint">Tilt forward to roll. Lean to steer.</div>
+  <div class="run-cues"><span id="split-delta"></span><span id="jump-status">Hop ready ↑</span></div>
+  <button id="practice-suggestion" class="glass-button" hidden>Practise this section</button>
   <div class="bottom-row"><span class="checkpoint" id="checkpoint">CHECKPOINT 1 / 4</span><div class="game-buttons"><button id="fullscreen" class="glass-button" hidden>Full screen</button><button id="pause" class="glass-button">Pause</button></div><span class="speed" id="speed">0 km/h</span></div>
  </div>
+ <div class="training-status" id="training-status" hidden><strong id="training-step"></strong><span id="training-goal"></span><div class="tilt-meter" aria-hidden="true"><i id="tilt-dot"></i></div><button id="skip-training" class="text-button">Skip practice</button></div>
  <section class="panel center-panel" id="paused" hidden aria-labelledby="pause-title">
   <div class="eyebrow">A MOMENT OF STILLNESS</div><h2 id="pause-title">Take a breath.</h2>
   <p id="pause-message">The course will be right here.</p>
   <button id="resume" class="button primary">Keep rolling <span aria-hidden="true">↗</span></button>
   <button id="restart-pause" class="button secondary">Restart course</button>
+  <button id="recenter" class="button secondary">Recenter my phone</button>
+  <button id="open-practice" class="text-button">Practise a section</button>
   <button id="pause-how" class="text-button">How to move</button>
   <button id="exit-pause" class="text-button">Back to start</button>
  </section>
@@ -79,9 +103,17 @@
   <h2 id="finish-title">You found<br>your flow.</h2>
   <div id="finish-time" class="finish-time">01:06.0</div>
   <div class="finish-stats"><div><strong id="finish-energy">0 / 15</strong><span>ENERGY CELLS</span></div><div><strong id="finish-falls">0</strong><span>RECOVERIES</span></div></div>
+  <div id="finish-badges" class="finish-badges"></div>
+  <p id="finish-delta" class="finish-delta"></p>
   <p id="finish-note"></p>
   <button id="next-track" class="button primary" hidden>Next track ↗</button>
   <button id="again" class="button primary">Roll again <span aria-hidden="true">↻</span></button>
+  <button id="share-result" class="button secondary">Challenge a friend ↗</button>
+  <div class="share-options" id="share-options" hidden><label for="share-link">Challenge link</label><input id="share-link" type="text" readonly><div><button id="copy-challenge" class="text-button">Copy link</button><button id="save-card" class="text-button">Save result card</button></div></div>
+  <p id="share-status" role="status"></p>
+  <div id="party-results" class="party-results" hidden></div>
+  <button id="party-next" class="button primary" hidden>Next player</button>
+  <div id="keep-game" class="keep-game" hidden><p>Keep Gravity Run close. Play offline after your first visit.</p><button id="install-finish" class="text-button">Add to Home Screen</button></div>
   <div class="finish-navigation"><button id="finish-tracks" class="text-button">Choose track</button><button id="exit-finish" class="text-button">Back to start</button></div>
  </section>
  <dialog id="help" class="guide-dialog" aria-labelledby="help-title">
@@ -136,9 +168,10 @@
   <p id="guide-description" class="guide-description">Tip the phone’s top edge away from you. The robot leans forward and picks up speed.</p>
   <p id="guide-tip" class="guide-tip">Start upright. Small tilts are enough.</p>
   <details class="guide-more"><summary>Course tips &amp; fullscreen</summary>
-  <p>Finish a track to unlock the next. Six tracks get progressively harder with narrower bridges, faster gates, more jumps, and fewer checkpoints. Demos let you preview every course and do not unlock tracks.</p>
+  <p>Finish a track to unlock the next. Earn time medals, a clean-run badge, and an all-cells badge. Normal play has frequent checkpoints; Expert checkpoints is an optional challenge with separate records. Demos and section practice do not unlock tracks.</p>
+  <p>Twists and forward/sideways nudges are optional advanced controls in Settings. Leaning, braking, and upward hops work with either setting. Recenter from the pause menu whenever your grip changes.</p>
   <p>Keep hold of your phone. Gentle movements are enough. Checkpoints catch you after a fall, with a two-second time penalty. Progress and each track's best time are saved on this device.</p>
-  <p>Follow the coral chevrons at each launch ramp. Listen for energy chimes, checkpoint tones, and landing sounds. The speaker button switches sound on or off and remembers your choice.</p>
+  <p>Follow the coral chevrons at each launch ramp and aim for the mint landing ring. Your best ghost and checkpoint differences help you find a faster line. The speaker button switches sound on or off.</p>
   <p class="micro">Gameplay fills the screen and stays fixed to your phone. On iPhone: Safari → Share → Add to Home Screen, then launch from the new icon. Sensor readings stay on your device.</p>
   </details>
   <button id="help-done" class="button primary">Ready to roll <span aria-hidden="true">↗</span></button>
@@ -153,9 +186,31 @@
    <button id="track-2" class="track-option" aria-pressed="false"><span class="track-number">03</span><span class="track-info"><strong>Switchback <small>Tricky</small></strong><span>Tight hairpins and two committed jumps.</span><span id="track-record-2" class="track-record"></span></span><span id="track-status-2" class="track-status">Locked · preview</span></button>
    <button id="track-3" class="track-option" aria-pressed="false"><span class="track-number">04</span><span class="track-info"><strong>Cloudspire <small>Hard</small></strong><span>A rising corkscrew and thinner crossings.</span><span id="track-record-3" class="track-record"></span></span><span id="track-status-3" class="track-status">Locked · preview</span></button>
    <button id="track-4" class="track-option" aria-pressed="false"><span class="track-number">05</span><span class="track-info"><strong>Fracture <small>Expert</small></strong><span>Three broken causeways. Five fast gates.</span><span id="track-record-4" class="track-record"></span></span><span id="track-status-4" class="track-status">Locked · preview</span></button>
-   <button id="track-5" class="track-option" aria-pressed="false"><span class="track-number">06</span><span class="track-info"><strong>Eventide <small>Master</small></strong><span>Four leaps. Six gates. One final checkpoint.</span><span id="track-record-5" class="track-record"></span></span><span id="track-status-5" class="track-status">Locked · preview</span></button>
+   <button id="track-5" class="track-option" aria-pressed="false"><span class="track-number">06</span><span class="track-info"><strong>Eventide <small>Master</small></strong><span>Four leaps. Six gates. Find your perfect line.</span><span id="track-record-5" class="track-record"></span></span><span id="track-status-5" class="track-status">Locked · preview</span></button>
   </div>
  </dialog>
+ <dialog id="settings" class="settings-dialog" aria-labelledby="settings-title">
+  <button id="close-settings" class="close" aria-label="Close settings">×</button><div class="eyebrow">MAKE IT YOURS</div><h2 id="settings-title">Your way to roll.</h2>
+  <label class="setting-row" for="sensitivity">Motion sensitivity<select id="sensitivity"><option value="gentle">Gentle</option><option value="balanced">Balanced</option><option value="responsive">Responsive</option></select></label>
+  <label class="check-row"><input id="advanced-controls" type="checkbox"><span>Twist boosts &amp; directional nudges<small>Optional advanced movements. Hopping always works.</small></span></label>
+  <label class="check-row"><input id="expert-mode" type="checkbox"><span>Expert checkpoints<small>Fewer recovery points. Separate records. Applies to the next campaign run.</small></span></label>
+  <label class="setting-row" for="graphics-quality">Graphics<select id="graphics-quality"><option value="auto">Auto</option><option value="eco">Battery saver</option><option value="balanced">Balanced</option><option value="high">High detail</option></select></label>
+  <label class="check-row"><input id="show-ghost" type="checkbox" checked><span>Race my best ghost<small>Stored on this device. No collision with the ghost.</small></span></label>
+  <h3>Your courier</h3><p id="mastery-count">Earn mastery marks to unlock colors.</p>
+  <div class="appearance-list" role="group" aria-label="Courier color"><button id="color-ivory" data-color="ivory">Ivory</button><button id="color-coral" data-color="coral">Coral</button><button id="color-mint" data-color="mint">Mint</button><button id="color-sky" data-color="sky">Sky</button><button id="color-gold" data-color="gold">Gold</button></div>
+  <div class="settings-actions"><button id="learn-controls" class="button secondary">Play flight school</button><button id="export-progress" class="text-button">Export my progress</button><button id="import-progress" class="text-button">Import a backup</button><input id="backup-file" type="file" accept="application/json,.json" hidden></div>
+  <p class="micro">Progress stays in this browser. Import merges achievements and keeps your best times. Shared challenges are friendly, unverified competition.</p>
+  <button id="install-settings" class="text-button">Keep on my Home Screen</button><p id="offline-status" class="micro" role="status">Checking offline availability…</p><button id="update-game" class="button secondary" hidden>Update &amp; reload</button><p id="settings-status" role="status"></p>
+ </dialog>
+ <dialog id="challenges" class="challenges-dialog" aria-labelledby="challenges-title">
+  <button id="close-challenges" class="close" aria-label="Close challenges">×</button><div class="eyebrow">A SMALL CHALLENGE. ONE MORE TRY.</div><h2 id="challenges-title">Find your next flight.</h2>
+  <h3>The daily archive</h3><p>One course for everyone. Changes at 00:00 UTC. Replay any of the last seven days.</p>
+  <div class="daily-list"><button id="day-0"></button><button id="day-1"></button><button id="day-2"></button><button id="day-3"></button><button id="day-4"></button><button id="day-5"></button><button id="day-6"></button></div>
+  <h3>Quick challenges</h3><p>Available to everyone. These runs keep separate records and do not unlock the campaign.</p>
+  <div class="quick-list"><button id="challenge-0"></button><button id="challenge-1"></button><button id="challenge-2"></button><button id="challenge-3"></button><button id="challenge-4"></button><button id="challenge-5"></button></div>
+ </dialog>
+ <dialog id="practice" aria-labelledby="practice-title"><button id="close-practice" class="close" aria-label="Close practice">×</button><div class="eyebrow">BUILD YOUR CONFIDENCE</div><h2 id="practice-title">One section at a time.</h2><p>Practice runs do not change campaign records or unlocks.</p><div class="quick-list"><button id="practice-0"></button><button id="practice-1"></button><button id="practice-2"></button><button id="practice-3"></button><button id="practice-4"></button><button id="practice-5"></button></div></dialog>
+ <dialog id="party" aria-labelledby="party-title"><button id="close-party" class="close" aria-label="Close pass-the-phone challenge">×</button><div class="eyebrow">SAME PHONE. SAME COURSE.</div><h2 id="party-title">Pass the phone.</h2><p>Two players. Three runs each on today’s challenge. Your fastest run counts. Each player finds their own starting angle.</p><label class="setting-row" for="player-one">Player one<input id="player-one" maxlength="18" value="Player 1"></label><label class="setting-row" for="player-two">Player two<input id="player-two" maxlength="18" value="Player 2"></label><button id="start-party" class="button primary">Start the friendly rivalry ↗</button><p class="micro">These results stay here and do not replace personal records.</p></dialog>
 </main>
 </body>
 </html>
