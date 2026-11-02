@@ -25,7 +25,7 @@ function fixture({permission='granted',storageFails=false,webgl=true,deferredPer
   screen:{orientation:{angle:0,lock:()=>Promise.reject(Error('No native lock')),unlock(){},addEventListener(k,fn){events['orientation:'+k]=fn;}}},
   DeviceMotionEvent:{requestPermission:()=>deferredPermission||Promise.resolve(permission)},
   addEventListener(k,fn){events['window:'+k]=fn;},removeEventListener(k,fn){if(events['window:'+k]===fn)delete events['window:'+k];},
-  navigator,history:{replaceState(){}},location:{hash,pathname:'/Gravity-Chamber/',search:'',protocol:'https:',reload(){}}
+  navigator,history:{replaceState(){}},location:{hash,pathname:'/Gravity-Chamber/',search:'',protocol:'https:',reload(){events.reload=true;}}
  };
  const storage={getItem(k){if(storageFails)throw Error('Blocked');return saved.get(k)||null;},setItem(k,v){if(storageFails)throw Error('Blocked');saved.set(k,v);}};
  const af=contextFixture();let sound;

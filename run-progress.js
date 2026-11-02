@@ -41,10 +41,11 @@ class Progress{
   this.storage=storage;this.records={};this.legacy={};this.selected=0;this.saved=true;this.tutorialDone=false;this.settings={...DEFAULTS};
   try{const raw=storage.getItem(KEY);if(raw)Object.assign(this,parse(raw));}catch{}
   try{const time=Number(storage.getItem(LEGACY));if(finite(time,.001,7200)&&!this.legacy.skyway&&!this.records.skyway)this.legacy.skyway=cleanRecord({time,cells:0},true);}catch{this.saved=false;}
-  this.refreshUnlocks();
+  this.trimDaily();this.refreshUnlocks();
  }
  hasTrack(index){const id=G.TRACKS[index].id;return !!(this.records[id]||this.records[id+'-expert']||this.legacy[id]);}
  refreshUnlocks(){this.unlocked=1;while(this.unlocked<6&&this.hasTrack(this.unlocked-1))this.unlocked++;}
+ trimDaily(){const keys=Object.keys(this.records).filter(k=>k.startsWith('daily-')).sort().reverse();for(const key of keys.slice(14))delete this.records[key];}
  isUnlocked(index){return Number.isInteger(index)&&index>=0&&index<this.unlocked;}
  record(index,expert=false){const id=G.TRACKS[index].id;return this.records[id+(expert?'-expert':'')]||(!expert?this.legacy[id]:null)||null;}
  select(index){if(!Number.isInteger(index)||index<0||index>=6)return false;this.selected=index;this.save();return true;}
@@ -62,17 +63,22 @@ class Progress{
   const candidate={time:run.elapsed,cells:Number.isInteger(run.collected)?run.collected:0,clean:run.falls===0,allCells:maxCells>0&&run.collected===maxCells,medal:rank,plays:(previous?.plays||0)+1,splits:run.splits||[]};
   const ghost=run.replay;if(record&&ghost)candidate.ghost=ghost;
   this.records[id]=mergeRecord(previous,candidate);this.records[id].plays=candidate.plays;
-  const dailyKeys=Object.keys(this.records).filter(k=>k.startsWith('daily-')).sort().reverse();for(const key of dailyKeys.slice(14))delete this.records[key];
+  this.trimDaily();
   this.refreshUnlocks();this.save();
   return {record,previous:previous?.time,newUnlock:campaign&&this.unlocked>oldUnlocked,campaignComplete:campaign&&G.TRACKS.every((_,i)=>this.hasTrack(i)),medal:rank,earned:this.records[id],newColors:J.APPEARANCES.filter(a=>a.need>oldMarks&&a.need<=this.marks()).map(a=>a.name)};
  }
  snapshot(){return {format:'gravity-run',version:2,rules:J.RULES,selected:this.selected,tutorialDone:this.tutorialDone,settings:this.settings,records:this.records,legacy:this.legacy};}
- export(){return JSON.stringify(this.snapshot());}
+ export(){
+  const data=this.snapshot();let raw=JSON.stringify(data);
+  // A backup must always fit its own importer, even after many long ghost runs.
+  if(raw.length>2400000){data.records=Object.fromEntries(Object.entries(this.records).map(([k,v])=>{const r={...v};delete r.ghost;return [k,r];}));raw=JSON.stringify(data);}
+  return raw;
+ }
  import(raw){
   const d=parse(raw);
   for(const [key,r] of Object.entries(d.records))this.records[key]=mergeRecord(this.records[key],r);
   for(const [key,r] of Object.entries(d.legacy))this.legacy[key]=mergeRecord(this.legacy[key],r);
-  this.tutorialDone=this.tutorialDone||d.tutorialDone;this.refreshUnlocks();this.save();
+  this.tutorialDone=this.tutorialDone||d.tutorialDone;this.trimDaily();this.refreshUnlocks();this.save();
   return {tracks:this.unlocked,records:Object.keys(this.records).length,saved:this.saved};
  }
  save(){

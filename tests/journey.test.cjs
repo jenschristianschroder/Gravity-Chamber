@@ -87,3 +87,10 @@ test('adaptive rendering responds to sustained frame pressure without changing p
  const q=new J.Quality();for(let i=0;i<250;i++)q.update(.04);assert.equal(q.scale,1);
  for(let i=0;i<500;i++)q.update(1/60);assert.ok(q.scale>1);assert.equal(q.update(.1,'eco'),1);assert.equal(q.update(.1,'high'),2);
 });
+test('large backups remain importable and merging archives does not exceed the record limit',()=>{
+ const p=new P.Progress(memory()),ghost=Array.from({length:3000},(_,i)=>[i*.15,123.4567,6.1234,234.5678,.1234]);
+ for(let i=0;i<6;i++)for(let s=0;s<6;s++)p.records[`sprint-${i}-${s}`]={time:500,cells:0,medal:0,clean:false,allCells:false,plays:1,ghost};
+ assert.ok(JSON.stringify(p.snapshot()).length>2500000);const backup=p.export();assert.ok(backup.length<2500000);assert.equal(Object.keys(P.parse(backup).records).length,36);
+ for(let day=1;day<=28;day++)p.import(JSON.stringify({version:2,rules:2,records:{['daily-2026-02-'+String(day).padStart(2,'0')]:{time:30}}}));
+ assert.equal(Object.keys(p.records).filter(k=>k.startsWith('daily-')).length,14);assert.ok(P.parse(p.export()));
+});

@@ -55,7 +55,7 @@ All competition is friendly and unverified. No global leaderboard or remote mult
 
 Progress and settings stay in this browser. **Export my progress** saves a JSON backup. **Import a backup** merges achievements and keeps the fastest times, while retaining current settings. Moving between browsers/devices requires that backup; there is no automatic cloud sync.
 
-Version 1 campaign times remain visible as **Previous rules** and keep their unlocks. Version 2 times and ghosts are tracked separately because the controls, checkpoints, and routes changed. Imports validate record types, ranges, rules versions, dates, and ghost sizes before applying changes. If storage is unavailable, the game remains playable with session-only progress. If storage fills, saving retries without optional ghosts.
+Version 1 campaign times remain visible as **Previous rules** and keep their unlocks. Version 2 times and ghosts are tracked separately because the controls, checkpoints, and routes changed. Imports validate record types, ranges, rules versions, dates, and ghost sizes before applying changes. If storage is unavailable, the game remains playable with session-only progress. If storage fills, saving retries without optional ghosts. Very large backups omit ghosts so the exported file always fits the import limit; achievements and times are retained.
 
 After the first online visit finishes caching, the full game is playable offline. Settings confirms when it is ready. Supported browsers offer installation; on iPhone use Safari → Share → Add to Home Screen. Appropriate normal, maskable, and Apple icons are included.
 

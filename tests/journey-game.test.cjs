@@ -52,3 +52,12 @@ test('unavailable native sharing leaves a usable challenge link',async()=>{
  await f.click('copy-challenge');assert.match(f.elements['share-status'].textContent,/copy the link/);
  assert.ok(f.elements['share-link'].value.startsWith('https://jenschristianschroder.github.io/Gravity-Chamber/#c=2~'));
 });
+test('offline installation clears the initial update button and updates reload only after selection',async()=>{
+ const events={},worker={state:'installing',addEventListener:(k,fn)=>events[k]=fn},registration={waiting:null,installing:worker,addEventListener:(k,fn)=>events[k]=fn};
+ let ready;const serviceWorker={register:async()=>registration,ready:new Promise(r=>ready=r),addEventListener:(k,fn)=>events[k]=fn};
+ const f=fixture({navigator:{serviceWorker}});await Promise.resolve();await Promise.resolve();assert.equal(f.elements['update-game'].hidden,true);
+ registration.waiting={postMessage:message=>events.sent=message};events.updatefound();worker.state='installed';events.statechange();assert.equal(f.elements['update-game'].hidden,false);
+ registration.waiting=null;ready(registration);await Promise.resolve();assert.equal(f.elements['update-game'].hidden,true);assert.match(f.elements['offline-status'].textContent,/Ready to play offline/);
+ registration.waiting={postMessage:message=>events.sent=message};events.updatefound();events.statechange();assert.equal(f.events.reload,undefined);
+ f.click('update-game');assert.equal(events.sent.type,'ACTIVATE_UPDATE');assert.equal(f.events.reload,undefined);events.controllerchange();assert.ok(f.events.reload);
+});

@@ -7,7 +7,7 @@ const progress=new GravityProgress.Progress(storage),settings=progress.settings;
 const sound=new GravityAudio.Sound(storage),reduced=!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 const guide=new GravityGuide.Guide(document,{reduced}),wake=new S.Wake(nav),quality=new J.Quality(),motion=new GravityMotion.MotionInput(settings),STEP=1/120;
 let selected=progress.selected,course=new G.Course(selected,{expert:settings.expert}),run=new G.Run(course);
-let renderer,state='menu',mode='motion',activity='campaign',challenge=null,training=null,trainingReturn=null,party=null;
+let renderer,rendererError='',state='menu',mode='motion',activity='campaign',challenge=null,training=null,trainingReturn=null,party=null;
 let listener=false,session=0,immersive=false,displaySession=0,permissionGranted=false,recentering=false,readyAt=0;
 let accumulator=0,lastFrame=0,lastHUD=-Infinity,waitingSince=0,lastRender=0,baseline=null,recorder=null,nextAction=null,shareSpec=null,shareBlob=null,shareGeneration=0;
 let installPrompt=null,registration=null,reloadForUpdate=false;
@@ -56,10 +56,10 @@ function trackUI(){
 }
 function selectTrack(index){
  if(!progress.select(index))return;selected=index;party=null;training=null;trainingReturn=null;prepare(new G.Course(index,{expert:settings.expert}));state='menu';setURL();
- $('status').textContent=progress.isUnlocked(index)?'':'Finish the previous track to unlock campaign play. You can preview it now.';ui();
+ $('status').textContent=rendererError||(progress.isUnlocked(index)?'':'Finish the previous track to unlock campaign play. You can preview it now.');ui();
 }
 function chooseChallenge(spec,type='challenge'){
- training=null;prepare(J.makeCourse(spec),type,spec);state='menu';$('status').textContent='';setURL(J.encode(spec));ui();
+ training=null;prepare(J.makeCourse(spec),type,spec);state='menu';$('status').textContent=rendererError;setURL(J.encode(spec));ui();
 }
 function display(){
  const angle=window.screen.orientation&&window.screen.orientation.angle,layout=G.displayLayout(window.innerWidth,window.innerHeight,Number.isFinite(angle)?angle:Number(window.orientation)||0),style=$('app').style;
@@ -111,7 +111,7 @@ function hudUpdate(){
 function attach(){if(!listener){window.addEventListener('devicemotion',onMotion,{passive:true});listener=true;}}
 function detach(){if(listener){window.removeEventListener('devicemotion',onMotion);listener=false;}}
 function menu(message=''){
- session++;detach();state='menu';accumulator=0;motion.clearImpulses();run.reset();sound.silence();void wake.set(false);if(renderer)renderer.resetEffects();leaveFullscreen();$('status').textContent=message;ui();
+ session++;detach();state='menu';accumulator=0;motion.clearImpulses();run.reset();sound.silence();void wake.set(false);if(renderer)renderer.resetEffects();leaveFullscreen();$('status').textContent=message||rendererError;ui();
 }
 function begin(){
  if(!recentering){run.reset();run.externalClock=true;baseline=record();recorder=new J.Recorder();if(activity==='training')training=new J.Training();}
@@ -204,6 +204,7 @@ function openChallenges(){
  $('challenges').showModal();
 }
 function settingsUI(){
+ $('learn-controls').disabled=!renderer;$('start-party').disabled=!renderer;
  $('sensitivity').value=settings.sensitivity;$('advanced-controls').checked=settings.advanced;$('expert-mode').checked=settings.expert;$('graphics-quality').value=settings.quality;$('show-ghost').checked=settings.ghost;
  $('mastery-count').textContent=progress.marks()+' mastery marks. Medals, clean runs, and all-cells badges unlock colors.';
  for(const a of J.APPEARANCES){const b=$('color-'+a.id),open=progress.appearanceUnlocked(a.id);b.disabled=!open;b.setAttribute('aria-pressed',String(a.id===settings.appearance));b.setAttribute('title',open?a.name:a.description);b.textContent=a.name+(open?'':' · '+a.need);}
@@ -283,16 +284,16 @@ $('update-game').addEventListener('click',()=>{if(!registration?.waiting)return;
 window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){sound.silence();void wake.set(false);if(state==='playing'||state==='ready')pause('Your run paused while the page was away.');else if(state==='waiting')menu('Calibration paused. Tap Play with motion when you are ready.');}lastFrame=0;});
 document.addEventListener('fullscreenchange',display);window.addEventListener('resize',display);window.addEventListener('orientationchange',display);window.screen.orientation?.addEventListener('change',display);
-$('world').addEventListener('webglcontextlost',event=>{event.preventDefault();renderer=null;menu('The 3D scene was interrupted. Reload the page to reconnect.');});$('world').addEventListener('webglcontextrestored',()=>window.location.reload());
-try{renderer=new GravityRenderer.Renderer($('world'),course);}catch(error){$('status').textContent=error.message+' Enable WebGL or try another browser.';}
+$('world').addEventListener('webglcontextlost',event=>{event.preventDefault();renderer=null;rendererError='The 3D scene was interrupted. Reload the page to reconnect.';menu(rendererError);});$('world').addEventListener('webglcontextrestored',()=>window.location.reload());
+try{renderer=new GravityRenderer.Renderer($('world'),course);}catch(error){rendererError=error.message+' Enable WebGL or try another browser.';$('status').textContent=rendererError;}
 try{const incoming=J.decode(window.location.hash||'');if(incoming)chooseChallenge(incoming);}catch(error){$('status').textContent=error.message;}
 if(nav.serviceWorker&&window.location.protocol==='https:'){
- const updateReady=()=>{if(registration?.waiting){$('update-game').hidden=false;$('offline-status').textContent='An update is ready. Reload when you have finished your run.';}};
+ const updateReady=()=>{const waiting=!!registration?.waiting;$('update-game').hidden=!waiting;if(waiting)$('offline-status').textContent='An update is ready. Reload when you have finished your run.';};
  nav.serviceWorker.register('sw.js',{scope:'./',updateViaCache:'none'}).then(r=>{
   registration=r;updateReady();r.addEventListener('updatefound',()=>{const worker=r.installing;worker?.addEventListener('statechange',()=>{if(worker.state==='installed')updateReady();});});
-  nav.serviceWorker.ready.then(()=>{if(!registration.waiting)$('offline-status').textContent='Ready to play offline on this device.';});
+  nav.serviceWorker.ready.then(()=>{updateReady();if(!registration.waiting)$('offline-status').textContent='Ready to play offline on this device.';});
  }).catch(()=>{$('offline-status').textContent='Offline saving is unavailable here. You can still play while this page is open.';});
- nav.serviceWorker.addEventListener('controllerchange',()=>{if(reloadForUpdate)window.location.reload();});
+ nav.serviceWorker.addEventListener('controllerchange',()=>{if(reloadForUpdate)window.location.reload();else updateReady();});
 }else $('offline-status').textContent='This browser does not support offline installation.';
 settingsUI();ui();requestAnimationFrame(frame);
 })();
