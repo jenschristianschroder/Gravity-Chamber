@@ -13,30 +13,60 @@ test('camera projection puts its target in the center and points ahead at positi
  assert.deepEqual(vertex,[5,7,9,1]);
 });
 test('renderer uploads finite geometry and draws the course at phone and desktop sizes',()=>{
- let bound,draws=0,uploads=0,viewport;const liveBuffers=new Set(),drawn=[];
+ let bound,draws=0,uploads=0,viewport,frameVertices=0;const liveBuffers=new Set(),drawn=[],matrices=new Map();let currentMatrix;
  const gl={
   createShader:()=>({}),shaderSource(){},compileShader(){},getShaderParameter:()=>true,getShaderInfoLog:()=>'',
   createProgram:()=>({}),attachShader(){},linkProgram(){},getProgramParameter:()=>true,useProgram(){},
   getAttribLocation:(_,name)=>['aPosition','aNormal','aColor'].indexOf(name),getUniformLocation:(_,name)=>name,
   enable(){},blendFunc(){},clearColor(){},createBuffer(){const b={};liveBuffers.add(b);return b;},deleteBuffer(b){assert.ok(liveBuffers.has(b));liveBuffers.delete(b);},
-  bindBuffer(_,buffer){bound=buffer;},bufferData(_,data){assert.ok(data.length>0);assert.ok(data.every(Number.isFinite));assert.equal(data.length%30,0);bound.count=data.length/10;uploads++;},
+  bindBuffer(_,buffer){bound=buffer;},bufferData(_,data){
+   assert.ok(data.length>0);assert.ok(data.every(Number.isFinite));assert.equal(data.length%30,0);
+   for(let i=0;i<data.length;i+=10)assert.ok(Math.abs(Math.hypot(data[i+3],data[i+4],data[i+5])-1)<1e-5,'lighting normals must have unit length');
+   bound.count=data.length/10;uploads++;
+  },
   enableVertexAttribArray(){},vertexAttribPointer(){},
-  uniformMatrix4fv(_,transpose,data){assert.equal(data.length,16);assert.ok(data.every(Number.isFinite));},
+  uniformMatrix4fv(name,transpose,data){assert.equal(data.length,16);assert.ok(data.every(Number.isFinite));if(name==='uModel')currentMatrix=Array.from(data);},
   uniform4fv(_,data){assert.ok(data.every(Number.isFinite));},uniform3fv(_,data){assert.ok(data.every(Number.isFinite));},
-  drawArrays(_,start,count){assert.ok(count>0&&count<=bound.count);assert.equal(count%3,0);draws++;drawn.push(bound);},
-  viewport(x,y,w,h){viewport=[w,h];},clear(){},depthMask(){}
+  drawArrays(_,start,count){assert.ok(start>=0&&count>0&&start+count<=bound.count);assert.equal(start%3,0);assert.equal(count%3,0);draws++;frameVertices+=count;drawn.push(bound);matrices.set(bound,currentMatrix);},
+  viewport(x,y,w,h){viewport=[w,h];},clear(){draws=0;frameVertices=0;},depthMask(){}
  };
  const c=new G.Course(),run=new G.Run(c),canvas={clientWidth:390,clientHeight:844,width:0,height:0,getContext:()=>gl};
  const renderer=new R.Renderer(canvas,c);renderer.render(run,1/60,false);
- assert.deepEqual(viewport,[390,844]);assert.equal(uploads,7);assert.ok(draws>15&&draws<100);
+ assert.deepEqual(viewport,[390,844]);assert.equal(uploads,10);assert.ok(draws>8&&draws<80);
+ assert.deepEqual(matrices.get(renderer.robotShell.buffer),matrices.get(renderer.robotTrim.buffer));
+ assert.deepEqual(matrices.get(renderer.robotShell.buffer),matrices.get(renderer.robotLights.buffer));
  assert.ok(drawn.includes(renderer.disc.buffer));
+ renderer.reduced=true;renderer.render(run,1/60,true);const stillGem=matrices.get(renderer.gem.buffer);run.time+=1;renderer.render(run,1/60,true);
+ assert.deepEqual(matrices.get(renderer.gem.buffer),stillGem,'collectibles do not bob or spin with reduced motion');renderer.reduced=false;
  run.position[1]-=3;drawn.length=0;renderer.render(run,1/60,true);
  assert.ok(!drawn.includes(renderer.disc.buffer),'a robot below the track must never cast a shadow on top of it');
  run.reset();
  for(let i=0;i<2000;i++)run.step(1/120,run.demoInput());
  canvas.clientWidth=1280;canvas.clientHeight=720;renderer.render(run,1/60,true);
  assert.deepEqual(viewport,[1280,720]);assert.ok(renderer.eye.every(Number.isFinite));
- for(let i=1;i<6;i++){const next=new G.Course(i);renderer.setCourse(next);renderer.render(new G.Run(next),1/60,false);assert.equal(liveBuffers.size,7);}
+ for(let i=0;i<6;i++){
+  const next=new G.Course(i),player=new G.Run(next);renderer.setCourse(next);
+  assert.equal(liveBuffers.size,10,'changing tracks releases the previous scene buffers');
+  assert.ok([...liveBuffers].reduce((sum,b)=>sum+b.count*40,0)<12*1024*1024,'geometry must stay below the 12 MiB GPU buffer budget');
+  for(let s=5;s<next.total;s+=30){
+   player.place(s);renderer.cameraCut=true;renderer.render(player,1/60,true);
+   assert.ok(draws<80,'normal gameplay stays below 80 draw calls');
+   assert.ok(frameVertices<300000,'visible scene stays below 100,000 triangles');
+  }
+ }
+});
+test('distance culling keeps intersecting fog ranges and merges adjacent visible draws',()=>{
+ const mesh={count:24,ranges:[
+  {first:0,count:6,center:[0,0,0],radius:4},
+  {first:6,count:6,center:[110,0,0],radius:3},
+  {first:12,count:6,center:[120,0,0],radius:2},
+  {first:18,count:6,center:[10,0,0],radius:4}
+ ]};
+ assert.deepEqual(R.visibleRanges(mesh,[0,0,0]),[{first:0,count:12},{first:18,count:6}]);
+ assert.deepEqual(R.visibleRanges(mesh,[1000,0,0]),[]);
+ assert.deepEqual(R.visibleRanges(mesh,[60,0,0]),[{first:0,count:24}]);
+ assert.deepEqual(R.visibleRanges({count:9},[0,0,0]),[{first:0,count:9}]);
+ assert.equal(mesh.ranges[0].count,6,'culling must not mutate stored geometry ranges');
 });
 test('contact shadows disappear below the surface, over gaps, and beyond track edges',()=>{
  const r=new G.Run(),contact=R.contactShadow(r);assert.ok(contact);assert.ok(contact.alpha>0);

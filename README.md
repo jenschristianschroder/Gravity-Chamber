@@ -56,6 +56,16 @@ Pickup sparks, checkpoint bursts, a finish celebration, gentle landing animation
 
 Contact shadows soften as the robot rises, follow the slope of the track, and disappear over gaps, outside the track, or when the robot drops below the surface. Recovery cuts the camera back to the checkpoint.
 
+## Graphics
+
+The courier has a smooth ceramic shell, a fitted dark visor, casing seams, side pivots, an underside drive ring, and a lit rear battery panel. All its parts share the phone-controlled tilt and landing animation. Soft sky lighting, warm directional light, and material highlights distinguish the ceramic, metal, and illuminated details.
+
+Tracks have expansion joints, flush maintenance plates, inset edge lights, layered sides, exposed end caps, and braces underneath. Gates have ribbed panels, hazard stripes, motor housings, and indicator lamps. Checkpoint and finish arches have matching hardware; energy cells have gold orbit rings.
+
+Floating islands have layered rock faces, clustered trees, grass, stones, and hanging vegetation. Foliage colors vary by course. Scene geometry is generated locally and batched in shared buffers; geometry fully concealed by distance fog is skipped. The robot uses three draw calls, and course changes release the previous scene's buffers. Automated checks enforce a 12 MiB geometry buffer budget, fewer than 80 normal-play draw calls, and fewer than 100,000 visible triangles across sampled positions on all six courses. These are rendering budgets, not measured phone frame rates.
+
+Collectible motion and decorative effects respect reduced-motion preferences. No textures, models, libraries, or other runtime downloads are added.
+
 ## Fullscreen and orientation
 
 Gameplay fills the available viewport. It requests native fullscreen and portrait orientation locking where supported. The entire game surface counterrotates when the operating system changes screen orientation, keeping the game's axes aligned with the physical phone. The third-person camera follows the course with a level horizon.
@@ -70,7 +80,7 @@ The page pauses if it loses visibility or motion samples stop arriving. Resume a
 - `run-progress.js`: campaign unlocks, per-track records, storage validation, and legacy record migration.
 - `run-input.js`: upright calibration, sensor sign normalization, smoothing, tilt controls, optional gyroscope twist, and one-shot motion impulses.
 - `run-audio.js`: gesture-activated sound synthesis, rolling texture, bounded effect voices, mute persistence, and pause cleanup.
-- `run-renderer.js`: dependency-free WebGL scene, follow camera, robot pose, floating scenery, height-aware contact shadows, visual effects, and course geometry.
+- `run-renderer.js`: dependency-free WebGL scene, material lighting, detailed batched geometry, distance culling, follow camera, robot pose, floating scenery, height-aware contact shadows, and visual effects.
 - `run-guide.js`: six SVG movement lessons, synchronized illustrations, playback/scrubbing, and reduced-motion support.
 - `game.js`: permissions, game state, fullscreen/orientation handling, HUD, and local records.
 - `index.html` / `styles.css`: responsive menu and game interface.
@@ -92,6 +102,8 @@ node --test tests/*.test.cjs
 The tests cover control direction across sensor conventions, missing sensors, bounded motion impulses, completion of every course, increasing difficulty, obstacles and falls, camera math and rendering data, renderer resource cleanup when switching courses, permission denial/cancellation, pause/resume, orientation fallback, the complete campaign flow, locked previews, migration, and persistence. Regression checks cover shadows below the track, gaps, edges and ramps, discrete event delivery, reduced-motion effects, sound scheduling, voice limits, mute persistence, and silencing on pause or page hiding.
 
 Renderer and audio checks use mock WebGL and Web Audio APIs. Controller checks use a simulated DOM. These checks do not replace real rendering, listening, or physical iOS/Android testing.
+
+The graphics update was also checked by replaying the renderer's actual geometry, shaders, transforms, and draw calls in an offscreen OpenGL ES context, inspecting portrait and landscape scenes and robot close-ups. This validates shader compilation and visual output separately from the mock tests; it does not measure real-device performance or exercise browser sensor access.
 
 The guide and pose tests verify gesture directions, bounded animation geometry, pause/seek/close behavior, reduced-motion defaults, course-relative leaning, recovery resets, and identical physics with different visual poses.
 
