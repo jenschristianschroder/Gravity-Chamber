@@ -39,6 +39,47 @@ test('CSS rotation uses physical device orientation when native orientation lock
  assert.equal(f.elements.app.style['--play-width'],'390px');assert.equal(f.elements.app.style['--play-height'],'844px');
  assert.equal(f.elements.app.style['--play-rotation'],'-90deg');
 });
+test('Home Screen launches keep orientation support without redundant fullscreen or install prompts',async()=>{
+ for(const options of [{navigator:{standalone:true}},{displayMode:'standalone'},{displayMode:'fullscreen'}]){
+  const f=fixture(options);let requests=0,locks=0;
+  f.document.documentElement.requestFullscreen=async()=>requests++;
+  f.window.screen.orientation.lock=async()=>locks++;
+  assert.equal(f.elements['install-settings'].hidden,true);
+  await f.click('start');f.calibrate();assert.equal(requests,0);assert.ok(locks>0);
+  assert.equal(f.elements.fullscreen.hidden,true);
+  f.run.place(f.run.course.total-2.1);f.motion();f.frame(20);
+  assert.equal(f.elements.finish.hidden,false);assert.equal(f.elements['keep-game'].hidden,true);
+ }
+ const browser=fixture();let requests=0;
+ browser.document.documentElement.requestFullscreen=async()=>requests++;
+ browser.click('demo');assert.equal(requests,1);assert.equal(browser.elements['install-settings'].hidden,false);
+ browser.document.fullscreenElement=browser.document.documentElement;
+ browser.window.matchMedia('(display-mode: fullscreen)').matches=true;browser.events['document:fullscreenchange']();
+ assert.equal(browser.elements.fullscreen.hidden,true);assert.equal(browser.elements['install-settings'].hidden,false,'Browser fullscreen is not an installation');
+ browser.document.fullscreenElement=null;browser.window.matchMedia('(display-mode: standalone)').matches=true;
+ browser.events['media:(display-mode: standalone):change']();assert.equal(browser.elements['install-settings'].hidden,true);
+});
+test('visible viewport changes resize the whole app and counterrotate play without shrinking for pinch zoom',()=>{
+ const f=fixture({visualViewport:{width:390,height:780}}),style=f.elements.app.style;
+ assert.equal(style['--viewport-height'],'780px');assert.equal(style['--play-height'],'780px');
+ f.window.visualViewport.height=844;f.events['viewport:resize']();assert.equal(style['--viewport-height'],'844px');
+ f.click('demo');Object.assign(f.window.visualViewport,{width:844,height:390});
+ f.window.innerWidth=844;f.window.innerHeight=390;f.window.screen.orientation.angle=90;f.events['viewport:resize']();
+ assert.equal(style['--viewport-width'],'844px');assert.equal(style['--viewport-height'],'390px');
+ assert.equal(style['--play-width'],'390px');assert.equal(style['--play-height'],'844px');assert.equal(style['--play-rotation'],'-90deg');
+ Object.assign(f.window.visualViewport,{width:422,height:195,scale:2});f.events['viewport:resize']();
+ assert.equal(style['--viewport-width'],'844px');assert.equal(style['--viewport-height'],'390px');
+ Object.assign(f.window.visualViewport,{width:0,height:0,scale:1});f.events['viewport:resize']();assert.equal(style['--play-height'],'844px');
+});
+test('returning to the app refreshes its viewport while an interrupted run stays paused',()=>{
+ const f=fixture({navigator:{standalone:true},visualViewport:{width:390,height:780}});f.click('demo');f.frame();
+ const elapsed=f.run.elapsed;f.document.hidden=true;f.events['document:visibilitychange']();
+ f.window.visualViewport.height=844;f.document.hidden=false;f.events['document:visibilitychange']();
+ assert.equal(f.elements.app.style['--viewport-height'],'844px');assert.equal(f.elements.paused.hidden,false);
+ f.frame(5000);assert.equal(f.run.elapsed,elapsed);
+ f.click('exit-pause');f.window.visualViewport.height=820;f.events['window:pageshow']({persisted:true});
+ assert.equal(f.elements.app.style['--viewport-height'],'820px');assert.equal(f.elements.menu.hidden,false);
+});
 test('calibration timeout and missing 3D support produce recoverable messages',async()=>{
  const f=fixture();await f.click('start');f.frame(15000);
  assert.equal(f.elements.menu.hidden,false);assert.ok(f.elements.status.textContent.includes('steady motion'));

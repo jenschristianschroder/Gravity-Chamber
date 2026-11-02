@@ -11,8 +11,8 @@
     "standalone"
   ],
   "orientation": "portrait-primary",
-  "background_color": "#badbe6",
-  "theme_color": "#badbe6",
+  "background_color": "#f3f5ed",
+  "theme_color": "#f3f5ed",
   "categories": ["games"],
   "icons": [
     {

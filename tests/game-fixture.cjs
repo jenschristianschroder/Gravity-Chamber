@@ -9,8 +9,8 @@ const S=require('../run-share.js');
 const {contextFixture}=require('./audio-fixture.cjs');
 const source=readFileSync(__dirname+'/../game.js','utf8');
 const html=readFileSync(__dirname+'/../index.html','utf8');
-function fixture({permission='granted',storageFails=false,webgl=true,deferredPermission=null,saved=new Map(),tutorialDone=true,hash='',navigator={}}={}){
- const elements={},events={},frames=[];let now=1000,latestRun;
+function fixture({permission='granted',storageFails=false,webgl=true,deferredPermission=null,saved=new Map(),tutorialDone=true,hash='',navigator={},displayMode='browser',visualViewport=null}={}){
+ const elements={},events={},frames=[],media=new Map();let now=1000,latestRun;
  const element=()=>({hidden:false,disabled:false,textContent:'',value:'',checked:false,classList:{toggle(k,value){this[k]=value;}},setAttribute(k,v){this[k]=v;},style:{setProperty(k,v){this[k]=v;}},handlers:{},addEventListener(k,fn){this.handlers[k]=fn;},showModal(){this.open=true;},close(){this.open=false;},click(){return this.handlers.click?.();},select(){},focus(){document.activeElement=this;},blur(){if(document.activeElement===this)document.activeElement=null;}});
  for(const m of html.matchAll(/id="([^"]+)"/g))elements[m[1]]=element();
  const document={hidden:false,fullscreenElement:null,
@@ -22,6 +22,8 @@ function fixture({permission='granted',storageFails=false,webgl=true,deferredPer
  };
  const window={
   innerWidth:390,innerHeight:844,isSecureContext:true,orientation:0,
+  visualViewport:visualViewport?{scale:1,...visualViewport,addEventListener(k,fn){events['viewport:'+k]=fn;}}:undefined,
+  matchMedia(query){if(!media.has(query))media.set(query,{matches:query==='(display-mode: '+displayMode+')',addEventListener(k,fn){events['media:'+query+':'+k]=fn;}});return media.get(query);},
   screen:{orientation:{angle:0,lock:()=>Promise.reject(Error('No native lock')),unlock(){},addEventListener(k,fn){events['orientation:'+k]=fn;}}},
   DeviceMotionEvent:{requestPermission:()=>deferredPermission||Promise.resolve(permission)},
   addEventListener(k,fn){events['window:'+k]=fn;},removeEventListener(k,fn){if(events['window:'+k]===fn)delete events['window:'+k];},

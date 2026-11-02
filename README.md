@@ -63,7 +63,9 @@ After the first online visit finishes caching, the full game is playable offline
 
 A service worker installs the complete application shell before offering an update. It does not automatically replace an active run. When an update is waiting, Settings offers **Update & reload**. Each release must change both the worker cache name and the asset query version. Browser storage eviction or clearing site data removes offline files and local progress.
 
-Gameplay requests fullscreen, portrait locking, and a screen wake lock where supported. The viewport counterrotates when native orientation locking is unavailable, keeping controls aligned with the physical phone. Wake locks release on pause, finish, or hiding the page. Optional browser feature failures do not prevent play.
+Home Screen launches use the same cream background for the page, safe-area edges, theme, and launch screen. The app fills the visible viewport and remeasures after resizing, rotation, page restoration, and returning from another app; pinch zoom does not shrink the layout. Scrollable screens keep their safe-area padding. Installed standalone/fullscreen modes hide installation and browser-fullscreen controls.
+
+Gameplay requests fullscreen in a browser tab, portrait locking, and a screen wake lock where supported. Home Screen launches skip redundant browser-fullscreen requests. The viewport counterrotates when native orientation locking is unavailable, keeping controls aligned with the physical phone. Wake locks release on pause, finish, or hiding the page. Returning to the app leaves an interrupted run paused until the player resumes. Optional browser feature failures do not prevent play.
 
 ## Presentation and performance
 

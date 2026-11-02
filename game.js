@@ -5,6 +5,7 @@ const G=GravityRun,J=GravityJourney,S=GravityShare,$=id=>document.getElementById
 let storage;try{storage=localStorage;}catch{}
 const progress=new GravityProgress.Progress(storage),settings=progress.settings;
 const sound=new GravityAudio.Sound(storage),reduced=!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+const appDisplays=['standalone','fullscreen'].map(mode=>window.matchMedia?.('(display-mode: '+mode+')'));
 const guide=new GravityGuide.Guide(document,{reduced}),wake=new S.Wake(nav),quality=new J.Quality(),motion=new GravityMotion.MotionInput(settings),STEP=1/120;
 let selected=progress.selected,course=new G.Course(selected,{expert:settings.expert}),run=new G.Run(course);
 let renderer,rendererError='',state='menu',mode='motion',activity='campaign',challenge=null,training=null,trainingReturn=null,party=null;
@@ -102,14 +103,20 @@ function selectTrack(index){
 function chooseChallenge(spec,type='challenge'){
  training=null;prepare(J.makeCourse(spec),type,spec);state='menu';$('status').textContent=rendererError;setURL(J.encode(spec));ui();
 }
+function inAppMode(){return !!nav.standalone||!!appDisplays[0]?.matches||!document.fullscreenElement&&!!appDisplays[1]?.matches;}
 function display(){
- const angle=window.screen.orientation&&window.screen.orientation.angle,layout=G.displayLayout(window.innerWidth,window.innerHeight,Number.isFinite(angle)?angle:Number(window.orientation)||0),style=$('app').style;
+ // Follow browser chrome/keyboard changes without turning pinch zoom into a layout resize.
+ const viewport=window.visualViewport,visible=viewport&&Math.abs(viewport.scale-1)<.01;
+ const width=visible&&viewport.width>0?viewport.width:window.innerWidth,height=visible&&viewport.height>0?viewport.height:window.innerHeight;
+ const angle=window.screen.orientation&&window.screen.orientation.angle,layout=G.displayLayout(width,height,Number.isFinite(angle)?angle:Number(window.orientation)||0),style=$('app').style;
+ style.setProperty('--viewport-width',width+'px');style.setProperty('--viewport-height',height+'px');
  style.setProperty('--play-width',layout.width+'px');style.setProperty('--play-height',layout.height+'px');style.setProperty('--play-rotation',layout.rotation+'deg');
- $('fullscreen').hidden=!document.documentElement.requestFullscreen||!!document.fullscreenElement||state!=='playing';
+ $('fullscreen').hidden=inAppMode()||!document.documentElement.requestFullscreen||!!document.fullscreenElement||state!=='playing';
+ $('install-settings').hidden=inAppMode();if(inAppMode())$('keep-game').hidden=true;
 }
 async function enterFullscreen(){
  immersive=true;const token=++displaySession;
- try{if(!document.fullscreenElement&&document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen({navigationUI:'hide'});}catch{}
+ try{if(!inAppMode()&&!document.fullscreenElement&&document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen({navigationUI:'hide'});}catch{}
  if(!immersive||token!==displaySession){if(!immersive&&document.fullscreenElement&&document.exitFullscreen)Promise.resolve(document.exitFullscreen()).catch(()=>{});return;}
  try{if(window.screen.orientation?.lock)await window.screen.orientation.lock('portrait-primary');}catch{}display();
 }
@@ -236,7 +243,7 @@ function finish(){
  }
  shareSpec=scored||activity==='party'&&mode==='motion'?{...(challenge||{track:selected,section:null,expert:course.expert}),target:run.elapsed}:null;shareBlob=null;
  if(shareSpec){const generation=++shareGeneration;S.card(document,{name:course.track.name,time:run.elapsed,medal:J.MEDALS[rank],cells:run.collected,falls:run.falls}).then(blob=>{if(generation===shareGeneration)shareBlob=blob;});$('share-link').value=S.challengeURL(shareSpec);}
- $('keep-game').hidden=!scored||!!nav.standalone||!!(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);ui();
+ $('keep-game').hidden=!scored||inAppMode();ui();
 }
 function openPractice(){if(state==='playing')pause();const full=new G.Course(course.index);for(let i=0;i<6;i++)$('practice-'+i).textContent=full.sections[i]?.name||'Section '+(i+1);$('practice').showModal();}
 function practiceSection(section){const index=course.index;$('practice').close();training=null;party=null;prepare(J.sliceCourse(index,section,{single:true}),'practice');state='menu';void startMotion();}
@@ -336,8 +343,10 @@ $('backup-file').addEventListener('change',async event=>{const file=event.target
 $('install-settings').addEventListener('click',install);$('install-finish').addEventListener('click',()=>{settingsUI();$('settings').showModal();install();});
 $('update-game').addEventListener('click',()=>{if(!registration?.waiting)return;if(state==='playing')pause();reloadForUpdate=true;registration.waiting.postMessage({type:'ACTIVATE_UPDATE'});});
 window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;});
-document.addEventListener('visibilitychange',()=>{if(document.hidden){sound.silence();void wake.set(false);if(state==='playing'||state==='ready')pause('Your run paused while the page was away.');else if(state==='waiting')menu('Calibration paused. Tap Play with motion when you are ready.');}lastFrame=0;});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){sound.silence();void wake.set(false);if(state==='playing'||state==='ready')pause('Your run paused while the page was away.');else if(state==='waiting')menu('Calibration paused. Tap Play with motion when you are ready.');}else display();lastFrame=0;});
 document.addEventListener('fullscreenchange',display);window.addEventListener('resize',display);window.addEventListener('orientationchange',display);window.screen.orientation?.addEventListener('change',display);
+window.visualViewport?.addEventListener('resize',display);window.addEventListener('pageshow',()=>{lastFrame=0;display();});
+for(const query of appDisplays)query?.addEventListener?.('change',display);
 $('world').addEventListener('webglcontextlost',event=>{event.preventDefault();renderer=null;rendererError='The 3D scene was interrupted. Reload the page to reconnect.';menu(rendererError);});$('world').addEventListener('webglcontextrestored',()=>window.location.reload());
 try{renderer=new GravityRenderer.Renderer($('world'),course);}catch(error){rendererError=error.message+' Enable WebGL or try another browser.';$('status').textContent=rendererError;}
 try{const incoming=J.decode(window.location.hash||'');if(incoming)chooseChallenge(incoming);}catch(error){$('status').textContent=error.message;}
