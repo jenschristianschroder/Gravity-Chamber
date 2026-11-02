@@ -66,7 +66,10 @@ function trackUI(){
 }
 function carouselSelect(index){
  if(state!=='menu'||activity!=='campaign'||index<0||index>=G.TRACKS.length||index===selected)return;
+ const previous=$('carousel-track-'+selected),moveFocus=document.activeElement===previous;
+ if(moveFocus)previous.blur();
  selectTrack(index);
+ if(moveFocus)$('carousel-track-'+selected).focus({preventScroll:true});
 }
 function carouselReset(){
  carouselDrag=null;$('track-reel').classList.toggle('dragging',false);$('track-reel').style.setProperty('--drag-x','0px');

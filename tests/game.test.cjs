@@ -117,8 +117,10 @@ test('the track carousel selects, persists, and previews every course without by
 });
 test('horizontal swipes select a track while vertical scrolling, cancelled drags, and boundary swipes do not',()=>{
  const f=fixture(),surface=f.elements['carousel-window'],event=(x,y)=>({pointerId:1,button:0,isPrimary:true,clientX:x,clientY:y,preventDefault(){}});
+ f.elements['carousel-track-0'].focus();
  surface.handlers.pointerdown(event(220,100));surface.handlers.pointermove(event(120,103));surface.handlers.pointerup(event(120,103));
  assert.equal(f.elements['track-name'].textContent,'Seabreeze');assert.equal(f.elements['track-reel'].style['--drag-x'],'0px');
+ assert.equal(f.document.activeElement,f.elements['carousel-track-1']);
  f.click('carousel-track-0');assert.equal(f.elements['track-name'].textContent,'Seabreeze','A drag must not select the card under the released pointer');
  surface.handlers.pointerdown(event(200,100));surface.handlers.pointermove(event(190,200));surface.handlers.pointerup(event(190,200));
  assert.equal(f.elements['track-name'].textContent,'Seabreeze');

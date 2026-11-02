@@ -11,7 +11,7 @@ const source=readFileSync(__dirname+'/../game.js','utf8');
 const html=readFileSync(__dirname+'/../index.html','utf8');
 function fixture({permission='granted',storageFails=false,webgl=true,deferredPermission=null,saved=new Map(),tutorialDone=true,hash='',navigator={}}={}){
  const elements={},events={},frames=[];let now=1000,latestRun;
- const element=()=>({hidden:false,disabled:false,textContent:'',value:'',checked:false,classList:{toggle(k,value){this[k]=value;}},setAttribute(k,v){this[k]=v;},style:{setProperty(k,v){this[k]=v;}},handlers:{},addEventListener(k,fn){this.handlers[k]=fn;},showModal(){this.open=true;},close(){this.open=false;},click(){return this.handlers.click?.();},select(){}});
+ const element=()=>({hidden:false,disabled:false,textContent:'',value:'',checked:false,classList:{toggle(k,value){this[k]=value;}},setAttribute(k,v){this[k]=v;},style:{setProperty(k,v){this[k]=v;}},handlers:{},addEventListener(k,fn){this.handlers[k]=fn;},showModal(){this.open=true;},close(){this.open=false;},click(){return this.handlers.click?.();},select(){},focus(){document.activeElement=this;},blur(){if(document.activeElement===this)document.activeElement=null;}});
  for(const m of html.matchAll(/id="([^"]+)"/g))elements[m[1]]=element();
  const document={hidden:false,fullscreenElement:null,
   body:{classList:{toggle(k,value){this[k]=value;}}},
