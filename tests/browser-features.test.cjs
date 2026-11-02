@@ -17,7 +17,7 @@ test('result cards fail gracefully without Canvas, and formatted times carry rou
 function workerFixture(){
  const handlers={},stored=new Map(),scope='https://example.com/Gravity-Chamber/',deleted=[],requests=[],messages=[];let claimed=0,skipped=0,network=0;
  const cache={addAll:async items=>{for(const request of items){requests.push(request);stored.set(request.url,{body:'release '+new URL(request.url).pathname});}},match:async req=>stored.get(typeof req==='string'?req:req.url)};
- const caches={open:async()=>cache,keys:async()=>['gravity-run-old','gravity-run-native-1','other-project'],delete:async name=>deleted.push(name)};
+ const caches={open:async()=>cache,keys:async()=>['gravity-run-old','gravity-run-native-2','other-project'],delete:async name=>deleted.push(name)};
  const self={registration:{scope},clients:{claim:async()=>claimed++},skipWaiting:()=>skipped++,addEventListener:(type,fn)=>handlers[type]=fn};
  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../sw.js'),'utf8'),{self,caches,URL,Request,fetch:async req=>{network++;throw Error('Offline');}});
  const wait=type=>{let work;handlers[type]({waitUntil:p=>work=p});return work;};
