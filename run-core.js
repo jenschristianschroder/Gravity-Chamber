@@ -22,9 +22,15 @@ const TRACKS=[
  {id:'ribbon-foundry',name:'Ribbon Foundry',level:'Tricky',description:'Bank through ribbons. Discover the gold route.',sky:[.88,.79,.68],bridge:2,opening:1.35,gateSpeed:.52},
  {id:'springworks',name:'Springworks',level:'Hard',description:'Climb, launch, and settle onto broad landings.',sky:[.75,.84,.89],bridge:2,opening:1.35,gateSpeed:.56},
  {id:'drift-docks',name:'Drift Docks',level:'Expert',description:'Moving landings reward a patient approach.',sky:[.72,.83,.81],bridge:2,opening:1.3,gateSpeed:.6},
- {id:'grand-mechanism',name:'Grand Mechanism',level:'Master',description:'Bring rhythm, balance, and flight together.',sky:[.83,.76,.82],bridge:2,opening:1.25,gateSpeed:.64}
+ {id:'grand-mechanism',name:'Grand Mechanism',level:'Master',description:'Bring rhythm, balance, and flight together.',sky:[.83,.76,.82],bridge:2,opening:1.25,gateSpeed:.64},
+ {id:'high-tide',name:'High Tide',level:'45° banks',description:'Find the high edge. Hold your tilt against gravity.',sky:[.75,.78,.9],bridge:2,opening:1.3,gateSpeed:.6},
+ {id:'violet-bowl',name:'Violet Bowl',level:'50° banks',description:'Stay high through long, sweeping bowls.',sky:[.75,.78,.9],bridge:2,opening:1.3,gateSpeed:.6},
+ {id:'ridge-rider',name:'Ridge Rider',level:'55° banks',description:'Switch your uphill lean as the bank changes sides.',sky:[.75,.78,.9],bridge:2,opening:1.3,gateSpeed:.6},
+ {id:'cloud-wall',name:'Cloud Wall',level:'60° banks',description:'Ride steep walls above the clouds.',sky:[.75,.78,.9],bridge:2,opening:1.3,gateSpeed:.6},
+ {id:'gravity-weave',name:'Gravity Weave',level:'62° banks',description:'Link opposing banks with smooth transitions.',sky:[.75,.78,.9],bridge:2,opening:1.3,gateSpeed:.6},
+ {id:'zenith',name:'Zenith',level:'65° banks',description:'Master the high line on the steepest ribbons.',sky:[.75,.78,.9],bridge:2,opening:1.3,gateSpeed:.6}
 ];
-const PLANETS=[{id:'sky-isles',name:'Sky Isles',start:0,count:6,description:'Your original floating adventure'},{id:'clockwork',name:'Clockwork',start:6,count:6,description:'Mechanical gardens. A new rhythm.'}];
+const PLANETS=[{id:'sky-isles',name:'Sky Isles',start:0,count:6,description:'Your original floating adventure'},{id:'clockwork',name:'Clockwork',start:6,count:6,description:'Mechanical gardens. A new rhythm.'},{id:'vertigo',name:'Vertigo',start:12,count:6,description:'Steep banks. Lean uphill. Hold your line.'}];
 function calibrate(samples){
  if(samples.length<8)return null;
  const mean=[0,1,2].map(i=>samples.reduce((s,v)=>s+v[i],0)/samples.length);
@@ -53,12 +59,13 @@ class Course{
   this.index=Number.isInteger(trackIndex)?clamp(trackIndex,0,TRACKS.length-1):0;this.track=TRACKS[this.index];
   this.points=[];this.sections=[];this.gates=[];this.gaps=[];this.checkpoints=[];this.cells=[];
   this.expert=!!options.expert;this.routes=[];this.platforms=[];
-  if(this.index>=6)this.buildClockwork();else if(this.index)this.buildAdvanced();else this.buildSkyway();
+  if(this.index>=12)this.buildVertigo();else if(this.index>=6)this.buildClockwork();else if(this.index)this.buildAdvanced();else this.buildSkyway();
   this.expertCheckpoints=this.checkpoints.map(cp=>({...cp}));
   if(!this.expert)this.addCheckpoints();
   this.addVariety();
  }
  addCheckpoints(){
+  if(this.index>=12){this.checkpoints=this.sections.map(s=>({s:s.s+2,label:s.name}));return;}
   const candidates=[...this.checkpoints,...this.sections.slice(1).map(section=>({s:section.s+2,label:section.name}))];
   for(let s=60;s<this.total-12;s+=60){const gap=this.gaps.find(g=>s>g.start-10&&s<g.end+5);candidates.push({s:gap?gap.end+6:s,label:'Rest point'});}
   this.checkpoints=[];
@@ -74,6 +81,43 @@ class Course{
   }
   if(this.index===4){this.platforms.push({gap:1,width:1.3,length:2.4,amplitude:.9,speed:.75,phase:.6});this.sections[3].hint='A drifting platform can break up the first gap. Watch its timing.';}
   if(this.index===5&&!this.expert)this.sections[3].hint='A new rest point. Settle your balance before the next jumps.';
+ }
+ buildVertigo(){
+  const level=this.index-12,angle=[45,50,55,60,62,65][level],width=[3.2,3.1,3,2.9,2.8,2.7][level];
+  let p=[0,12,0],heading=0,section=0;
+  const distance=()=>this.points.at(-1)?.s||0;
+  const add=(v,w,bank=0)=>{const prev=this.points.at(-1);this.points.push({p:v,width:w,bank,section,gap:false,s:prev?prev.s+Math.hypot(v[0]-prev.p[0],v[2]-prev.p[2]):0});};
+  const line=(length,w=width)=>{if(!this.points.length)add(p.slice(),w);const start=p.slice();for(let i=1;i<=Math.ceil(length);i++){const d=length*i/Math.ceil(length);add([start[0]+Math.sin(heading)*d,start[1],start[2]+Math.cos(heading)*d],w);}p=this.points.at(-1).p.slice();};
+  const mark=(name,hint)=>{section=this.sections.length;this.sections.push({s:distance(),name,hint});this.checkpoints.push({s:distance()+2,label:name});};
+  const arc=(degrees,radius,peak=angle)=>{
+   const start=p.slice(),initial=heading,turn=degrees*Math.PI/180,sign=Math.sign(turn),length=Math.abs(turn)*radius,n=Math.ceil(length/.65);
+   for(let i=1;i<=n;i++){
+    const u=i/n,a=initial+turn*u,edge=Math.min(u*length,(1-u)*length),t=clamp(edge/14,0,1),ease=t*t*(3-2*t);
+    // The outside edge is the top of the bank; a long, smooth roll-in avoids a lip.
+    add([start[0]+radius*sign*(Math.cos(initial)-Math.cos(a)),start[1],start[2]+radius*sign*(Math.sin(a)-Math.sin(initial))],width,-sign*Math.tan(peak*Math.PI/180*ease));
+   }
+   p=this.points.at(-1).p.slice();heading+=turn;
+  };
+  const turns=[[100,-110,120,-90],[155,-140,160,-115],[115,-135,145,-125],[170,-150,190,-130],[110,-160,120,-180],[180,-200,210,-170]][level];
+  mark('Balance deck','The gold edge is uphill. Lean toward it to resist the slide.');line(26,4.3);
+  const names=['First wall','Opposite edge','High line','Final bank'];
+  for(let k=0;k<4;k++){
+   mark(names[k],(turns[k]>0?'Left':'Right')+' edge high: lean '+(turns[k]>0?'left':'right')+' toward gold to counter gravity. Ease off as the track flattens.');
+   line(10);arc(turns[k],26+level*2+(k%2)*3,Math.max(45,angle-(k===0?3:0)));line(14,3.8);
+  }
+  mark('Summit home','Release your uphill lean on the flat finish.');line(26,4.4);
+  this.total=distance();this.gapStart=Infinity;this.gapEnd=Infinity;
+  // Recovery decks are flat; normal mode must not create mid-wall spawn points.
+  this.checkpoints=this.sections.filter((_,i)=>i%2===0).map(s=>({s:s.s+2,label:s.name}));
+  for(let d=14,i=0;d<this.total-8;d+=19,i++){const q=this.at(d);this.cells.push({s:d,offset:Math.abs(q.bank)>.3?Math.sign(q.bank)*.4:0,taken:false});}
+ }
+ // Surface y = centre height + bank * lateral offset. Include changing bank and
+ // curve radius in its longitudinal derivative, then project gravity onto it.
+ surfaceFrame(q,offset=q.offset||0){
+  const a=this.at(q.s-.65),b=this.at(q.s+.65),ds=Math.max(.001,b.s-a.s);
+  const curvature=Math.atan2(a.tangent[2]*b.tangent[0]-a.tangent[0]*b.tangent[2],dot(a.tangent,b.tangent))/ds;
+  const slope=(q.slope+offset*(b.bank-a.bank)/ds)/Math.max(.3,1-offset*curvature),bank=q.bank||0,d=1+slope*slope+bank*bank;
+  return {slope,bank,d,normal:norm([-q.tangent[0]*slope-q.right[0]*bank,1,-q.tangent[2]*slope-q.right[2]*bank])};
  }
  buildClockwork(){
   const level=this.index-6;let p=[0,6,0],heading=0,section=0;
@@ -293,7 +337,7 @@ class Run{
   this.splits=[];this.lastSplit=null;this.sectionFalls={};this.recording=[];this.ghost=null;this.platformId=null;
   this.course.cells.forEach(c=>c.taken=false);this.place(2);
  }
- place(s){const q=this.course.at(s);this.position=[q.p[0],q.p[1]+this.radius,q.p[2]];this.velocity=[0,0,0];this.hint=q.index;this.grounded=true;this.falling=false;this.progress=q.s;this.surface=q;this.yaw=Math.atan2(q.tangent[0],q.tangent[2]);this.pose={pitch:0,roll:0,twist:0};}
+ place(s){const q=this.course.at(s);this.position=[q.p[0],q.p[1]+this.radius*(this.course.index>=12?Math.sqrt(this.course.surfaceFrame(q).d):1),q.p[2]];this.velocity=[0,0,0];this.hint=q.index;this.grounded=true;this.falling=false;this.progress=q.s;this.surface=q;this.yaw=Math.atan2(q.tangent[0],q.tangent[2]);this.pose={pitch:0,roll:0,twist:0};}
  emit(type,details={}){this.events.push({type,position:this.position.slice(),...details});}
  announce(type,message,duration,details={}){this.event=message;this.eventKind=type;this.flash=duration;this.emit(type,details);}
  recover(){
@@ -309,7 +353,7 @@ class Run{
   this.time+=dt;this.flash=Math.max(0,this.flash-dt);this.jumpCooldown-=dt;this.nudgeCooldown-=dt;this.jumpBuffer=Math.max(0,this.jumpBuffer-dt);this.gateCooldown-=dt;
   if(this.grounded&&this.surface.platformId!==undefined){const a=this.course.platformAt(this.surface.platformId,this.time-dt),b=this.course.platformAt(this.surface.platformId,this.time);this.position=this.position.map((v,i)=>v+b.p[i]-a.p[i]);}
   const q=this.course.surfaceAt(this.position,this.hint,this.time);this.hint=q.index;this.surface=q;this.progress=q.s;
-  const oldY=this.position[1],wasGrounded=this.grounded,groundBefore=this.grounded&&!q.gap&&Math.abs(q.offset)<q.width;
+  const oldY=this.position[1],wasGrounded=this.grounded,groundBefore=this.grounded&&!q.gap&&Math.abs(q.offset)<q.width&&(this.course.index<12||Math.abs(this.position[1]-q.p[1]-q.offset*q.bank-this.radius*Math.sqrt(this.course.surfaceFrame(q).d))<.3);
   const along=dot(this.velocity,q.tangent),lateral=dot(this.velocity,q.right);
   const throttle=clamp(input.throttle||0,-1,1),steer=clamp(input.steer||0,-1,1),turn=clamp(input.turn||0,-1,1);
   // A separate visual pose mirrors calibrated phone inputs without changing forces.
@@ -318,6 +362,13 @@ class Run{
   this.pose.roll=mix(this.pose.roll,-steer*.35,poseBlend);
   this.pose.twist=mix(this.pose.twist,turn*.22,poseBlend);
   let forward=(groundBefore?13:4)*throttle-(groundBefore?12.5*q.slope:0),side=(groundBefore?17:4)*steer+turn*5-(groundBefore?12.5*q.bank:0);
+  const steep=this.course.index>=12,frame=steep?this.course.surfaceFrame(q):null;
+  // Inputs are forces along the surface tangents, gravity is projected into
+  // the support plane. Unlike a slope multiplier, this stays bounded at 65°.
+  if(steep&&groundBefore){
+   forward=13*throttle/Math.sqrt(1+frame.slope**2)-12.5*frame.slope/frame.d;
+   side=(17*steer+5*turn)/Math.sqrt(1+frame.bank**2)-12.5*frame.bank/frame.d;
+  }
   const burst=input.burst||[0,0,0];
   if(groundBefore)this.coyote=.085;else this.coyote=Math.max(0,this.coyote-dt);
   if(burst[1]>.5)this.jumpBuffer=.14;
@@ -330,18 +381,22 @@ class Run{
   if(this.jumpBuffer>0&&this.jumpCooldown<=0&&(groundBefore||this.coyote>0)){
    this.velocity[1]=Math.max(4.9,along*q.slope+4.5);this.grounded=false;this.jumpBuffer=0;this.coyote=0;this.jumpCooldown=.42;this.announce('jump','Nice lift',.8);
   }
-  if(this.grounded&&groundBefore)this.velocity[1]=along*q.slope+lateral*q.bank;
+  if(this.grounded&&groundBefore)this.velocity[1]=along*(steep?frame.slope:q.slope)+lateral*q.bank;
   const drag=Math.exp(-(groundBefore?.46:.08)*dt);
   this.velocity[0]=(this.velocity[0]+(q.tangent[0]*forward+q.right[0]*side)*dt)*drag;
   this.velocity[2]=(this.velocity[2]+(q.tangent[2]*forward+q.right[2]*side)*dt)*drag;
   const speed=Math.hypot(this.velocity[0],this.velocity[2]);if(speed>11){this.velocity[0]*=11/speed;this.velocity[2]*=11/speed;}
-  this.velocity[1]-=12.5*dt;this.position=this.position.map((v,i)=>v+this.velocity[i]*dt);
+  if(steep&&groundBefore&&this.grounded)this.velocity[1]=dot(this.velocity,q.tangent)*frame.slope+dot(this.velocity,q.right)*frame.bank;
+  else this.velocity[1]-=12.5*dt;
+  this.position=this.position.map((v,i)=>v+this.velocity[i]*dt);
   const next=this.course.surfaceAt(this.position,this.hint,this.time);this.hint=next.index;this.surface=next;this.progress=next.s;
-  const floor=next.p[1]+this.radius+next.offset*next.bank,support=!next.gap&&Math.abs(next.offset)<next.width;
+  const nextFrame=steep?this.course.surfaceFrame(next):null;
+  const floor=next.p[1]+this.radius*(steep?Math.sqrt(nextFrame.d):1)+next.offset*next.bank,support=!next.gap&&Math.abs(next.offset)<next.width;
+  const attached=steep&&groundBefore&&this.grounded;
   this.grounded=false;
-  if(support&&this.position[1]<=floor&&oldY>=floor-.45){
-   const surfaceSpeed=dot(this.velocity,next.tangent)*next.slope+dot(this.velocity,next.right)*next.bank,impact=surfaceSpeed-this.velocity[1];
-   this.position[1]=floor;this.velocity[1]=surfaceSpeed+(impact>3?Math.min(.65,impact*.08):0);this.grounded=impact<=3;
+  if(support&&(attached||this.position[1]<=floor&&oldY>=floor-.45)){
+   const surfaceSpeed=dot(this.velocity,next.tangent)*(steep?nextFrame.slope:next.slope)+dot(this.velocity,next.right)*next.bank,impact=surfaceSpeed-this.velocity[1];
+   this.position[1]=floor;this.velocity[1]=surfaceSpeed+(!attached&&impact>3?Math.min(.65,impact*.08):0);this.grounded=attached||impact<=3;
    if(!wasGrounded&&impact>2.2)this.emit('land',{strength:clamp(impact/9,.2,1)});
    this.falling=false;
   }
@@ -358,8 +413,9 @@ class Run{
    this.course.checkpoints.forEach((cp,i)=>{if(i>this.checkpoint&&this.progress>=cp.s){this.checkpoint=i;if(this.splits[i]===undefined){this.splits[i]=this.elapsed;this.lastSplit={index:i,time:this.elapsed};}this.announce('checkpoint','Checkpoint secured',1.8);}});
   }
   for(const cell of this.course.cells){if(!cell.taken&&Math.abs(cell.s-this.progress)<3&&len(sub(this.position,this.course.cellPosition(cell)))<1.05){cell.taken=true;this.collected++;this.announce('cell','Energy +1',.7,{variant:this.collected,position:this.course.cellPosition(cell)});}}
-  if(!this.grounded&&!this.falling&&this.position[1]<next.p[1]-.8){this.falling=true;this.announce('fall','Returning to your checkpoint',1.5);}
-  if(this.position[1]<next.p[1]-4.5||this.position.some(v=>!Number.isFinite(v))){this.recover();return;}
+  const recoveryFloor=steep?next.p[1]-Math.abs(next.bank)*next.width:next.p[1];
+  if(!this.grounded&&!this.falling&&this.position[1]<recoveryFloor-.8){this.falling=true;this.announce('fall','Returning to your checkpoint',1.5);}
+  if(this.position[1]<recoveryFloor-4.5||this.position.some(v=>!Number.isFinite(v))){this.recover();return;}
   if(this.grounded&&this.progress>=this.course.total-2.2){this.finished=true;this.announce('finish','Course complete',2);}
   const planar=Math.hypot(this.velocity[0],this.velocity[2]);
   if(planar>.4){const target=Math.atan2(this.velocity[0],this.velocity[2]);this.yaw+=Math.atan2(Math.sin(target-this.yaw),Math.cos(target-this.yaw))*(1-Math.exp(-dt*7));}
@@ -373,6 +429,7 @@ class Run{
   const aim=course.at(Math.min(course.total,s+3.2)),delta=[aim.p[0]+aim.right[0]*offset-this.position[0],0,aim.p[2]+aim.right[2]*offset-this.position[2]];
   const desired=norm(delta).map(v=>v*speed),acc=desired.map((v,i)=>(v-this.velocity[i])*3.5+this.velocity[i]*.46);
   const burst=(course.gaps.some(g=>s>g.start-1.7&&s<g.start-.15)&&this.grounded&&this.jumpCooldown<=0)?[0,1,0]:[0,0,0];
+  if(course.index>=12){const f=course.surfaceFrame(q);return {throttle:clamp((dot(acc,q.tangent)+12.5*f.slope/f.d)*Math.sqrt(1+f.slope*f.slope)/13,-1,1),steer:clamp((dot(acc,q.right)+12.5*f.bank/f.d)*Math.sqrt(1+f.bank*f.bank)/17,-1,1),turn:0,burst};}
   return {throttle:clamp((dot(acc,q.tangent)+12.5*q.slope)/13,-1,1),steer:clamp((dot(acc,q.right)+12.5*q.bank)/17,-1,1),turn:0,burst};
  }
 }

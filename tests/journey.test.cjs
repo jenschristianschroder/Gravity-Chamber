@@ -16,7 +16,7 @@ test('daily routes are repeatable in UTC, have an archive, and challenge links v
  assert.deepEqual(J.decode(J.encode(spec)),spec);assert.equal(J.recentDays(date).length,7);assert.equal(J.recentDays(date)[6],'2026-10-27');
  assert.deepEqual(J.daily(day),J.daily(day));assert.notEqual(J.key(spec),J.key(J.daily('2026-11-03')));
  assert.equal(J.decode(''),null);assert.equal(J.validDay('2026-02-30'),false);
- for(const hash of ['#oops','#c=1~0~full~n~1~','#c=2~12~full~n~1~','#c=2~0~6~n~1~','#c=2~0~1~e~1~','#c=2~0~full~n~NaN~','#c=2~0~full~n~7200001~','#c=2~0~full~n~1~2026-02-30',J.encode({...spec,track:(spec.track+1)%6})])assert.throws(()=>J.decode(hash));
+ for(const hash of ['#oops','#c=1~0~full~n~1~','#c=2~18~full~n~1~','#c=2~0~6~n~1~','#c=2~0~1~e~1~','#c=2~0~full~n~NaN~','#c=2~0~full~n~7200001~','#c=2~0~full~n~1~2026-02-30',J.encode({...spec,track:(spec.track+1)%6})])assert.throws(()=>J.decode(hash));
  assert.notEqual(J.key({track:0,section:null,expert:false}),G.TRACKS[0].id);
 });
 test('flight school requires rolling, braking, both steering directions, and an actual hop',()=>{

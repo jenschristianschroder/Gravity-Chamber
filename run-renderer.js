@@ -10,7 +10,7 @@ function multiply(a,b){const out=new Float32Array(16);for(let c=0;c<4;c++)for(le
 function perspective(fov,aspect,near,far){const f=1/Math.tan(fov/2),nf=1/(near-far);return[f/aspect,0,0,0,0,f,0,0,0,0,(far+near)*nf,-1,0,0,2*far*near*nf,0];}
 function lookAt(eye,target){const z=G.norm(G.sub(eye,target)),x=G.norm(G.cross([0,1,0],z)),y=G.cross(z,x);return[x[0],y[0],z[0],0,x[1],y[1],z[1],0,x[2],y[2],z[2],0,-G.dot(x,eye),-G.dot(y,eye),-G.dot(z,eye),1];}
 function robotModel(run){
- const pose=run.pose||{pitch:0,roll:0,twist:0},c=Math.cos(pose.pitch),s=Math.sin(pose.pitch),a=Math.cos(pose.roll),b=Math.sin(pose.roll);
+ const pose=run.pose||{pitch:0,roll:0,twist:0},banked=run.course.index>=12&&run.grounded,frame=banked?run.course.surfaceFrame(run.surface):null,tilt=pose.pitch-(frame?Math.atan(frame.slope):0),lean=pose.roll+(frame?Math.atan(frame.bank):0),c=Math.cos(tilt),s=Math.sin(tilt),a=Math.cos(lean),b=Math.sin(lean);
  const pitch=[1,0,0,0,0,c,s,0,0,-s,c,0,0,0,0,1],roll=[a,b,0,0,-b,a,0,0,0,0,1,0,0,0,0,1];
  const courseYaw=Math.atan2(run.surface.tangent[0],run.surface.tangent[2]);
  // Lean in the same course frame as steering, while the face follows travel.
@@ -18,7 +18,7 @@ function robotModel(run){
 }
 function contactShadow(run){
  const q=run.surface,p=run.position,relative=G.sub(p,q.p),along=G.dot(relative,q.tangent);
- const floor=q.p[1]+along*q.slope+G.dot(relative,q.right)*(q.bank||0),height=p[1]-run.radius-floor,clearance=q.width-Math.abs(G.dot(relative,q.right));
+ const floor=q.p[1]+along*q.slope+G.dot(relative,q.right)*(q.bank||0),height=p[1]-run.radius*(run.course.index>=12?Math.sqrt(run.course.surfaceFrame(q).d):1)-floor,clearance=q.width-Math.abs(G.dot(relative,q.right));
  // A surface must be underneath the robot, never above it or beyond an edge.
  if(q.gap||height<-.015||height>6||clearance<=.025||Math.abs(along)>.35)return null;
  const radius=Math.min(.58+Math.max(0,height)*.08,clearance*.96);
@@ -218,7 +218,7 @@ class Renderer{
   return out;
  }
  buildTrack(){
-  const parts=[],clockwork=this.course.index>=6;
+  const parts=[],vertigo=this.course.index>=12,clockwork=this.course.index>=6&&this.course.index<12;
   for(const path of [{points:this.course.points},...(this.course.routes||[])]){
   const points=path.points,at=s=>this.course.routeAt(s,path.id);
   for(let i=0;i<points.length-1;i++){
@@ -226,12 +226,12 @@ class Renderer{
    const out=[],normal=G.norm(G.cross([a.tangent[0],a.slope,a.tangent[2]],[a.right[0],a.bank,a.right[2]])),yaw=Math.atan2(a.tangent[0],a.tangent[2]);
    const edge=(q,side,y=0,inset=0)=>[q.p[0]+q.right[0]*(q.width-inset)*side,q.p[1]+y+(q.bank||0)*(q.width-inset)*side,q.p[2]+q.right[2]*(q.width-inset)*side];
    const al=edge(a,-1),ar=edge(a,1),bl=edge(b,-1),br=edge(b,1);
-   const color=clockwork?(i%12<6?[.97,.94,.8]:[.9,.85,.7]):i%12<6?WHITE:[.87,.92,.89];quad(out,al,bl,br,ar,color,normal);
+   const color=vertigo?(i%12<6?[.94,.92,.99]:[.83,.82,.93]):clockwork?(i%12<6?[.97,.94,.8]:[.9,.85,.7]):i%12<6?WHITE:[.87,.92,.89];quad(out,al,bl,br,ar,color,normal);
    quad(out,edge(a,1,-.55),edge(b,1,-.55),edge(b,-1,-.55),edge(a,-1,-.55),INK,[0,-1,0]);
    for(const side of [-1,1]){
     quad(out,edge(a,side),edge(b,side),edge(b,side,-.55),edge(a,side,-.55),clockwork?[.64,.43,.27]:TEAL,mul(a.right,side));
     quad(out,edge(a,side,-.37,-.003),edge(b,side,-.37,-.003),edge(b,side,-.44,-.003),edge(a,side,-.44,-.003),[.25,.55,.54],mul(a.right,side));
-    quad(out,edge(a,side,.018),edge(b,side,.018),edge(b,side,.018,.13),edge(a,side,.018,.13),path.id?GOLD:a.width<2?CORAL:MINT,normal);
+    quad(out,edge(a,side,.018),edge(b,side,.018),edge(b,side,.018,.13),edge(a,side,.018,.13),vertigo&&Math.abs(a.bank)>.15?(side*a.bank>0?GOLD:CORAL):path.id?GOLD:a.width<2?CORAL:MINT,normal);
     quad(out,edge(a,side,.02,.17),edge(b,side,.02,.17),edge(b,side,.02,.19),edge(a,side,.02,.19),[.58,.73,.7],normal);
     if(i%4===0){
      const lamp=edge(a,side,-.18,-.012);box(out,lamp,[.035,.085,.48],a.width<2?GOLD:[.68,1,.88],yaw);
@@ -249,10 +249,14 @@ class Renderer{
     quad(out,edge(a,-1,.024,.2),edge(seam,-1,.024,.2),edge(seam,1,.024,.2),edge(a,1,.024,.2),[.64,.76,.72],normal);
     if(a.width>2){const center=q=>q.p.map((v,k)=>v+(k===1?.026:0));const p=center(a),q=center(b),r=a.right;quad(out,[p[0]-r[0]*.035,p[1],p[2]-r[2]*.035],[q[0]-r[0]*.035,q[1],q[2]-r[2]*.035],[q[0]+r[0]*.035,q[1],q[2]+r[2]*.035],[p[0]+r[0]*.035,p[1],p[2]+r[2]*.035],[.65,.78,.73],normal);}
    }
+   if(vertigo&&i%12===0&&Math.abs(a.bank)>.35){
+    const sign=Math.sign(a.bank),x=sign*a.width*.55,point=(u,v)=>[a.p[0]+a.right[0]*u+a.tangent[0]*v,a.p[1]+a.bank*u+.04,a.p[2]+a.right[2]*u+a.tangent[2]*v];
+    tri(out,point(x+sign*.45,0),point(x-sign*.25,-.32),point(x-sign*.25,.32),GOLD,normal);
+   }
    if(i%8===0){
-    const keel=[a.p[0],a.p[1]-1.25,a.p[2]];
+    const keel=[a.p[0],a.p[1]-1.25-(vertigo?Math.abs(a.bank)*a.width:0),a.p[2]];
     for(const side of [-1,1])beam(out,edge(a,side,-.47,.1),keel,.13,[.23,.49,.49]);
-    box(out,[a.p[0],a.p[1]-.6,a.p[2]],[a.width*2,.16,.22],INK,yaw);
+    if(vertigo)beam(out,edge(a,-1,-.6),edge(a,1,-.6),.16,INK);else box(out,[a.p[0],a.p[1]-.6,a.p[2]],[a.width*2,.16,.22],INK,yaw);
     cylinder(out,keel,.21,.16,TEAL,10);cylinder(out,[keel[0],keel[1]-.09,keel[2]],.15,.035,MINT,10);
    }
    // Cap the exposed slab at each gap and both ends of the course.
@@ -305,7 +309,7 @@ class Renderer{
   return batch(parts);
  }
  buildScenery(){
-  const parts=[],season=this.course.index,foliage=season>=6?[.38,.59,.48]:[[.25,.59,.44],[.24,.57,.48],[.62,.61,.31],[.37,.57,.64],[.36,.55,.49],[.53,.47,.65]][season];
+  const parts=[],season=this.course.index,foliage=season>=12?[.52,.44,.66]:season>=6?[.38,.59,.48]:[[.25,.59,.44],[.24,.57,.48],[.62,.61,.31],[.37,.57,.64],[.36,.55,.49],[.53,.47,.65]][season];
   const count=Math.ceil(this.course.total/15);
   for(let i=0;i<count;i++){
    const out=[],s=i/count*this.course.total,q=this.course.at(s),side=i%2?-1:1,d=16+(i%4)*6;
@@ -317,7 +321,7 @@ class Renderer{
     quad(out,a,b,e,c,[.38,.56,.44]);quad(out,c,e,next,lower,j%2?[.37,.51,.5]:[.3,.44,.45]);
     tri(out,lower,next,[p[0]+.4,p[1]-r*1.8,p[2]-.3],[.23,.38,.4]);
    }
-   if(season>=6){
+   if(season>=6&&season<12){
     cylinder(out,[p[0],p[1]+.12,p[2]],r*.8,.24,[.64,.44,.28],12);
     torus(out,[p[0],p[1]+.3,p[2]],r*.7,.12,[.84,.66,.4],'y',16,5);
     for(let tooth=0;tooth<8;tooth++){const a=tooth*Math.PI/4;box(out,[p[0]+Math.cos(a)*r*.8,p[1]+.25,p[2]+Math.sin(a)*r*.8],[.5,.25,.5],[.76,.53,.31],a);}
@@ -348,7 +352,7 @@ class Renderer{
   const speed=Math.hypot(run.velocity[0],run.velocity[2]);
   const ahead=this.course.routeAt(Math.min(this.course.total,run.progress+(this.course.index>=6?8+speed*.3:5)),run.surface.route),dir=ahead.tangent,p=run.position;
   const narrow=width/height<.8,back=narrow?10.8:7.8,raise=narrow?5.5:4.1;
-  const desired=active?[p[0]-dir[0]*back,p[1]+raise,p[2]-dir[2]*back]:[-6.5,10.5,-8];
+  const desired=active?[p[0]-dir[0]*back,p[1]+raise+(this.course.index>=12?Math.abs(run.surface.bank)*1.4:0),p[2]-dir[2]*back]:[-6.5,10.5,-8];
   const look=this.course.index>=6?6:3.8;
   const target=active?[p[0]+dir[0]*look,p[1]+.4,p[2]+dir[2]*look]:[1,5.4,8];
   const blend=this.cameraCut?1:1-Math.exp(-Math.min(dt,.1)*5);this.cameraCut=false;

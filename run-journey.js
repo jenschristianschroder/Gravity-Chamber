@@ -2,7 +2,7 @@
 (function(root){
 'use strict';
 const G=root.GravityRun,RULES=2,DAY=86400000;
-const TIMES=[[74,95,125],[92,118,150],[84,110,145],[103,132,170],[114,148,185],[136,174,220],[50,64,85],[60,76,100],[48,62,82],[43,56,76],[56,72,94],[80,102,135]];
+const TIMES=[[74,95,125],[92,118,150],[84,110,145],[103,132,170],[114,148,185],[136,174,220],[50,64,85],[60,76,100],[48,62,82],[43,56,76],[56,72,94],[80,102,135],[67,88,120],[84,110,145],[83,108,145],[100,130,175],[97,128,170],[124,160,210]];
 const BADGES=[{id:'none',name:'Original',goal:''},{id:'sprout',name:'Sprout',goal:'clean campaign run'},{id:'star',name:'Star',goal:'Silver campaign medals'},{id:'gear',name:'Gear',goal:'clean Clockwork run'}];
 const QUICK_RUNS=[{track:7,section:3,name:'Gate Dance',description:'Two readable beats. Find the rhythm.'},{track:9,section:1,name:'Perfect Landing',description:'Launch, land, and settle.'},{track:8,section:1,name:'Ribbon Run',description:'Smooth steering through the foundry.'},{track:10,section:1,name:'Dock Hop',description:'Watch the moving landing.'}];
 const MEDALS=['Unranked','Bronze','Silver','Gold'];
@@ -88,7 +88,7 @@ function decode(hash){
  if(!hash||hash==='#')return null;
  if(hash.length>150||!hash.startsWith('#c='))throw Error('This challenge link is not valid.');
  const a=hash.slice(3).split('~');if(a.length!==6||a[0]!==String(RULES))throw Error('This challenge uses different rules. Ask your friend for a new link.');
- if(!/^(?:[0-9]|1[01])$/.test(a[1])||!(a[2]==='full'||/^[0-5]$/.test(a[2]))||!['n','e'].includes(a[3])||!/^\d{1,8}$/.test(a[4]))throw Error('This challenge link is not valid.');
+ if(!/^(?:[0-9]|1[0-7])$/.test(a[1])||!(a[2]==='full'||/^[0-5]$/.test(a[2]))||!['n','e'].includes(a[3])||!/^\d{1,8}$/.test(a[4]))throw Error('This challenge link is not valid.');
  const spec={track:Number(a[1]),section:a[2]==='full'?null:Number(a[2]),expert:a[3]==='e',target:Number(a[4])/1000,day:a[5]||undefined};
  if(spec.target>7200||spec.section!==null&&spec.expert)throw Error('This challenge link is not valid.');
  if(spec.day){if(!validDay(spec.day))throw Error('This daily challenge date is not valid.');const expected=daily(spec.day);if(expected.track!==spec.track||expected.section!==spec.section||spec.expert)throw Error('This daily challenge does not match its date.');}

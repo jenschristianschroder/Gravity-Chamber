@@ -12,7 +12,7 @@ function cleanRecord(r,legacy=false){
  if(Array.isArray(r.ghost)&&r.ghost.length<=3000&&r.ghost.every((s,i)=>Array.isArray(s)&&s.length===5&&s.every(v=>finite(v,-10000,10000))&&s[0]>=0&&(i===0||s[0]>r.ghost[i-1][0])))record.ghost=r.ghost;
  return record;
 }
-function validKey(key){return G.TRACKS.some(t=>key===t.id||key===t.id+'-expert')||/^challenge-(?:[0-9]|1[01])-[ne]$/.test(key)||/^sprint-(?:[0-9]|1[01])-[0-5]$/.test(key)||/^daily-20\d{2}-\d{2}-\d{2}$/.test(key)&&J.validDay(key.slice(6));}
+function validKey(key){return G.TRACKS.some(t=>key===t.id||key===t.id+'-expert')||/^challenge-(?:[0-9]|1[0-7])-[ne]$/.test(key)||/^sprint-(?:[0-9]|1[0-7])-[0-5]$/.test(key)||/^daily-20\d{2}-\d{2}-\d{2}$/.test(key)&&J.validDay(key.slice(6));}
 function settings(data={}){
  if(!data||typeof data!=='object')data={};
  const value={...DEFAULTS};
@@ -26,7 +26,7 @@ function parse(raw){
  if(!d||![1,2].includes(d.version)||!d.records||typeof d.records!=='object'||Array.isArray(d.records))throw Error('That file is not a supported Gravity Run backup.');
  if(d.version===2&&d.rules!==J.RULES)throw Error('That backup uses different course rules. Keep it for the matching game version.');
  const records={},legacy={};
- if(Object.keys(d.records).length>160)throw Error('The backup contains too many records.');
+ if(Object.keys(d.records).length>220)throw Error('The backup contains too many records.');
  for(const [key,r] of Object.entries(d.records)){if(!validKey(key))continue;const c=cleanRecord(r,d.version===1);if(c)(d.version===1?legacy:records)[key]=c;}
  if(d.version===2&&d.legacy&&typeof d.legacy==='object')for(const track of G.TRACKS){const c=cleanRecord(d.legacy[track.id],true);if(c)legacy[track.id]=c;}
  return {records,legacy,selected:Number.isInteger(d.selected)?G.clamp(d.selected,0,G.TRACKS.length-1):0,planetSelections:G.PLANETS.map((p,i)=>Number.isInteger(d.planetSelections?.[i])&&d.planetSelections[i]>=p.start&&d.planetSelections[i]<p.start+p.count?d.planetSelections[i]:Number.isInteger(d.selected)&&d.selected>=p.start&&d.selected<p.start+p.count?d.selected:p.start),tutorialDone:d.tutorialDone===true,settings:settings(d.settings)};
@@ -38,7 +38,7 @@ function mergeRecord(a,b){
 }
 class Progress{
  constructor(storage){
-  this.storage=storage;this.records={};this.legacy={};this.selected=0;this.planetSelections=[0,6];this.saved=true;this.tutorialDone=false;this.settings={...DEFAULTS};
+  this.storage=storage;this.records={};this.legacy={};this.selected=0;this.planetSelections=G.PLANETS.map(p=>p.start);this.saved=true;this.tutorialDone=false;this.settings={...DEFAULTS};
   try{const raw=storage.getItem(KEY);if(raw)Object.assign(this,parse(raw));}catch{}
   try{const time=Number(storage.getItem(LEGACY));if(finite(time,.001,7200)&&!this.legacy.skyway&&!this.records.skyway)this.legacy.skyway=cleanRecord({time,cells:0},true);}catch{this.saved=false;}
   this.trimDaily();this.refreshUnlocks();
@@ -50,7 +50,7 @@ class Progress{
  record(index,expert=false){const id=G.TRACKS[index].id;return this.records[id+(expert?'-expert':'')]||(!expert?this.legacy[id]:null)||null;}
  select(index){if(!Number.isInteger(index)||index<0||index>=G.TRACKS.length)return false;this.selected=index;this.planetSelections[Math.floor(index/6)]=index;this.save();return true;}
  marks(){return Object.entries(this.records).filter(([k])=>G.TRACKS.some(t=>k===t.id||k===t.id+'-expert')).reduce((n,[,r])=>n+r.medal+Number(r.clean)+Number(r.allCells),0);}
- badgeProgress(id){const records=G.TRACKS.map((_,i)=>this.record(i)).filter(r=>r&&!r.legacy),clean=records.filter(r=>r.clean).length,silver=records.filter(r=>r.medal>=2).length,clockwork=G.TRACKS.slice(6).map((_,i)=>this.record(i+6)).filter(r=>r&&!r.legacy&&r.clean).length;return id==='sprout'?{have:clean,need:1}:id==='star'?{have:silver,need:3}:id==='gear'?{have:clockwork,need:1}:{have:0,need:0};}
+ badgeProgress(id){const records=G.TRACKS.map((_,i)=>this.record(i)).filter(r=>r&&!r.legacy),clean=records.filter(r=>r.clean).length,silver=records.filter(r=>r.medal>=2).length,clockwork=G.TRACKS.slice(6,12).map((_,i)=>this.record(i+6)).filter(r=>r&&!r.legacy&&r.clean).length;return id==='sprout'?{have:clean,need:1}:id==='star'?{have:silver,need:3}:id==='gear'?{have:clockwork,need:1}:{have:0,need:0};}
  badgeUnlocked(id){const p=this.badgeProgress(id);return J.BADGES.some(b=>b.id===id)&&p.have>=p.need;}
  nextReward(){const b=J.BADGES.find(b=>!this.badgeUnlocked(b.id));if(!b)return 'All antenna badges unlocked. Your collection is complete.';const p=this.badgeProgress(b.id);return b.name+' antenna · '+Math.max(0,p.need-p.have)+' '+b.goal+' to go';}
  appearanceUnlocked(id){const a=J.APPEARANCES.find(a=>a.id===id);return !!a&&this.marks()>=a.need;}
