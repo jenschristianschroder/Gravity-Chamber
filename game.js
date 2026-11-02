@@ -118,7 +118,7 @@ function leaveFullscreen(){
 }
 function ui(){
  document.body.classList.toggle('active',state!=='menu');
- document.body.classList.toggle('playing',state==='playing');$('app-nav').hidden=state!=='menu';
+ document.body.classList.toggle('playing',state==='playing');
  $('menu').hidden=state!=='menu';$('calibrating').hidden=state!=='waiting';$('countdown').hidden=state!=='ready';$('paused').hidden=state!=='paused';$('finish').hidden=state!=='finished';
  const hud=state==='playing';$('hud-stats').hidden=!hud;$('route-hud').hidden=!hud;$('bottom-hud').hidden=state!=='playing';$('edition').hidden=state!=='menu';
  $('training-status').hidden=activity!=='training'||state!=='playing';$('recenter').hidden=mode==='demo';$('open-practice').hidden=activity==='training'||activity==='party';
@@ -258,12 +258,6 @@ function changeSettings(){
  settings.sensitivity=$('sensitivity').value;settings.advanced=$('advanced-controls').checked;settings.expert=$('expert-mode').checked;settings.quality=$('graphics-quality').value;settings.ghost=$('show-ghost').checked;progress.save();
  if(state==='menu'&&activity==='campaign')prepare(new G.Course(selected,{expert:settings.expert}));settingsUI();trackUI();
 }
-function openHub(destination){
- for(const id of ['tracks','challenges','settings'])if($(id).open)$(id).close();
- if(destination==='worlds'){trackUI();$('tracks').showModal();}
- else if(destination==='challenges')openChallenges();
- else if(destination==='courier'){settingsUI();$('settings').showModal();}
-}
 function install(){
  if(installPrompt){void installPrompt.prompt();installPrompt=null;}
  else $('settings-status').textContent='On iPhone: open in Safari, tap Share, then Add to Home Screen. On Android: use your browser’s Install app or Add to Home Screen option. Offline play becomes ready after the first online visit finishes.';
@@ -310,7 +304,6 @@ for(let i=0;i<G.TRACKS.length;i++){
 $('campaign-carousel').addEventListener('keydown',event=>{const index=event.key==='ArrowLeft'?selected-1:event.key==='ArrowRight'?selected+1:event.key==='Home'?0:event.key==='End'?G.TRACKS.length-1:null;if(index!==null){event.preventDefault();carouselSelect(index);}});
 $('carousel-window').addEventListener('pointerdown',carouselPointerDown);$('carousel-window').addEventListener('pointermove',carouselPointerMove);
 $('carousel-window').addEventListener('pointerup',carouselPointerUp);$('carousel-window').addEventListener('pointercancel',carouselReset);
-for(const origin of ['home','tracks','challenges','settings'])for(const destination of ['play','worlds','challenges','courier'])$(origin+'-nav-'+destination).addEventListener('click',()=>openHub(destination));
 $('sound-toggle').addEventListener('click',()=>{sound.setEnabled(sound.failed||!sound.enabled);soundUI();if(sound.enabled)void sound.unlock().then(ok=>{soundUI();if(ok)sound.play('ui');});});
 $('cancel-calibration').addEventListener('click',()=>menu());$('pause').addEventListener('click',()=>pause());$('resume').addEventListener('click',resume);
 $('restart-pause').addEventListener('click',()=>mode==='demo'?startDemo():startMotion());$('recenter').addEventListener('click',()=>void startMotion({fresh:true,recenter:true}));
@@ -321,7 +314,7 @@ $('finish-tracks').addEventListener('click',()=>{menu();$('tracks').showModal();
 for(let i=0;i<6;i++)$('track-'+i).addEventListener('click',()=>{selectTrack(i);$('tracks').close();});
 for(const id of ['how','pause-how'])$(id).addEventListener('click',()=>{$('help').showModal();guide.open();});
 for(const id of ['close-help','help-done'])$(id).addEventListener('click',()=>{guide.close();$('help').close();});
-$('open-settings').addEventListener('click',()=>{if(state==='playing')pause();settingsUI();$('settings').showModal();});$('close-settings').addEventListener('click',()=>$('settings').close());
+for(const id of ['open-settings','edit-robot'])$(id).addEventListener('click',()=>{if(state==='playing')pause();settingsUI();$('settings').showModal();});$('close-settings').addEventListener('click',()=>$('settings').close());
 for(const id of ['sensitivity','advanced-controls','expert-mode','graphics-quality','show-ghost'])$(id).addEventListener('change',changeSettings);
 for(const a of J.APPEARANCES)$('color-'+a.id).addEventListener('click',()=>{if(progress.appearanceUnlocked(a.id)){settings.appearance=a.id;progress.save();settingsUI();}});
 $('learn-controls').addEventListener('click',()=>{$('settings').close();launchTraining();});$('skip-training').addEventListener('click',()=>returnFromTraining());

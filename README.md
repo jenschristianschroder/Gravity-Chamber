@@ -67,11 +67,11 @@ Gameplay requests fullscreen, portrait locking, and a screen wake lock where sup
 
 ## Presentation and performance
 
-Outside the course, a native-style app shell uses four destinations: Play, Worlds, Challenges, and Courier. Phone screens fill the viewport, with safe-area spacing, persistent navigation on the main destinations, fixed screen headers, independently scrolling content, and large controls. Secondary screens have a consistent back action.
+Outside the course, home-screen controls open track selection, challenges, and Your robot. A small pencil badge over the home robot opens its customization and settings. Phone screens fill the viewport, with safe-area spacing, fixed screen headers, independently scrolling content, and large controls. Secondary screens have a consistent back action.
 
 The home tile selects all six campaign tracks in a carousel with course-shaped previews, horizontal swipes, selection dots, and previous/next controls. Vertical gestures still scroll the menu. Locked tracks remain previewable and show their unlock requirement; selecting a track persists across visits. Game actions use button shapes and purpose-specific icons instead of trailing text arrows.
 
-The little robot is the recurring identity on the home screen, every menu, calibration, pause, and results. Shared SVG artwork stays sharp and reflects the selected courier color, including a live preview in Courier. Small character animations and screen transitions respect reduced motion. App artwork is hidden during gameplay, and the 3D renderer stops drawing while the app screens cover it. Resuming or starting a run cuts the camera directly to the robot.
+The little robot is the recurring identity on the home screen, every menu, calibration, pause, and results. Shared SVG artwork stays sharp and reflects the selected courier color, including a live preview in Your robot. Small character animations and screen transitions respect reduced motion. App artwork is hidden during gameplay, and the 3D renderer stops drawing while the app screens cover it. Resuming or starting a run cuts the camera directly to the robot.
 
 Call the character a robot or courier throughout the UI. The shared artwork uses a reusable SVG group in one coordinate system, avoiding nested symbol viewports that clip the robot in mobile Safari.
 

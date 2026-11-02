@@ -1,7 +1,7 @@
 /* Install a complete release before offering it. No network is needed to play. */
 'use strict';
-const PREFIX='gravity-run-',CACHE=PREFIX+'carousel-3';
-const FILES=['./','index.html','styles.css?v=journey21','app-shell.css?v=carousel2','run-core.js?v=gates2','run-input.js?v=journey21','run-journey.js?v=journey21','run-progress.js?v=journey21','run-share.js?v=journey21','run-audio.js?v=journey21','run-renderer.js?v=native1','run-guide.js?v=journey21','game.js?v=carousel3','manifest.webmanifest','icon.svg','icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon.png','social-card.png'];
+const PREFIX='gravity-run-',CACHE=PREFIX+'robotnav-1';
+const FILES=['./','index.html','styles.css?v=journey21','app-shell.css?v=robotnav1','run-core.js?v=gates2','run-input.js?v=journey21','run-journey.js?v=journey21','run-progress.js?v=journey21','run-share.js?v=journey21','run-audio.js?v=journey21','run-renderer.js?v=native1','run-guide.js?v=journey21','game.js?v=robotnav1','manifest.webmanifest','icon.svg','icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon.png','social-card.png'];
 const base=self.registration.scope,urls=new Set(FILES.map(path=>new URL(path,base).href));
 self.addEventListener('install',event=>{
  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll([...urls].map(url=>new Request(url,{cache:'reload'})))));
