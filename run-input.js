@@ -28,12 +28,13 @@ class MotionInput{
    return !!this.calibration;
   }
   this.controls=G.motionControls(this.gravity,this.gyro?rate:{},this.calibration,this.options);
+  if(this.options.invertSteering){this.controls.steer=-this.controls.steer;this.controls.turn=-this.controls.turn;}
   const accel=(linear||total.map((v,i)=>v-this.gravity[i])).map(v=>v*this.calibration.polarity);
   if(now-this.lastJump>280&&(accel[1]>3.3||accel[1]<-4)){
    this.burst[1]=accel[1]>3.3?1:-1;this.lastJump=now;
   }
   if(this.options.advanced!==false&&now-this.lastNudge>350&&Math.hypot(accel[0],accel[2])>3.3){
-   this.burst[0]=G.clamp(accel[0]*.2,-1.8,1.8);this.burst[2]=G.clamp(-accel[2]*.2,-1.8,1.8);this.lastNudge=now;
+   this.burst[0]=G.clamp(accel[0]*.2,-1.8,1.8)*(this.options.invertSteering?-1:1);this.burst[2]=G.clamp(-accel[2]*.2,-1.8,1.8);this.lastNudge=now;
   }
   return true;
  }

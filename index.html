@@ -26,13 +26,13 @@
 <link rel="stylesheet" href="app-shell.css?v=robotnav1">
 <script src="run-core.js?v=gates2" defer></script>
 <script src="run-journey.js?v=journey21" defer></script>
-<script src="run-progress.js?v=journey21" defer></script>
+<script src="run-progress.js?v=invert1" defer></script>
 <script src="run-share.js?v=journey21" defer></script>
-<script src="run-input.js?v=journey21" defer></script>
+<script src="run-input.js?v=invert1" defer></script>
 <script src="run-audio.js?v=journey21" defer></script>
 <script src="run-renderer.js?v=native1" defer></script>
 <script src="run-guide.js?v=journey21" defer></script>
-<script src="game.js?v=homescreen1" defer></script>
+<script src="game.js?v=invert1" defer></script>
 </head>
 <body>
 <main id="app">
@@ -236,6 +236,7 @@
   <div class="appearance-list" role="group" aria-label="Courier color"><button id="color-ivory" data-color="ivory">Ivory</button><button id="color-coral" data-color="coral">Coral</button><button id="color-mint" data-color="mint">Mint</button><button id="color-sky" data-color="sky">Sky</button><button id="color-gold" data-color="gold">Gold</button></div>
 <h3 class="group-label">How you roll</h3><div class="settings-group">
   <label class="setting-row" for="sensitivity">Motion sensitivity<select id="sensitivity"><option value="gentle">Gentle</option><option value="balanced">Balanced</option><option value="responsive">Responsive</option></select></label>
+  <label class="check-row"><input id="invert-steering" type="checkbox"><span>Invert left/right steering<small>Reverse sideways tilt, twists, and side nudges.</small></span></label>
   <label class="check-row"><input id="advanced-controls" type="checkbox"><span>Twist boosts &amp; directional nudges<small>Optional advanced movements. Hopping always works.</small></span></label>
   <label class="check-row"><input id="expert-mode" type="checkbox"><span>Expert checkpoints<small>Fewer recovery points. Separate records. Applies to the next campaign run.</small></span></label>
   <label class="setting-row" for="graphics-quality">Graphics<select id="graphics-quality"><option value="auto">Auto</option><option value="eco">Battery saver</option><option value="balanced">Balanced</option><option value="high">High detail</option></select></label>

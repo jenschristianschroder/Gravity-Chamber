@@ -147,6 +147,13 @@ test('home controls reach every screen without a bottom bar and the robot edit b
  f.click('open-settings');const elapsed=f.run.elapsed;assert.equal(f.elements.paused.hidden,false);assert.equal(f.document.body.classList.playing,false);
  f.frame(200);assert.equal(f.run.elapsed,elapsed);f.click('close-settings');assert.equal(f.elements.paused.hidden,false);f.click('resume');f.frame();assert.ok(f.run.elapsed>elapsed);
 });
+test('steering inversion defaults off and settings persist it across reloads',()=>{
+ const saved=new Map(),f=fixture({saved});assert.equal(f.elements['invert-steering'].checked,false);
+ f.click('edit-robot');f.change('invert-steering',true);f.click('close-settings');
+ assert.equal(JSON.parse(saved.get(P.KEY)).settings.invertSteering,true);
+ const reload=fixture({saved});assert.equal(reload.elements['invert-steering'].checked,true);
+ reload.change('invert-steering',false);assert.equal(fixture({saved}).elements['invert-steering'].checked,false);
+});
 test('the track carousel selects, persists, and previews every course without bypassing locks',()=>{
  const saved=new Map(),f=fixture({saved});assert.equal(f.elements['carousel-prev'].disabled,true);
  f.click('carousel-next');assert.equal(f.elements['track-name'].textContent,'Seabreeze');assert.equal(f.elements.start.disabled,true);

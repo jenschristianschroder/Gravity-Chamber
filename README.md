@@ -12,7 +12,7 @@ Open the HTTPS link on a phone and choose **Learn & play**. Allow motion access 
 
 Tilt the top edge away to accelerate, toward you to brake or reverse, and lean sideways to steer. Briefly lift the whole phone to hop; a downward nudge shortens airtime. Small movements are enough. Keep hold of the phone.
 
-Settings offers Gentle, Balanced, or Responsive sensitivity. A neutral dead zone reduces small accidental inputs. Optional **Twist boosts & directional nudges** enables additional steering and forward/sideways impulses. Hopping always works. Twist uses device-motion gamma, rotation about the phone’s upright Y axis. Tilt still works without gyroscope data.
+Settings offers Gentle, Balanced, or Responsive sensitivity. A neutral dead zone reduces small accidental inputs. **Invert left/right steering** reverses sideways tilt, twists, and side nudges, while forward/back movement and hops stay the same. It is off by default and saved on this device. Optional **Twist boosts & directional nudges** enables additional steering and forward/sideways impulses. Hopping always works. Twist uses device-motion gamma, rotation about the phone’s upright Y axis. Tilt still works without gyroscope data.
 
 A new run reuses a recent calibration after a fresh sensor reading and a short ready pause. **Recenter my phone** in the pause menu changes the neutral angle without resetting your current attempt. Lost motion readings, hiding the page, or a long frame interruption pauses play. Brief jump buffering and edge grace make hops less brittle; side nudges have their own cooldown.
 

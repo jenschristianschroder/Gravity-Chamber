@@ -257,12 +257,12 @@ function settingsUI(){
  const appearance=J.APPEARANCES.find(a=>a.id===settings.appearance)||J.APPEARANCES[0];
  $('courier-name').textContent=appearance.name+' courier';
  $('app').style.setProperty('--courier-shell',({ivory:'url(#brand-shell)',coral:'#f1c7b5',mint:'#b8ebcc',sky:'#bbdcec',gold:'#f0d992'})[appearance.id]);
- $('sensitivity').value=settings.sensitivity;$('advanced-controls').checked=settings.advanced;$('expert-mode').checked=settings.expert;$('graphics-quality').value=settings.quality;$('show-ghost').checked=settings.ghost;
+ $('sensitivity').value=settings.sensitivity;$('invert-steering').checked=settings.invertSteering;$('advanced-controls').checked=settings.advanced;$('expert-mode').checked=settings.expert;$('graphics-quality').value=settings.quality;$('show-ghost').checked=settings.ghost;
  $('mastery-count').textContent=progress.marks()+' mastery marks. Medals, clean runs, and all-cells badges unlock colors.';
  for(const a of J.APPEARANCES){const b=$('color-'+a.id),open=progress.appearanceUnlocked(a.id);b.disabled=!open;b.setAttribute('aria-pressed',String(a.id===settings.appearance));b.setAttribute('title',open?a.name:a.description);b.textContent=a.name+(open?'':' · '+a.need);}
 }
 function changeSettings(){
- settings.sensitivity=$('sensitivity').value;settings.advanced=$('advanced-controls').checked;settings.expert=$('expert-mode').checked;settings.quality=$('graphics-quality').value;settings.ghost=$('show-ghost').checked;progress.save();
+ settings.sensitivity=$('sensitivity').value;settings.invertSteering=$('invert-steering').checked;settings.advanced=$('advanced-controls').checked;settings.expert=$('expert-mode').checked;settings.quality=$('graphics-quality').value;settings.ghost=$('show-ghost').checked;progress.save();
  if(state==='menu'&&activity==='campaign')prepare(new G.Course(selected,{expert:settings.expert}));settingsUI();trackUI();
 }
 function install(){
@@ -322,7 +322,7 @@ for(let i=0;i<6;i++)$('track-'+i).addEventListener('click',()=>{selectTrack(i);$
 for(const id of ['how','pause-how'])$(id).addEventListener('click',()=>{$('help').showModal();guide.open();});
 for(const id of ['close-help','help-done'])$(id).addEventListener('click',()=>{guide.close();$('help').close();});
 for(const id of ['open-settings','edit-robot'])$(id).addEventListener('click',()=>{if(state==='playing')pause();settingsUI();$('settings').showModal();});$('close-settings').addEventListener('click',()=>$('settings').close());
-for(const id of ['sensitivity','advanced-controls','expert-mode','graphics-quality','show-ghost'])$(id).addEventListener('change',changeSettings);
+for(const id of ['sensitivity','invert-steering','advanced-controls','expert-mode','graphics-quality','show-ghost'])$(id).addEventListener('change',changeSettings);
 for(const a of J.APPEARANCES)$('color-'+a.id).addEventListener('click',()=>{if(progress.appearanceUnlocked(a.id)){settings.appearance=a.id;progress.save();settingsUI();}});
 $('learn-controls').addEventListener('click',()=>{$('settings').close();launchTraining();});$('skip-training').addEventListener('click',()=>returnFromTraining());
 $('daily-play').addEventListener('click',()=>{chooseChallenge(J.daily());play();});$('open-challenges').addEventListener('click',openChallenges);$('close-challenges').addEventListener('click',()=>$('challenges').close());

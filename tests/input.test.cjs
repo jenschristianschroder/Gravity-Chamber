@@ -37,6 +37,18 @@ test('physical nudges create bounded one-shot impulses on all translation axes',
   assert.deepEqual(m.consume().burst,[-1,-1,-1]);
  }
 });
+test('inverted steering reverses lateral controls for both sensor conventions, preserving throttle and hops',()=>{
+ for(const sign of [1,-1]){
+  const normal=ready(sign),inverted=ready(sign);inverted.options.invertSteering=true;
+  const sample=event([-2*sign,9*sign,2*sign],[5*sign,5*sign,-5*sign],{gamma:60});
+  normal.feed(sample,2800);inverted.feed(sample,2800);
+  const a=normal.consume(),b=inverted.consume();
+  assert.ok(a.steer>0);assert.equal(b.steer,-a.steer);assert.equal(b.turn,-a.turn);
+  assert.equal(b.throttle,a.throttle);assert.deepEqual(b.burst,[-a.burst[0],a.burst[1],a.burst[2]]);
+  inverted.options.invertSteering=false;normal.feed(sample,3300);inverted.feed(sample,3300);
+  assert.deepEqual(inverted.consume(),normal.consume());
+ }
+});
 test('gravity-only sensors remain playable and gyro twist is optional',()=>{
  const m=new MotionInput();
  for(let t=1000;t<2100;t+=20){const e=event();e.acceleration=null;e.rotationRate=null;m.feed(e,t);}

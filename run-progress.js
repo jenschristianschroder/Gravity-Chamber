@@ -2,7 +2,7 @@
 (function(root){
 'use strict';
 const G=root.GravityRun,J=root.GravityJourney||(typeof require==='function'?require('./run-journey.js'):null),KEY='gravity-run-campaign-v1',LEGACY='gravity-run-skyway-best-v1';
-const DEFAULTS={sensitivity:'balanced',advanced:false,quality:'auto',ghost:true,expert:false,appearance:'ivory'};
+const DEFAULTS={sensitivity:'balanced',advanced:false,invertSteering:false,quality:'auto',ghost:true,expert:false,appearance:'ivory'};
 const finite=(v,min,max)=>typeof v==='number'&&Number.isFinite(v)&&v>=min&&v<=max;
 function cleanRecord(r,legacy=false){
  if(!r||!finite(r.time,.001,7200))return null;
@@ -16,7 +16,7 @@ function validKey(key){return G.TRACKS.some(t=>key===t.id||key===t.id+'-expert')
 function settings(data={}){
  if(!data||typeof data!=='object')data={};
  const value={...DEFAULTS};
- for(const k of ['advanced','ghost','expert'])if(typeof data[k]==='boolean')value[k]=data[k];
+ for(const k of ['advanced','invertSteering','ghost','expert'])if(typeof data[k]==='boolean')value[k]=data[k];
  for(const [k,list] of Object.entries({sensitivity:['gentle','balanced','responsive'],quality:['auto','eco','balanced','high'],appearance:J.APPEARANCES.map(a=>a.id)}))if(list.includes(data[k]))value[k]=data[k];
  return value;
 }
