@@ -32,7 +32,7 @@ test('renderer uploads finite geometry and draws the course at phone and desktop
  };
  const c=new G.Course(),run=new G.Run(c),canvas={clientWidth:390,clientHeight:844,width:0,height:0,getContext:()=>gl};
  const renderer=new R.Renderer(canvas,c);renderer.render(run,1/60,false);
- assert.deepEqual(viewport,[390,844]);assert.equal(uploads,11);assert.ok(draws>8&&draws<80);
+ assert.deepEqual(viewport,[390,844]);assert.equal(uploads,15);assert.ok(draws>8&&draws<80);
  assert.deepEqual(matrices.get(renderer.robotShell.buffer),matrices.get(renderer.robotTrim.buffer));
  assert.deepEqual(matrices.get(renderer.robotShell.buffer),matrices.get(renderer.robotLights.buffer));
  assert.ok(drawn.includes(renderer.disc.buffer));
@@ -44,9 +44,9 @@ test('renderer uploads finite geometry and draws the course at phone and desktop
  for(let i=0;i<2000;i++)run.step(1/120,run.demoInput());
  canvas.clientWidth=1280;canvas.clientHeight=720;renderer.render(run,1/60,true);
  assert.deepEqual(viewport,[1280,720]);assert.ok(renderer.eye.every(Number.isFinite));
- for(let i=0;i<6;i++){
+ for(let i=0;i<G.TRACKS.length;i++){
   const next=new G.Course(i),player=new G.Run(next);renderer.setCourse(next);
-  assert.equal(liveBuffers.size,11,'changing tracks releases the previous scene buffers');
+  assert.equal(liveBuffers.size,15,'changing tracks releases the previous scene buffers');
   assert.ok([...liveBuffers].reduce((sum,b)=>sum+b.count*40,0)<12*1024*1024,'geometry must stay below the 12 MiB GPU buffer budget');
   for(let s=5;s<next.total;s+=30){
    player.place(s);renderer.cameraCut=true;renderer.render(player,1/60,true);

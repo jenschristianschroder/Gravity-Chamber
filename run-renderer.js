@@ -136,6 +136,12 @@ class Renderer{
   }this.disc=this.mesh(disc);
   const halo=[];torus(halo,[0,0,0],1,.045,[1,1,1],'y',24,5);this.halo=this.mesh(halo);
   this.gatePanel=this.mesh(this.buildGatePanel());
+  const arrow=[];box(arrow,[-.15,0,0],[.38,.09,.05],[1,1,1]);for(const z of [-.03,.03])tri(arrow,[.35,0,z],[-.03,.22,z],[-.03,-.22,z],[1,1,1]);this.gateArrow=this.mesh(arrow);
+  const sprout=[],star=[],gear=[];
+  cylinder(sprout,[0,.8,0],.018,.24,[.22,.5,.31],8);for(const side of [-1,1])sphere(sprout,[side*.09,.89,0],[.13,.07,.045],[.46,.78,.46],5,8);
+  for(let i=0;i<10;i++){const a=i*Math.PI/5,b=(i+1)*Math.PI/5,r=i%2?.08:.17,r2=i%2?.17:.08;for(const z of [-.035,.035])tri(star,[0,.85,z],[Math.sin(a)*r,.85+Math.cos(a)*r,z],[Math.sin(b)*r2,.85+Math.cos(b)*r2,z],GOLD);}
+  torus(gear,[0,.85,0],.12,.045,[.75,.5,.29],'z',12,5);for(let i=0;i<8;i++){const a=i*Math.PI/4;box(gear,[Math.cos(a)*.15,.85+Math.sin(a)*.15,0],[.07,.07,.07],[.75,.5,.29]);}
+  this.badges={sprout:this.mesh(sprout),star:this.mesh(star),gear:this.mesh(gear)};
   const platform=[];box(platform,[0,-.2,0],[2,.4,1],TEAL);box(platform,[0,.009,0],[1.94,.018,.96],WHITE);
   for(const side of [-1,1])box(platform,[side*.94,.025,0],[.09,.02,.98],GOLD);
   for(const z of [-.46,.46])box(platform,[0,.025,z],[1.95,.02,.06],CORAL);
@@ -212,7 +218,7 @@ class Renderer{
   return out;
  }
  buildTrack(){
-  const parts=[];
+  const parts=[],clockwork=this.course.index>=6;
   for(const path of [{points:this.course.points},...(this.course.routes||[])]){
   const points=path.points,at=s=>this.course.routeAt(s,path.id);
   for(let i=0;i<points.length-1;i++){
@@ -220,10 +226,10 @@ class Renderer{
    const out=[],normal=G.norm(G.cross([a.tangent[0],a.slope,a.tangent[2]],[a.right[0],a.bank,a.right[2]])),yaw=Math.atan2(a.tangent[0],a.tangent[2]);
    const edge=(q,side,y=0,inset=0)=>[q.p[0]+q.right[0]*(q.width-inset)*side,q.p[1]+y+(q.bank||0)*(q.width-inset)*side,q.p[2]+q.right[2]*(q.width-inset)*side];
    const al=edge(a,-1),ar=edge(a,1),bl=edge(b,-1),br=edge(b,1);
-   const color=i%12<6?WHITE:[.87,.92,.89];quad(out,al,bl,br,ar,color,normal);
+   const color=clockwork?(i%12<6?[.97,.94,.8]:[.9,.85,.7]):i%12<6?WHITE:[.87,.92,.89];quad(out,al,bl,br,ar,color,normal);
    quad(out,edge(a,1,-.55),edge(b,1,-.55),edge(b,-1,-.55),edge(a,-1,-.55),INK,[0,-1,0]);
    for(const side of [-1,1]){
-    quad(out,edge(a,side),edge(b,side),edge(b,side,-.55),edge(a,side,-.55),TEAL,mul(a.right,side));
+    quad(out,edge(a,side),edge(b,side),edge(b,side,-.55),edge(a,side,-.55),clockwork?[.64,.43,.27]:TEAL,mul(a.right,side));
     quad(out,edge(a,side,-.37,-.003),edge(b,side,-.37,-.003),edge(b,side,-.44,-.003),edge(a,side,-.44,-.003),[.25,.55,.54],mul(a.right,side));
     quad(out,edge(a,side,.018),edge(b,side,.018),edge(b,side,.018,.13),edge(a,side,.018,.13),path.id?GOLD:a.width<2?CORAL:MINT,normal);
     quad(out,edge(a,side,.02,.17),edge(b,side,.02,.17),edge(b,side,.02,.19),edge(a,side,.02,.19),[.58,.73,.7],normal);
@@ -299,7 +305,7 @@ class Renderer{
   return batch(parts);
  }
  buildScenery(){
-  const parts=[],season=this.course.index,foliage=[[.25,.59,.44],[.24,.57,.48],[.62,.61,.31],[.37,.57,.64],[.36,.55,.49],[.53,.47,.65]][season];
+  const parts=[],season=this.course.index,foliage=season>=6?[.38,.59,.48]:[[.25,.59,.44],[.24,.57,.48],[.62,.61,.31],[.37,.57,.64],[.36,.55,.49],[.53,.47,.65]][season];
   const count=Math.ceil(this.course.total/15);
   for(let i=0;i<count;i++){
    const out=[],s=i/count*this.course.total,q=this.course.at(s),side=i%2?-1:1,d=16+(i%4)*6;
@@ -310,6 +316,11 @@ class Renderer{
     tri(out,p,b,a,foliage.map(v=>Math.min(1,v+.14)),[0,1,0]);
     quad(out,a,b,e,c,[.38,.56,.44]);quad(out,c,e,next,lower,j%2?[.37,.51,.5]:[.3,.44,.45]);
     tri(out,lower,next,[p[0]+.4,p[1]-r*1.8,p[2]-.3],[.23,.38,.4]);
+   }
+   if(season>=6){
+    cylinder(out,[p[0],p[1]+.12,p[2]],r*.8,.24,[.64,.44,.28],12);
+    torus(out,[p[0],p[1]+.3,p[2]],r*.7,.12,[.84,.66,.4],'y',16,5);
+    for(let tooth=0;tooth<8;tooth++){const a=tooth*Math.PI/4;box(out,[p[0]+Math.cos(a)*r*.8,p[1]+.25,p[2]+Math.sin(a)*r*.8],[.5,.25,.5],[.76,.53,.31],a);}
    }
    for(let tree=0;tree<3;tree++){
     const a=tree*2.3+i,tx=p[0]+Math.cos(a)*r*.44,tz=p[2]+Math.sin(a)*r*.44,h=1.35+(i+tree)%3*.35;
@@ -335,10 +346,11 @@ class Renderer{
   if(canvas.width!==Math.round(width*dpr)||canvas.height!==Math.round(height*dpr)){canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);}
   gl.viewport(0,0,canvas.width,canvas.height);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.useProgram(this.program);
   const speed=Math.hypot(run.velocity[0],run.velocity[2]);
-  const ahead=this.course.routeAt(Math.min(this.course.total,run.progress+5),run.surface.route),dir=ahead.tangent,p=run.position;
+  const ahead=this.course.routeAt(Math.min(this.course.total,run.progress+(this.course.index>=6?8+speed*.3:5)),run.surface.route),dir=ahead.tangent,p=run.position;
   const narrow=width/height<.8,back=narrow?10.8:7.8,raise=narrow?5.5:4.1;
   const desired=active?[p[0]-dir[0]*back,p[1]+raise,p[2]-dir[2]*back]:[-6.5,10.5,-8];
-  const target=active?[p[0]+dir[0]*3.8,p[1]+.4,p[2]+dir[2]*3.8]:[1,5.4,8];
+  const look=this.course.index>=6?6:3.8;
+  const target=active?[p[0]+dir[0]*look,p[1]+.4,p[2]+dir[2]*look]:[1,5.4,8];
   const blend=this.cameraCut?1:1-Math.exp(-Math.min(dt,.1)*5);this.cameraCut=false;
   this.eye=this.eye.map((v,i)=>G.mix(v,desired[i],blend));this.target=this.target.map((v,i)=>G.mix(v,target[i],blend));
   const fov=Math.PI/3+(active&&!this.reduced?G.clamp(speed/11,0,1)*.045:0);
@@ -352,6 +364,10 @@ class Renderer{
   for(const gate of this.course.gates){
    const q=this.course.at(gate.s),c=this.course.gateCenter(gate,run.time),yaw=Math.atan2(q.tangent[0],q.tangent[2]);
    if(Math.hypot(...G.sub(q.p,this.eye))>112)continue;
+   if(gate.rhythm){const phase=run.time*this.course.track.gateSpeed+gate.phase,direction=Math.cos(phase)>=0?1:-1,reversing=Math.abs(Math.cos(phase))<.55;
+    this.draw(this.gateArrow,model([q.p[0]+q.right[0]*c,q.p[1]+2.4,q.p[2]+q.right[2]*c],[direction*.9,.9,1],yaw),reversing?[1,.7,.25,1]:[.5,1,.8,1],LIT);
+    for(const side of [-1,1])this.draw(this.gem,model([q.p[0]+q.right[0]*(c+side*this.course.track.opening),q.p[1]+.9,q.p[2]+q.right[2]*(c+side*this.course.track.opening)],[.045,.85,.045]),[.5,1,.8,1],LIT);
+   }
    for(const range of [[-q.width,c-this.course.track.opening],[c+this.course.track.opening,q.width]]){
     const length=range[1]-range[0];if(length<=0)continue;const mid=(range[0]+range[1])/2;
     this.draw(this.gatePanel,model([q.p[0]+q.right[0]*mid,q.p[1]+.85,q.p[2]+q.right[2]*mid],[length,1.7,.5],yaw),[1,1,1,1],METAL);
@@ -384,6 +400,7 @@ class Renderer{
   this.draw(this.robotShell,pose,[...(this.appearance||[1,1,1]),1],CERAMIC);
   this.draw(this.robotTrim,pose,[1,1,1,1],METAL);
   this.draw(this.robotLights,pose,[1,1,1,1],LIT);
+  if(this.badges[this.badge])this.draw(this.badges[this.badge],pose,[1,1,1,1],CERAMIC);
  }
 }
 root.GravityRenderer={Renderer,model,multiply,perspective,lookAt,contactShadow,robotModel,visibleRanges};

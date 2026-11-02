@@ -16,8 +16,15 @@ const TRACKS=[
  {id:'switchback',name:'Switchback',level:'Tricky',description:'Brake for hairpins. Commit to the double jump.',sky:[.87,.81,.69],bridge:1.1,opening:1.03,gateSpeed:.68},
  {id:'cloudspire',name:'Cloudspire',level:'Hard',description:'Climb a corkscrew into the high clouds.',sky:[.77,.83,.94],bridge:1,opening:.96,gateSpeed:.72},
  {id:'fracture',name:'Fracture',level:'Expert',description:'Broken causeways demand precise landings.',sky:[.76,.80,.83],bridge:.9,opening:.89,gateSpeed:.76},
- {id:'eventide',name:'Eventide',level:'Master',description:'One final gauntlet. Every movement matters.',sky:[.74,.72,.85],bridge:.8,opening:.82,gateSpeed:.8}
+ {id:'eventide',name:'Eventide',level:'Master',description:'One final gauntlet. Every movement matters.',sky:[.74,.72,.85],bridge:.8,opening:.82,gateSpeed:.8},
+ {id:'brass-gardens',name:'Brass Gardens',level:'Easy',description:'Find a gentle rhythm among copper arches.',sky:[.85,.86,.74],bridge:2,opening:1.5,gateSpeed:.42},
+ {id:'pendulum-park',name:'Pendulum Park',level:'Steady',description:'Read the arrows. Follow the rhythm.',sky:[.73,.86,.81],bridge:2,opening:1.4,gateSpeed:.48},
+ {id:'ribbon-foundry',name:'Ribbon Foundry',level:'Tricky',description:'Bank through ribbons. Discover the gold route.',sky:[.88,.79,.68],bridge:2,opening:1.35,gateSpeed:.52},
+ {id:'springworks',name:'Springworks',level:'Hard',description:'Climb, launch, and settle onto broad landings.',sky:[.75,.84,.89],bridge:2,opening:1.35,gateSpeed:.56},
+ {id:'drift-docks',name:'Drift Docks',level:'Expert',description:'Moving landings reward a patient approach.',sky:[.72,.83,.81],bridge:2,opening:1.3,gateSpeed:.6},
+ {id:'grand-mechanism',name:'Grand Mechanism',level:'Master',description:'Bring rhythm, balance, and flight together.',sky:[.83,.76,.82],bridge:2,opening:1.25,gateSpeed:.64}
 ];
+const PLANETS=[{id:'sky-isles',name:'Sky Isles',start:0,count:6,description:'Your original floating adventure'},{id:'clockwork',name:'Clockwork',start:6,count:6,description:'Mechanical gardens. A new rhythm.'}];
 function calibrate(samples){
  if(samples.length<8)return null;
  const mean=[0,1,2].map(i=>samples.reduce((s,v)=>s+v[i],0)/samples.length);
@@ -46,7 +53,7 @@ class Course{
   this.index=Number.isInteger(trackIndex)?clamp(trackIndex,0,TRACKS.length-1):0;this.track=TRACKS[this.index];
   this.points=[];this.sections=[];this.gates=[];this.gaps=[];this.checkpoints=[];this.cells=[];
   this.expert=!!options.expert;this.routes=[];this.platforms=[];
-  if(this.index)this.buildAdvanced();else this.buildSkyway();
+  if(this.index>=6)this.buildClockwork();else if(this.index)this.buildAdvanced();else this.buildSkyway();
   this.expertCheckpoints=this.checkpoints.map(cp=>({...cp}));
   if(!this.expert)this.addCheckpoints();
   this.addVariety();
@@ -67,6 +74,64 @@ class Course{
   }
   if(this.index===4){this.platforms.push({gap:1,width:1.3,length:2.4,amplitude:.9,speed:.75,phase:.6});this.sections[3].hint='A drifting platform can break up the first gap. Watch its timing.';}
   if(this.index===5&&!this.expert)this.sections[3].hint='A new rest point. Settle your balance before the next jumps.';
+ }
+ buildClockwork(){
+  const level=this.index-6;let p=[0,6,0],heading=0,section=0;
+  const distance=()=>this.points.at(-1)?.s||0;
+  const add=(v,width,gap=false,bank=0)=>{const prev=this.points.at(-1);this.points.push({p:v,width,gap,bank,section,s:prev?prev.s+Math.hypot(v[0]-prev.p[0],v[2]-prev.p[2]):0});};
+  const prepare=(w,gap)=>{if(!this.points.length)add(p.slice(),w,gap);else{this.points.at(-1).gap=gap;this.points.at(-1).section=section;}};
+  const line=(length,dy=0,width=3.6,gap=false)=>{prepare(width,gap);const start=p.slice(),n=Math.ceil(length);for(let i=1;i<=n;i++){const t=i/n;add([start[0]+Math.sin(heading)*length*t,start[1]+dy*t,start[2]+Math.cos(heading)*length*t],width,gap);}p=this.points.at(-1).p.slice();};
+  const arc=(degrees,radius=20,dy=0,width=3.2)=>{prepare(width,false);const start=p.slice(),angle=degrees*Math.PI/180,sign=Math.sign(angle),initial=heading,n=Math.ceil(Math.abs(angle)*radius);for(let i=1;i<=n;i++){const u=i/n,a=initial+angle*u;add([start[0]+radius*sign*(Math.cos(initial)-Math.cos(a)),start[1]+dy*u,start[2]+radius*sign*(Math.sin(a)-Math.sin(initial))],width,false,level>=2?-sign*Math.sin(Math.PI*u)*.09:0);}p=this.points.at(-1).p.slice();heading+=angle;};
+  const mark=(name,hint)=>{section=this.sections.length;this.sections.push({name,hint,s:distance()});if(section%2===0)this.checkpoints.push({s:distance()+2,label:name});};
+  const gates=(count=1)=>{line(12,0,4.2);const start=distance();line(16*count+12,-.3,3.8);for(let i=0;i<count;i++)this.gates.push({s:start+10+i*16,phase:i*1.4,rhythm:true});line(8,0,4.2);};
+  const jump=(moving=false)=>{line(10,0,3.5);line(8,2,3.5);const start=distance();line(moving?5.4:4.6,-.5,3.5,true);this.gaps.push({start,end:distance()});if(moving)this.platforms.push({gap:this.gaps.length-1,width:1.8,length:3,amplitude:1.05,speed:.65,phase:.2});line(18,-.4,4);};
+  const branch=()=>{const start=distance();arc(90,22,-.4,3.4);const end=distance(),a=this.at(start),b=this.at(end),n=Math.ceil(len(sub(b.p,a.p))),points=[];for(let i=0;i<=n;i++){const t=i/n;points.push({p:a.p.map((v,k)=>mix(v,b.p[k],t)),s:mix(start,end,t),width:1.65,section:a.section,gap:false,bank:0});}this.routes.push({id:'copper-cut',start,end,points,first:a.index,last:b.index});};
+  if(level===0){
+   mark('Welcome garden','Find your neutral angle on the wide deck.');line(28,-.2,4.4);
+   mark('Copper sweep','Lean gently through the open bend.');arc(65,24,-.5,3.8);
+   mark('First rhythm','Arrows show the opening direction. Wait on the wide approach.');gates();
+   mark('Garden ribbons','Relax your tilt between the bends.');arc(-70,22,-.4,3.6);line(10);arc(55,22,-.4,3.6);
+   mark('Second rhythm','Read the opening, then roll through.');gates();
+   mark('Garden home','A broad final turn. Bring it home.');arc(-50,24,-.4,3.8);line(24,0,4.4);
+  }else if(level===1){
+   mark('Park approach','Use the broad deck to settle your balance.');line(24,0,4.2);
+   mark('Single pendulum','Follow the opening arrow. The lights brighten before reversal.');gates();
+   mark('Between the clocks','Brake before the bend.');arc(80,20,-.6,3.4);
+   mark('Gate dance','Two openings, two beats. Settle between them.');gates(2);
+   mark('Quiet bend','Take a breath on the wide curve.');arc(-90,22,-.6,3.5);
+   mark('Final rhythm','A final pair. Patience makes a clean run.');gates(2);line(18,0,4.2);
+  }else if(level===2){
+   mark('Foundry entry','Smooth steering carries your speed.');line(26,-.3,4);
+   mark('Banked ribbon','Follow the bank. Ease off before the exit.');arc(100,20,-1,3.3);
+   mark('Gold choice','Gold edges mark a shorter, narrower route.');branch();
+   mark('Reverse ribbon','Settle before changing direction.');arc(-120,24,-1,3.2);
+   mark('Foundry gate','Line up from the broad approach.');gates();
+   mark('Ribbon home','One last banked sweep.');arc(75,22,-.7,3.5);line(26,0,4.3);
+  }else if(level===3){
+   mark('Spring deck','Build a steady approach on the wide deck.');line(26,.4,4);
+   mark('First launch','Lift briefly at the chevrons. Aim for the landing ring.');jump();
+   mark('High garden','Climb smoothly around the bank.');arc(100,22,3,3.4);
+   mark('Perfect landing','Land, relax your tilt, and let the robot settle.');jump();
+   mark('Upper ribbon','Control your descent through the bend.');arc(-110,22,-3,3.4);
+   mark('Last spring','A final flight into a broad finish.');jump();line(20,0,4.3);
+  }else if(level===4){
+   mark('Dock approach','Start on the solid deck.');line(26,0,4);
+   mark('First moving dock','The copper platform moves sideways. It can support your landing.');jump(true);
+   mark('Dockside bend','Brake and line up for the next landing.');arc(95,23,-.6,3.3);
+   mark('Drifting landing','Watch the platform before committing.');jump(true);
+   mark('Harbour rhythm','A broad approach to two moving gates.');gates(2);
+   mark('Home dock','Combine the bank and the last moving landing.');arc(-85,23,-1,3.3);jump(true);line(20,0,4.2);
+  }else{
+   mark('Mechanism entry','Find your rhythm before the first pair.');line(22,0,4);gates(2);
+   mark('Copper choice','Choose the wide ribbon or the golden shortcut.');branch();
+   mark('Rising spring','Keep your approach straight and lift at the chevrons.');jump();arc(-80,22,2,3.2);
+   mark('Moving heart','Settle your tilt on the moving landing.');jump(true);
+   mark('Clockwork rhythm','Two readable beats. Brake to line up.');gates(2);arc(75,20,-2,3.2);
+   mark('Grand finale','A last moving landing, then a wide finish.');jump(true);arc(-60,24,-1,3.5);line(24,0,4.5);
+  }
+  this.total=distance();this.gapStart=this.gaps[0]?.start??Infinity;this.gapEnd=this.gaps[0]?.end??Infinity;
+  for(let s=14,i=0;s<this.total-8;s+=21,i++){const q=this.at(s);if(q.gap||this.gaps.some(g=>Math.abs(s-g.start)<5||Math.abs(s-g.end)<5))continue;this.cells.push({s,offset:i%2?.6:-.6,taken:false});}
+  for(const route of this.routes){const c=this.cells.find(c=>c.s>route.start+8&&c.s<route.end-8);if(c){c.route=route.id;c.offset=0;}}
  }
  buildSkyway(){
   const add=(p,width,section,gap=false)=>{const prev=this.points[this.points.length-1];this.points.push({p,width,section,gap,s:prev?prev.s+Math.hypot(p[0]-prev.p[0],p[2]-prev.p[2]):0});};
@@ -217,7 +282,7 @@ class Course{
   const platform=this.platforms[index],gap=this.gaps[platform.gap],q=this.at((gap.start+gap.end)/2),offset=Math.sin(time*platform.speed+platform.phase)*platform.amplitude;
   return {...q,p:q.p.map((v,k)=>v+q.right[k]*offset+(k===1?-.15:0)),width:platform.width,length:platform.length,slope:0,bank:0,gap:false,platform:true};
  }
- gateCenter(gate,time){const q=this.at(gate.s);return Math.sin(time*this.track.gateSpeed+gate.phase)*Math.max(0,q.width-this.track.opening-.45);}
+ gateCenter(gate,time){const q=this.at(gate.s);return (gate.rhythm?clamp(Math.sin(time*this.track.gateSpeed+gate.phase)*1.2,-1,1):Math.sin(time*this.track.gateSpeed+gate.phase))*Math.max(0,q.width-this.track.opening-.45);}
  cellPosition(cell){const q=this.routeAt(cell.s,cell.route);return [q.p[0]+q.right[0]*cell.offset,q.p[1]+.8+cell.offset*q.bank,q.p[2]+q.right[2]*cell.offset];}
 }
 class Run{
@@ -303,7 +368,7 @@ class Run{
   const q=this.surface,s=this.progress,course=this.course;
   let speed=5.2,offset=0;
   if(q.width<2)speed=4.2;
-  if(course.gaps.some(g=>s>g.start-14&&s<g.end+6))speed=7+course.index*.12;
+  if(course.gaps.some(g=>s>g.start-14&&s<g.end+6))speed=7+(course.index>=6?course.index-6:course.index)*.12;
   for(const gate of course.gates)if(gate.s-s>-1&&gate.s-s<15){speed=3.6;offset=course.gateCenter(gate,this.time+Math.max(0,gate.s-s)/speed);}
   const aim=course.at(Math.min(course.total,s+3.2)),delta=[aim.p[0]+aim.right[0]*offset-this.position[0],0,aim.p[2]+aim.right[2]*offset-this.position[2]];
   const desired=norm(delta).map(v=>v*speed),acc=desired.map((v,i)=>(v-this.velocity[i])*3.5+this.velocity[i]*.46);
@@ -311,6 +376,6 @@ class Run{
   return {throttle:clamp((dot(acc,q.tangent)+12.5*q.slope)/13,-1,1),steer:clamp((dot(acc,q.right)+12.5*q.bank)/17,-1,1),turn:0,burst};
  }
 }
-const api={clamp,mix,len,norm,dot,cross,sub,calibrate,motionControls,displayLayout,TRACKS,Course,Run};
+const api={clamp,mix,len,norm,dot,cross,sub,calibrate,motionControls,displayLayout,TRACKS,PLANETS,Course,Run};
 root.GravityRun=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(globalThis);

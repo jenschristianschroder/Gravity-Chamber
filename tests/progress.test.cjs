@@ -5,7 +5,7 @@ const {Progress,KEY}=require('../run-progress.js');
 function memory(entries=[]){const data=new Map(entries);return {getItem:k=>data.get(k)||null,setItem:(k,v)=>data.set(k,v),data};}
 const finished=(elapsed=70,collected=10)=>({finished:true,elapsed,collected});
 test('six distinct courses progressively narrow bridges and speed up gates',()=>{
- const courses=G.TRACKS.map((_,i)=>new G.Course(i,{expert:true}));
+ const courses=G.TRACKS.slice(0,6).map((_,i)=>new G.Course(i,{expert:true}));
  assert.equal(courses.length,6);assert.equal(new Set(courses.map(c=>JSON.stringify(c.points))).size,6);
  for(let i=1;i<6;i++){
   assert.ok(courses[i].track.bridge<courses[i-1].track.bridge);
@@ -18,7 +18,7 @@ test('six distinct courses progressively narrow bridges and speed up gates',()=>
 });
 test('gate motion starts gently and increases across real sweep widths without exceeding the old opening-track rate',()=>{
  const dt=1/120;let previousSpeed=0;
- for(let i=0;i<G.TRACKS.length;i++){
+ for(let i=0;i<6;i++){
   const c=new G.Course(i),gate=c.gates[0],t=(2*Math.PI-gate.phase)/c.track.gateSpeed;
   const speed=(c.gateCenter(gate,t+dt)-c.gateCenter(gate,t))/dt;
   assert.ok(speed>previousSpeed,c.track.name+' should move faster than the previous course');

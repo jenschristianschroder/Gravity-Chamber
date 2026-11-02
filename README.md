@@ -4,7 +4,7 @@ A third-person browser game where your phone is the controller.
 
 **[Play Gravity Run](https://jenschristianschroder.github.io/Gravity-Chamber/)**
 
-Guide a rolling robot across six floating courses. Learn to roll, brake, steer, and hop; then find faster lines, earn medals, race your own ghost, and challenge friends. The game runs entirely in the browser. No accounts, backend, external libraries, tracking, advertising, or third-party runtime requests. There are no touch, keyboard, or joystick movement controls.
+Guide a rolling robot across twelve floating courses on two planets. Learn to roll, brake, steer, and hop; then find faster lines, earn medals, race your own ghost, and challenge friends. The game runs entirely in the browser. No accounts, backend, external libraries, tracking, advertising, or third-party runtime requests. There are no touch, keyboard, or joystick movement controls.
 
 ## Playing and learning
 
@@ -20,7 +20,7 @@ A new run reuses a recent calibration after a fresh sensor reading and a short r
 
 ## Campaign and mastery
 
-Finish a campaign course with motion controls to unlock the next. Normal play has frequent safe checkpoints. **Expert checkpoints** retains the original sparse recovery points and has separate records. Each fall adds two seconds.
+Choose **Sky Isles** or **Clockwork** above the home carousel. Each planet starts with its first course unlocked, remembers its selected course, and has its own six-course progression. Finish a campaign course with motion controls to unlock the next on that planet. Existing Sky Isles records, unlocks, course geometry, gate timing, and physics are preserved. Normal play has frequent safe checkpoints. **Expert checkpoints** retains the original sparse recovery points and has separate records. Each fall adds two seconds.
 
 | Course | Difficulty | Length | Gates | Gaps | Normal / expert checkpoints |
 | --- | --- | ---: | ---: | ---: | ---: |
@@ -31,7 +31,7 @@ Finish a campaign course with motion controls to unlock the next. Normal play ha
 | Fracture | Expert | 491 m | 5 | 3 | 12 / 3 |
 | Eventide | Master | 589 m | 6 | 4 | 13 / 2 |
 
-Moving gates start at half Skyway's original speed. Their sideways speed rises gradually across the six courses, accounting for different sweep widths, and the animation rate never exceeds the original Skyway rate. Practice, daily flights, and friend challenges inherit their source course's gate timing.
+On Sky Isles, moving gates start at half Skyway's original speed. Their sideways speed rises gradually across the six courses, accounting for different sweep widths, and the animation rate never exceeds the original Skyway rate. Practice, daily flights, and friend challenges inherit their source course's gate timing.
 
 Seabreeze and Fracture offer narrower gold-edged shortcuts with collectible detours. Later courses have gently banked turns. A moving platform in Fracture’s island chain provides an optional intermediate landing. Its rendered position and collision surface use the same animation.
 
@@ -43,6 +43,23 @@ A translucent, non-colliding ghost replays your fastest local attempt. Checkpoin
 
 The initial campaign medal thresholds (Gold / Silver / Bronze, seconds) are 74/95/125, 92/118/150, 84/110/145, 103/132/170, 114/148/185, and 136/174/220. Short-course targets scale with length and obstacles. These are provisional targets, to be tuned through real phone playtests.
 
+### Clockwork
+
+| Course | Focus |
+| --- | --- |
+| Brass Gardens | Broad curves, forgiving introductions, two rhythmic gates |
+| Pendulum Park | Readable gate rhythms with wide approaches |
+| Ribbon Foundry | Banked curves and an optional gold-edged shortcut |
+| Springworks | Three controlled jumps and broad landing decks |
+| Drift Docks | Three moving landing platforms and a gate sequence |
+| Grand Mechanism | A combination of routes, gates, banks, and moving landings |
+
+Clockwork gates pause briefly near their sweep endpoints. Direction arrows and lights indicate movement/reversal; opening edges glow. Only Clockwork uses the increased camera look-ahead and copper track/scenery palette. These changes do not affect Sky Isles. New medal targets are provisional until physical phone playtests.
+
+Results show precise time to the next medal. When comparable checkpoint splits exist, a result identifies the interval with the greatest loss against the saved best and offers direct section practice. Without a comparison, repeated recoveries identify a practice section. Advice does not change scoring.
+
+**Your robot** includes cosmetic Sprout, Star, and Gear antenna badges. Unlock them through a clean campaign run, Silver medals on three distinct campaign courses, and a clean Clockwork run respectively. The next reward and remaining requirement are visible; badges appear in shared menu artwork and on the 3D robot without changing physics. **Check my controls** opens the safe four-step interactive training course using current sensitivity and inversion, then returns to the selected adventure.
+
 ## Daily flights and friends
 
 - **Daily flight:** a deterministic short course shared by everyone, changing at 00:00 UTC. Replay the last seven days from the archive. The schedule cycles through 24 curated course/section combinations; it does not generate untested random geometry.
@@ -50,6 +67,10 @@ The initial campaign medal thresholds (Gold / Silver / Bronze, seconds) are 74/9
 - **Challenge a friend:** a finish-screen link includes the course, section, rules version, checkpoint mode, and target time. The receiver can play immediately even if their campaign has not reached that course. Beating it produces a rematch link.
 - **Result cards:** create a PNG on-device. Use the native share sheet where available, or copy the link and save the card. Sharing only happens after the player chooses it. Link previews use a static social image; individual scores live in the link fragment and result card.
 - **Pass the phone:** two named players take three attempts each on the same daily course. Recalibrate for each player; the fastest attempt wins. These results never overwrite personal records.
+
+Clockwork adds four curated **Quick runs**: Gate Dance, Perfect Landing, Ribbon Run, and Dock Hop. They use new-planet sections, preserve supported moving platforms and complete shortcut routes, and keep separate sprint records. Automated demo runs take roughly 20–40 seconds; phone-play times will vary. These are available without campaign unlocks. Existing daily schedules and old challenge URLs are unchanged; new links also support Clockwork tracks.
+
+Friend invitations now show the course, time to beat, approximate duration, and a direct challenge action. Results offer **Send a rematch** for incoming time challenges. Links still carry a target time, not another player’s ghost.
 
 All competition is friendly and unverified. No global leaderboard or remote multiplayer service is involved. Shared challenge and daily records remain separate from campaign progression.
 
@@ -71,7 +92,7 @@ Gameplay requests fullscreen in a browser tab, portrait locking, and a screen wa
 
 Outside the course, home-screen controls open track selection, challenges, and Your robot. A small pencil badge over the home robot opens its customization and settings. Phone screens fill the viewport, with safe-area spacing, fixed screen headers, independently scrolling content, and large controls. Secondary screens have a consistent back action.
 
-The home tile selects all six campaign tracks in a carousel with course-shaped previews, horizontal swipes, selection dots, and previous/next controls. Vertical gestures still scroll the menu. Locked tracks remain previewable and show their unlock requirement; selecting a track persists across visits. Game actions use button shapes and purpose-specific icons instead of trailing text arrows.
+The planet selector switches between Sky Isles and Clockwork. The home tile selects that planet’s six campaign tracks in a carousel with course-shaped previews, horizontal swipes, selection dots, and previous/next controls. Vertical gestures still scroll the menu. Locked tracks remain previewable and show their unlock requirement; selecting a track persists across visits. Game actions use button shapes and purpose-specific icons instead of trailing text arrows.
 
 The little robot is the recurring identity on the home screen, every menu, calibration, pause, and results. Shared SVG artwork stays sharp and reflects the selected courier color, including a live preview in Your robot. Small character animations and screen transitions respect reduced motion. App artwork is hidden during gameplay, and the 3D renderer stops drawing while the app screens cover it. Resuming or starting a run cuts the camera directly to the robot.
 
@@ -106,8 +127,8 @@ No package installation or build tool is required. Run checks with Node.js:
 node --test tests/*.test.cjs
 ```
 
-Tests cover the campaign, all 36 possible short-course slices and 36 practice slices, tutorial goals, calibration, gesture axes/cooldowns, buffered hops, moving-platform support, records and backups, ghosts, challenge validation, pass-the-phone turns, retry/recenter states, slow-frame scoring, sharing fallback, wake-lock races, offline cache routing, rendering budgets, shadows, sound, and the animated guide.
+Tests cover the campaign, all 72 possible short-course slices and 72 practice slices, tutorial goals, calibration, gesture axes/cooldowns, buffered hops, moving-platform support, records and backups, ghosts, challenge validation, pass-the-phone turns, retry/recenter states, slow-frame scoring, sharing fallback, wake-lock races, offline cache routing, rendering budgets, shadows, sound, and the animated guide.
 
-Controller tests use a simulated DOM; WebGL and audio tests use mocks. The actual geometry, shaders, transforms, and draw calls were also rendered in an offscreen OpenGL ES 2.0 context and visually inspected, including the new branches, banked turns, platform, ghost, and training deck. None of these substitutes for physical iOS/Android sensor tests, real-device performance measurements, or human difficulty/retention testing. There is no remote analytics collection.
+Regression tests also compare all original normal/expert course snapshots and exact deterministic demo finish ticks, verify independent planet unlocks and migration, new challenge links, short-run durations, cosmetics, and direct result practice. Controller tests use a simulated DOM; WebGL and audio tests use mocks. The actual geometry, shaders, transforms, and draw calls were also rendered in an offscreen OpenGL ES 2.0 context and visually inspected, including the new branches, banked turns, platform, ghost, and training deck. None of these substitutes for physical iOS/Android sensor tests, real-device performance measurements, or human difficulty/retention testing. There is no remote analytics collection.
 
 Pushes to `main` trigger `.github/workflows/pages.yml`: syntax checks, tests, static packaging, then GitHub Pages deployment. Pages must use **GitHub Actions** as its source. The previous Gravity Chamber game remains in Git history.

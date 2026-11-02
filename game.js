@@ -12,7 +12,7 @@ let renderer,rendererError='',state='menu',mode='motion',activity='campaign',cha
 let listener=false,session=0,immersive=false,displaySession=0,permissionGranted=false,recentering=false,readyAt=0;
 let accumulator=0,lastFrame=0,lastHUD=-Infinity,waitingSince=0,lastRender=0,baseline=null,recorder=null,nextAction=null,shareSpec=null,shareBlob=null,shareGeneration=0;
 let installPrompt=null,registration=null,reloadForUpdate=false;
-let carouselDrag=null,carouselDragged=false;
+let carouselDrag=null,carouselDragged=false,resultPractice=null;
 const quickSections=[3,2,1,3,4,4];
 const hints=['Tilt forward to roll. Lean left or right to steer.','Ease into the bends. Tilt back to slow down.','Small movements. Keep the robot on the bridge.','Aim for the moving opening. Slow down to line it up.','Build speed, then nudge upward just before the gap.','Follow the spiral. The finish is just ahead.'];
 const time=S.formatTime,now=()=>performance.now();
@@ -35,38 +35,43 @@ function prepare(c,type='campaign',spec=null){
  if(renderer){renderer.setCourse(course);renderer.appearance=J.APPEARANCES.find(a=>a.id===settings.appearance)?.color||[1,1,1];}
 }
 function trackUI(){
+ const planet=Math.floor(selected/6),planetInfo=G.PLANETS[planet];
+ $('tracks-title').textContent=planetInfo.name+' worlds.';
+ $('planet-picker').hidden=activity!=='campaign';$('planet-description').hidden=activity!=='campaign';$('planet-description').textContent=planetInfo.description;
+ $('app').classList.toggle('clockwork',course.index>=6);
+ for(let p=0;p<G.PLANETS.length;p++){$('planet-'+p).setAttribute('aria-pressed',String(p===planet));$('planet-progress-'+p).textContent=progress.unlockedByPlanet[p]+' / 6 worlds';}
  const open=activity!=='campaign'||progress.isUnlocked(selected),r=record(),track=course.track;
- $('course-label').textContent=activity==='campaign'?'COURSE '+String(selected+1).padStart(2,'0')+' / '+(course.expert?'EXPERT':'CAMPAIGN'):activity==='challenge'?(challenge.day?'DAILY FLIGHT / '+challenge.day:'FRIENDLY CHALLENGE'):activity==='party'?'PASS THE PHONE':activity==='practice'?'SECTION PRACTICE':'FLIGHT SCHOOL';
- $('track-name').textContent=track.name;$('track-difficulty').textContent=activity==='campaign'?track.level+' · '+(selected+1)+' / 6':'Motion controls · separate results';
+ $('course-label').textContent=activity==='campaign'?'COURSE '+String(selected%6+1).padStart(2,'0')+' / '+(course.expert?'EXPERT':'CAMPAIGN'):activity==='challenge'?(challenge.day?'DAILY FLIGHT / '+challenge.day:'FRIENDLY CHALLENGE'):activity==='party'?'PASS THE PHONE':activity==='practice'?'SECTION PRACTICE':'FLIGHT SCHOOL';
+ $('track-name').textContent=track.name;$('track-difficulty').textContent=activity==='campaign'?track.level+' · '+(selected%6+1)+' / 6':'Motion controls · separate results';
  $('track-description').textContent=activity==='campaign'?track.description:activity==='training'?'Four small steps. Find your balance.':'A short flight. Everyone can take part.';
- $('campaign-count').textContent=progress.unlocked+' / 6 tracks unlocked · '+progress.marks()+' mastery marks';
+ $('campaign-count').textContent=progress.unlockedByPlanet[planet]+' / 6 tracks unlocked · '+progress.marks()+' mastery marks';
  $('course-distance').textContent=Math.round(course.total)+' metres';$('course-sections').textContent=course.sections.length+' sections';$('course-cells').textContent=course.cells.length+' energy cells';
  $('start').textContent=!open?'Locked':!progress.tutorialDone&&activity!=='party'?'Learn to play':activity==='challenge'?'Accept challenge':'Start run';
  $('start').disabled=!renderer||!open;$('start').classList.toggle('locked',!open);$('demo').disabled=!renderer;$('demo').textContent='Preview';
  $('course-lock-note').hidden=open;$('course-lock-note').textContent=open?'':'Finish '+G.TRACKS[Math.max(0,selected-1)].name+' to unlock.';
  $('best').textContent=[r?(r.legacy?'Previous rules · ':'Your best · ')+time(r.time)+(r.medal?' · '+J.MEDALS[r.medal]:'' ):'',!progress.saved?'Progress is kept for this session only.':''].filter(Boolean).join(' · ');
- $('challenge-invite').hidden=activity!=='challenge';$('challenge-invite').textContent=challenge?.target?'Your friend’s target: '+time(challenge.target)+'. Same course, same rules. Beat it and send a rematch.':challenge?.day?'Today’s route is the same for everyone. Your best result is saved on this device.':'A short course, open to everyone. Campaign unlocks stay separate.';
+ $('challenge-invite').hidden=activity!=='challenge';$('challenge-invite').textContent=challenge?.target?'Can you beat '+time(challenge.target)+'? '+track.name+' · about '+Math.max(15,Math.round(course.total/5))+' seconds. Same course, same rules. Send a rematch when you finish.':challenge?.day?'Today’s route is the same for everyone. Your best result is saved on this device.':'A short course, open to everyone. Campaign unlocks stay separate.';
  $('back-campaign').hidden=activity==='campaign';
  const today=J.daily(),dailyRecord=progress.records[J.key(today)];
  $('daily-name').textContent=G.TRACKS[today.track].name+' · daily flight';$('daily-record').textContent=dailyRecord?J.MEDALS[dailyRecord.medal]+' · '+time(dailyRecord.time):'A short challenge, open to everyone';
  for(let i=1;i<=3;i++){const marker=$('route-marker-'+i),cp=course.checkpoints[Math.round(i*(course.checkpoints.length-1)/4)];marker.hidden=!cp||cp.s<=2;if(cp)marker.style.left=cp.s/course.total*100+'%';}
- for(let i=0;i<6;i++){
+ for(let i=0;i<G.TRACKS.length;i++){
   const b=$('track-'+i),best=progress.record(i,settings.expert),unlocked=progress.isUnlocked(i);
-  b.classList.toggle('selected',activity==='campaign'&&i===selected);b.classList.toggle('locked',!unlocked);b.setAttribute('aria-pressed',String(activity==='campaign'&&i===selected));
+  b.hidden=Math.floor(i/6)!==planet;b.classList.toggle('selected',activity==='campaign'&&i===selected);b.classList.toggle('locked',!unlocked);b.setAttribute('aria-pressed',String(activity==='campaign'&&i===selected));
   $('track-status-'+i).textContent=best&&!best.legacy?(J.MEDALS[best.medal]+(best.clean?' · Clean':'')+(best.allCells?' · All cells':'')):best?'Completed':unlocked?'Unlocked':'Locked · preview';
   $('track-record-'+i).textContent=best?(best.legacy?'Previous rules ':'Best ')+time(best.time):unlocked?'Ready to roll':'Finish '+G.TRACKS[Math.max(0,i-1)].name+' first';
-  const card=$('carousel-track-'+i),dot=$('carousel-dot-'+i),current=i===selected;
+  const card=$('carousel-track-'+i),dot=$('carousel-dot-'+i),current=i===selected;card.hidden=Math.floor(i/6)!==planet;dot.hidden=Math.floor(i/6)!==planet;
   card.classList.toggle('selected',current);card.classList.toggle('locked',!unlocked);card.setAttribute('aria-pressed',String(current));card.setAttribute('aria-hidden',String(!current));card.setAttribute('tabindex',current?'0':'-1');
   card.setAttribute('aria-label',G.TRACKS[i].name+', '+G.TRACKS[i].level+', '+(unlocked?'unlocked':'locked'));
   dot.setAttribute('aria-pressed',String(current));dot.setAttribute('aria-label','Select '+G.TRACKS[i].name+(unlocked?'':', locked'));
   $('carousel-state-'+i).textContent=!unlocked?'Locked':best&&!best.legacy&&best.medal?J.MEDALS[best.medal]:'Ready';
  }
  $('campaign-carousel').hidden=activity!=='campaign';$('special-course').hidden=activity==='campaign';
- $('track-reel').style.setProperty('--page',selected);$('carousel-prev').disabled=selected===0;$('carousel-next').disabled=selected===G.TRACKS.length-1;
- $('carousel-announcement').textContent=G.TRACKS[selected].name+', track '+(selected+1)+' of '+G.TRACKS.length;
+ $('track-reel').style.setProperty('--page',selected%6);$('carousel-prev').disabled=selected%6===0;$('carousel-next').disabled=selected%6===5;
+ $('carousel-announcement').textContent=planetInfo.name+', '+G.TRACKS[selected].name+', track '+(selected%6+1)+' of 6';
 }
 function carouselSelect(index){
- if(state!=='menu'||activity!=='campaign'||index<0||index>=G.TRACKS.length||index===selected)return;
+ if(state!=='menu'||activity!=='campaign'||index<0||index>=G.TRACKS.length||Math.floor(index/6)!==Math.floor(selected/6)||index===selected)return;
  const previous=$('carousel-track-'+selected),moveFocus=document.activeElement===previous;
  if(moveFocus)previous.blur();
  selectTrack(index);
@@ -88,7 +93,7 @@ function carouselPointerMove(event){
   drag.horizontal=true;carouselDragged=true;$('track-reel').classList.toggle('dragging',true);$('carousel-window').setPointerCapture?.(event.pointerId);
  }
  event.preventDefault();drag.dx=dx;
- const resistance=(selected===0&&dx>0||selected===G.TRACKS.length-1&&dx<0)?.2:1;
+ const resistance=(selected%6===0&&dx>0||selected%6===5&&dx<0)?.2:1;
  $('track-reel').style.setProperty('--drag-x',Math.max(-drag.width,Math.min(drag.width,dx*resistance))+'px');
 }
 function carouselPointerUp(event){
@@ -138,7 +143,7 @@ function hudUpdate(){
  const speed=Math.hypot(run.velocity[0],run.velocity[2]);$('speed').textContent=Math.round(speed*3.6)+' km/h';$('checkpoint').textContent='CHECKPOINT '+(run.checkpoint+1)+' / '+course.checkpoints.length;
  let hint=course.sections[run.surface.section].hint||hints[run.surface.section]||'Find your line.';
  for(const route of course.routes||[])if(run.progress>route.start-8&&run.progress<route.start+6)hint='Wide bend or narrow shortcut? The shortcut holds a bonus cell.';
- if(activity==='training'&&training){hint='';$('training-step').textContent=training.title;$('training-goal').textContent=training.instruction;$('tilt-dot').style.transform='translateX('+(motion.controls.steer*58)+'px)';}
+ if(activity==='training'&&training){hint='';$('training-step').textContent=training.title;$('training-goal').textContent=(training.stage===2&&settings.invertSteering?'Steering is reversed. ':'')+training.instruction;$('tilt-dot').style.transform='translateX('+(motion.controls.steer*58)+'px)';}
  $('hint').textContent=(mode==='demo'?'DEMO · ':'')+hint;
  const gap=course.gaps.find(g=>g.start-run.progress<15&&g.end>run.progress);
  run.landingCue=gap?course.at(Math.min(course.total,gap.end+3)):null;
@@ -212,7 +217,7 @@ function finish(){
  let result=null;const scored=mode==='motion'&&(activity==='campaign'||activity==='challenge');
  if(scored)result=activity==='campaign'?progress.complete(selected,run):progress.completeKey(J.key(challenge),run);
  const rank=J.medal(run.elapsed,J.targets(course)),goal=J.nextGoal(run,result?.earned||record());
- $('finish-kicker').textContent=mode==='demo'?'DEMO COMPLETE':activity==='training'?'FLIGHT SCHOOL COMPLETE':activity==='practice'?'PRACTICE COMPLETE':result?.campaignComplete?'ALL SIX TRACKS COMPLETE':result?.record?'NEW PERSONAL BEST':'FLIGHT COMPLETE';
+ $('finish-kicker').textContent=mode==='demo'?'DEMO COMPLETE':activity==='training'?'FLIGHT SCHOOL COMPLETE':activity==='practice'?'PRACTICE COMPLETE':result?.campaignComplete?(course.index>=6?'CLOCKWORK COMPLETE':'ALL SIX TRACKS COMPLETE'):result?.record?'NEW PERSONAL BEST':'FLIGHT COMPLETE';
  $('finish-title').textContent=activity==='training'?'You’re ready to roll.':mode==='demo'?'Course previewed.':course.track.name+' complete.';
  $('finish-time').textContent=time(run.elapsed);$('finish-energy').textContent=run.collected+' / '+course.cells.length;$('finish-falls').textContent=String(run.falls);
  $('finish-badges').textContent=scored?[J.MEDALS[rank]+(rank?' medal':''),run.falls===0?'✓ Clean run':'',course.cells.length&&run.collected===course.cells.length?'◆ All cells':''].filter(Boolean).join(' · '):'';
@@ -223,10 +228,13 @@ function finish(){
  if(result?.newColors.length)note+=' New courier color: '+result.newColors.join(', ')+'.';
  if(scored&&!progress.saved)note+=' Saving is unavailable; export your progress before leaving.';
  $('finish-note').textContent=note;
+ const advice=activity==='campaign'&&mode==='motion'?J.resultAdvice(run,baseline):null;resultPractice=advice?.section??null;
+ $('finish-advice').hidden=!advice;$('practice-result').hidden=!advice;$('finish-advice').textContent=advice?.detail||'';
+ $('share-result').textContent=challenge?.target?'Send a rematch':'Challenge a friend';settingsUI();
  nextAction=null;
  if(activity==='training'){nextAction=()=>returnFromTraining();$('next-track').textContent='Start the course';}
  else if(activity==='practice'){nextAction=()=>{selectTrack(selected);void startMotion();};$('next-track').textContent='Back to my campaign';}
- else if(activity==='campaign'&&mode==='motion'&&selected<5&&progress.isUnlocked(selected+1)){nextAction=()=>{selectTrack(selected+1);void startMotion();};$('next-track').textContent='Next: '+G.TRACKS[selected+1].name+'';}
+ else if(activity==='campaign'&&mode==='motion'&&selected%6<5&&progress.isUnlocked(selected+1)){nextAction=()=>{selectTrack(selected+1);void startMotion();};$('next-track').textContent='Next: '+G.TRACKS[selected+1].name+'';}
  $('next-track').hidden=!nextAction;
  $('again').hidden=activity==='training'||activity==='party'||mode==='demo'&&activity==='campaign'&&!progress.isUnlocked(selected);
  $('again').textContent=mode==='demo'?'Play with motion':challenge?.target?'Retry the challenge':scored?goal.label+'':'Practise again';
@@ -248,12 +256,15 @@ function finish(){
 function openPractice(){if(state==='playing')pause();const full=new G.Course(course.index);for(let i=0;i<6;i++)$('practice-'+i).textContent=full.sections[i]?.name||'Section '+(i+1);$('practice').showModal();}
 function practiceSection(section){const index=course.index;$('practice').close();training=null;party=null;prepare(J.sliceCourse(index,section,{single:true}),'practice');state='menu';void startMotion();}
 function openChallenges(){
+ for(let i=0;i<J.QUICK_RUNS.length;i++){const q=J.QUICK_RUNS[i],r=progress.records[J.key(q)];$('quick-'+i).textContent=q.name+' · '+(r?J.MEDALS[r.medal]+' '+time(r.time):'New')+'\n'+q.description;}
  const days=J.recentDays();for(let i=0;i<7;i++){const spec=J.daily(days[i]),r=progress.records[J.key(spec)];$('day-'+i).textContent=(i===0?'Today · ':days[i]+' · ')+G.TRACKS[spec.track].name+(r?'\n'+J.MEDALS[r.medal]+' · '+time(r.time):'\nA fresh flight');}
  for(let i=0;i<6;i++)$('challenge-'+i).textContent=G.TRACKS[i].name+' · '+new G.Course(i).sections[quickSections[i]].name;
  $('challenges').showModal();
 }
 function settingsUI(){
- $('learn-controls').disabled=!renderer;$('start-party').disabled=!renderer;
+ $('learn-controls').disabled=!renderer;$('check-controls').disabled=!renderer;$('start-party').disabled=!renderer;
+ $('reward-progress').textContent=progress.nextReward();
+ for(const b of J.BADGES){const el=$('badge-'+b.id),open=progress.badgeUnlocked(b.id);el.disabled=!open;el.textContent=b.name+(open?'':' · Locked');el.setAttribute('aria-pressed',String(settings.badge===b.id&&open));el.setAttribute('title',open?b.name:progress.badgeProgress(b.id).need+' '+b.goal);$('app').classList.toggle('badge-'+b.id,settings.badge===b.id&&open);}
  const appearance=J.APPEARANCES.find(a=>a.id===settings.appearance)||J.APPEARANCES[0];
  $('courier-name').textContent=appearance.name+' courier';
  $('app').style.setProperty('--courier-shell',({ivory:'url(#brand-shell)',coral:'#f1c7b5',mint:'#b8ebcc',sky:'#bbdcec',gold:'#f0d992'})[appearance.id]);
@@ -296,19 +307,25 @@ function frame(timestamp){
  if(timestamp-lastHUD>100){hudUpdate();lastHUD=timestamp;}
  if(renderer){
   renderer.sceneVisible=state==='playing';
+  renderer.badge=progress.badgeUnlocked(settings.badge)?settings.badge:'none';
   renderer.pixelRatio=quality.update(raw,settings.quality,state==='playing');renderer.appearance=J.APPEARANCES.find(a=>a.id===settings.appearance)?.color||[1,1,1];
   run.trainingStage=activity==='training'?training?.stage:null;
   if(state!=='menu'||timestamp-lastRender>50){renderer.render(run,dt,state!=='menu',state==='playing'||state==='finished');lastRender=timestamp;}
  }
  requestAnimationFrame(frame);
 }
+for(let p=0;p<G.PLANETS.length;p++)$('planet-'+p).addEventListener('click',()=>{carouselReset();selectTrack(progress.planetSelections[p]);});
+$('practice-result').addEventListener('click',()=>{if(resultPractice!==null)practiceSection(resultPractice);});
+for(const b of J.BADGES)$('badge-'+b.id).addEventListener('click',()=>{if(progress.badgeUnlocked(b.id)){settings.badge=b.id;progress.save();settingsUI();}});
+$('check-controls').addEventListener('click',()=>{$('settings').close();launchTraining();});
+for(let i=0;i<J.QUICK_RUNS.length;i++)$('quick-'+i).addEventListener('click',()=>{const q=J.QUICK_RUNS[i];$('challenges').close();chooseChallenge({track:q.track,section:q.section,expert:false,target:0});play();});
 $('start').addEventListener('click',play);$('demo').addEventListener('click',startDemo);
 $('carousel-prev').addEventListener('click',()=>carouselSelect(selected-1));$('carousel-next').addEventListener('click',()=>carouselSelect(selected+1));
 for(let i=0;i<G.TRACKS.length;i++){
  $('carousel-dot-'+i).addEventListener('click',()=>carouselSelect(i));
  $('carousel-track-'+i).addEventListener('click',()=>{if(carouselDragged){carouselDragged=false;return;}carouselSelect(i);});
 }
-$('campaign-carousel').addEventListener('keydown',event=>{const index=event.key==='ArrowLeft'?selected-1:event.key==='ArrowRight'?selected+1:event.key==='Home'?0:event.key==='End'?G.TRACKS.length-1:null;if(index!==null){event.preventDefault();carouselSelect(index);}});
+$('campaign-carousel').addEventListener('keydown',event=>{const index=event.key==='ArrowLeft'?selected-1:event.key==='ArrowRight'?selected+1:event.key==='Home'?Math.floor(selected/6)*6:event.key==='End'?Math.floor(selected/6)*6+5:null;if(index!==null){event.preventDefault();carouselSelect(index);}});
 $('carousel-window').addEventListener('pointerdown',carouselPointerDown);$('carousel-window').addEventListener('pointermove',carouselPointerMove);
 $('carousel-window').addEventListener('pointerup',carouselPointerUp);$('carousel-window').addEventListener('pointercancel',carouselReset);
 $('sound-toggle').addEventListener('click',()=>{sound.setEnabled(sound.failed||!sound.enabled);soundUI();if(sound.enabled)void sound.unlock().then(ok=>{soundUI();if(ok)sound.play('ui');});});
@@ -318,7 +335,7 @@ $('exit-pause').addEventListener('click',()=>{if(activity==='training')returnFro
 $('again').addEventListener('click',()=>mode==='demo'?play():startMotion());$('fullscreen').addEventListener('click',()=>void enterFullscreen());
 $('next-track').addEventListener('click',()=>nextAction&&nextAction());$('choose-track').addEventListener('click',()=>{$('tracks').showModal();trackUI();});
 $('finish-tracks').addEventListener('click',()=>{menu();$('tracks').showModal();});$('close-tracks').addEventListener('click',()=>$('tracks').close());
-for(let i=0;i<6;i++)$('track-'+i).addEventListener('click',()=>{selectTrack(i);$('tracks').close();});
+for(let i=0;i<G.TRACKS.length;i++)$('track-'+i).addEventListener('click',()=>{selectTrack(i);$('tracks').close();});
 for(const id of ['how','pause-how'])$(id).addEventListener('click',()=>{$('help').showModal();guide.open();});
 for(const id of ['close-help','help-done'])$(id).addEventListener('click',()=>{guide.close();$('help').close();});
 for(const id of ['open-settings','edit-robot'])$(id).addEventListener('click',()=>{if(state==='playing')pause();settingsUI();$('settings').showModal();});$('close-settings').addEventListener('click',()=>$('settings').close());

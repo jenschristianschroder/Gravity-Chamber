@@ -2,8 +2,8 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const G=require('../run-core.js'),J=require('../run-journey.js'),P=require('../run-progress.js');
 const memory=()=>{const data=new Map();return {getItem:k=>data.get(k)||null,setItem:(k,v)=>data.set(k,v),data};};
-test('all 36 short courses and 36 practice sections have safe starts, real gaps, and a reachable finish',()=>{
- for(const single of [false,true])for(let index=0;index<6;index++)for(let section=0;section<6;section++){
+test('all 72 short courses and 72 practice sections have safe starts, real gaps, and a reachable finish',()=>{
+ for(const single of [false,true])for(let index=0;index<G.TRACKS.length;index++)for(let section=0;section<6;section++){
   const c=J.sliceCourse(index,section,{single}),r=new G.Run(c);
   assert.ok(!c.at(2).gap);assert.ok(c.total>15);assert.ok(!c.at(c.total-2.2).gap);
   for(const p of c.points)assert.equal(p.gap,c.gaps.some(g=>p.s>=g.start-.0001&&p.s<g.end-.0001));
@@ -16,7 +16,7 @@ test('daily routes are repeatable in UTC, have an archive, and challenge links v
  assert.deepEqual(J.decode(J.encode(spec)),spec);assert.equal(J.recentDays(date).length,7);assert.equal(J.recentDays(date)[6],'2026-10-27');
  assert.deepEqual(J.daily(day),J.daily(day));assert.notEqual(J.key(spec),J.key(J.daily('2026-11-03')));
  assert.equal(J.decode(''),null);assert.equal(J.validDay('2026-02-30'),false);
- for(const hash of ['#oops','#c=1~0~full~n~1~','#c=2~6~full~n~1~','#c=2~0~6~n~1~','#c=2~0~1~e~1~','#c=2~0~full~n~NaN~','#c=2~0~full~n~7200001~','#c=2~0~full~n~1~2026-02-30',J.encode({...spec,track:(spec.track+1)%6})])assert.throws(()=>J.decode(hash));
+ for(const hash of ['#oops','#c=1~0~full~n~1~','#c=2~12~full~n~1~','#c=2~0~6~n~1~','#c=2~0~1~e~1~','#c=2~0~full~n~NaN~','#c=2~0~full~n~7200001~','#c=2~0~full~n~1~2026-02-30',J.encode({...spec,track:(spec.track+1)%6})])assert.throws(()=>J.decode(hash));
  assert.notEqual(J.key({track:0,section:null,expert:false}),G.TRACKS[0].id);
 });
 test('flight school requires rolling, braking, both steering directions, and an actual hop',()=>{
