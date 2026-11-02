@@ -47,3 +47,6 @@ body:not(.playing) .button.primary:before,dialog .button.primary:before,#demo:be
 @container(min-width:760px){.track-preview{height:130px}.slide-caption strong{font-size:27px}.launch-card{padding-top:17px}.carousel-controls{margin-bottom:9px}.home-actions{gap:13px}}
 @container(max-width:350px){.home-welcome{grid-template-columns:minmax(0,1fr) 118px;min-height:130px}.mascot-scene{height:130px}.mascot-scene .home-robot{width:112px;height:119px}#menu h1{font-size:32px}.carousel-controls{gap:6px}.carousel-dot{width:25px}.slide-caption strong{font-size:21px}.carousel-window{padding-left:23px;padding-right:23px}.slide-caption small{font-size:9px}}
 @media(prefers-reduced-motion:reduce){.track-reel,.carousel-dot span{transition:none}}
+
+/* Keep the horizontal reel from setting the grid’s intrinsic width. */
+.home-actions,.launch-card,#campaign-carousel,.carousel-window,.track-reel{min-width:0}.home-actions{grid-template-columns:minmax(0,1fr)}.track-slide{max-width:100%}#menu{overflow-x:hidden}
