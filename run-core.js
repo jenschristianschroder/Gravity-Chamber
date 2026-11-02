@@ -8,13 +8,15 @@ const norm=v=>{const n=len(v)||1;return v.map(x=>x/n);};
 const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
 const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
 const sub=(a,b)=>a.map((x,i)=>x-b[i]);
+// Skyway starts at half its old pace; .8 (the old Skyway rate) is the new cap.
+// Its wider sweep needs a lower rate so lateral gate speed also rises by course.
 const TRACKS=[
- {id:'skyway',name:'Skyway',level:'Easy',description:'Find your balance above the coast.',sky:[.73,.86,.90],bridge:1.35,opening:1.2,gateSpeed:.8},
- {id:'seabreeze',name:'Seabreeze',level:'Steady',description:'Long bridges and a sweeping coastal loop.',sky:[.65,.83,.85],bridge:1.2,opening:1.1,gateSpeed:.92},
- {id:'switchback',name:'Switchback',level:'Tricky',description:'Brake for hairpins. Commit to the double jump.',sky:[.87,.81,.69],bridge:1.1,opening:1.03,gateSpeed:1.04},
- {id:'cloudspire',name:'Cloudspire',level:'Hard',description:'Climb a corkscrew into the high clouds.',sky:[.77,.83,.94],bridge:1,opening:.96,gateSpeed:1.16},
- {id:'fracture',name:'Fracture',level:'Expert',description:'Broken causeways demand precise landings.',sky:[.76,.80,.83],bridge:.9,opening:.89,gateSpeed:1.28},
- {id:'eventide',name:'Eventide',level:'Master',description:'One final gauntlet. Every movement matters.',sky:[.74,.72,.85],bridge:.8,opening:.82,gateSpeed:1.4}
+ {id:'skyway',name:'Skyway',level:'Easy',description:'Find your balance above the coast.',sky:[.73,.86,.90],bridge:1.35,opening:1.2,gateSpeed:.4},
+ {id:'seabreeze',name:'Seabreeze',level:'Steady',description:'Long bridges and a sweeping coastal loop.',sky:[.65,.83,.85],bridge:1.2,opening:1.1,gateSpeed:.64},
+ {id:'switchback',name:'Switchback',level:'Tricky',description:'Brake for hairpins. Commit to the double jump.',sky:[.87,.81,.69],bridge:1.1,opening:1.03,gateSpeed:.68},
+ {id:'cloudspire',name:'Cloudspire',level:'Hard',description:'Climb a corkscrew into the high clouds.',sky:[.77,.83,.94],bridge:1,opening:.96,gateSpeed:.72},
+ {id:'fracture',name:'Fracture',level:'Expert',description:'Broken causeways demand precise landings.',sky:[.76,.80,.83],bridge:.9,opening:.89,gateSpeed:.76},
+ {id:'eventide',name:'Eventide',level:'Master',description:'One final gauntlet. Every movement matters.',sky:[.74,.72,.85],bridge:.8,opening:.82,gateSpeed:.8}
 ];
 function calibrate(samples){
  if(samples.length<8)return null;

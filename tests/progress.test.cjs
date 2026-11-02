@@ -16,6 +16,17 @@ test('six distinct courses progressively narrow bridges and speed up gates',()=>
  }
  assert.equal(courses[5].gaps.length,4);assert.equal(courses[5].gates.length,6);assert.equal(courses[5].checkpoints.length,2);
 });
+test('gate motion starts gently and increases across real sweep widths without exceeding the old opening-track rate',()=>{
+ const dt=1/120;let previousSpeed=0;
+ for(let i=0;i<G.TRACKS.length;i++){
+  const c=new G.Course(i),gate=c.gates[0],t=(2*Math.PI-gate.phase)/c.track.gateSpeed;
+  const speed=(c.gateCenter(gate,t+dt)-c.gateCenter(gate,t))/dt;
+  assert.ok(speed>previousSpeed,c.track.name+' should move faster than the previous course');
+  assert.ok(c.track.gateSpeed>0&&c.track.gateSpeed<=.8,c.track.name+' exceeds the old Skyway rate');
+  previousSpeed=speed;
+ }
+ assert.ok(G.TRACKS[0].gateSpeed<=.4,'The opening course must be at least twice as forgiving in timing');
+});
 for(let i=1;i<6;i++)test(G.TRACKS[i].name+' can be completed without falls and every obstacle is on the route',()=>{
  const c=new G.Course(i),r=new G.Run(c);
  for(const gap of c.gaps){assert.ok(c.at((gap.start+gap.end)/2).gap);assert.ok(!c.at(gap.start-1).gap);assert.ok(!c.at(gap.end+1).gap);}

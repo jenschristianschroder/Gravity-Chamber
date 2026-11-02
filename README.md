@@ -31,6 +31,8 @@ Finish a campaign course with motion controls to unlock the next. Normal play ha
 | Fracture | Expert | 491 m | 5 | 3 | 12 / 3 |
 | Eventide | Master | 589 m | 6 | 4 | 13 / 2 |
 
+Moving gates start at half Skyway's original speed. Their sideways speed rises gradually across the six courses, accounting for different sweep widths, and the animation rate never exceeds the original Skyway rate. Practice, daily flights, and friend challenges inherit their source course's gate timing.
+
 Seabreeze and Fracture offer narrower gold-edged shortcuts with collectible detours. Later courses have gently banked turns. A moving platform in Fracture’s island chain provides an optional intermediate landing. Its rendered position and collision surface use the same animation.
 
 Earn Bronze, Silver, and Gold time medals, plus independent clean-run and all-cells badges. Your best medal contributes 1–3 mastery marks; each badge contributes one more. Campaign marks unlock Coral, Mint, Sky, and Gold courier colors without changing the physics. Results suggest a next goal and show the difference from your best time.
