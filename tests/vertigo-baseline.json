@@ -1,0 +1,74 @@
+[
+  {
+    "index": 12,
+    "expert": false,
+    "hash": "aded608d1282327afec36741e0f7fab553907cf1d6c6d8ee29815dc105d72887",
+    "ticks": 8000
+  },
+  {
+    "index": 12,
+    "expert": true,
+    "hash": "b75fc82d990b1c0363d2da401e40ac7cbd612b6da1239f9668c138272e4a4f5c",
+    "ticks": 8000
+  },
+  {
+    "index": 13,
+    "expert": false,
+    "hash": "c084dde59611d44b9f73ccc8a1dde04afc963cf2ef97fef63e2b4a8393d12654",
+    "ticks": 10098
+  },
+  {
+    "index": 13,
+    "expert": true,
+    "hash": "7683074c6a2e5e790f4d0652c23bbeb9d4e756e1763914f8c1fc7463c2f1fdf7",
+    "ticks": 10098
+  },
+  {
+    "index": 14,
+    "expert": false,
+    "hash": "aef66522fbdf7a27f53b2532f0341fe1c88bfd5ae24aec0baa454c06cb91d61c",
+    "ticks": 9958
+  },
+  {
+    "index": 14,
+    "expert": true,
+    "hash": "d22fd9ca5885bdd7b45eed71dd37a12c46db038d1c638181565b0521bf80749c",
+    "ticks": 9958
+  },
+  {
+    "index": 15,
+    "expert": false,
+    "hash": "53dafacb806050e347d54bea4f4de4f1c59d9510ac0c82fc0059126ab82faa17",
+    "ticks": 11949
+  },
+  {
+    "index": 15,
+    "expert": true,
+    "hash": "2d707dcc8fb6da3b384a6ca244b8ddc9f65e488184bba64af8344ba9692e28a9",
+    "ticks": 11949
+  },
+  {
+    "index": 16,
+    "expert": false,
+    "hash": "613b6d5d1d511826ba4ecd72cb6a77650fa47afcd41e997f59fd6df37876f1ab",
+    "ticks": 11578
+  },
+  {
+    "index": 16,
+    "expert": true,
+    "hash": "9cb12a7f13b7becbc161831bfd5ed258575719ead8ec44cc33a06ebc163188d5",
+    "ticks": 11578
+  },
+  {
+    "index": 17,
+    "expert": false,
+    "hash": "c76332bdc1ebdd36e4827770fa1390ac6d4dd610c4b69e48b2ad5330163be0b8",
+    "ticks": 14830
+  },
+  {
+    "index": 17,
+    "expert": true,
+    "hash": "ecb9e9f65f69214d8fa6167a5b5805030f2ac084de84cfa75f4ab750741fc4f5",
+    "ticks": 14830
+  }
+]

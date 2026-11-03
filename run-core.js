@@ -28,9 +28,15 @@ const TRACKS=[
  {id:'ridge-rider',name:'Ridge Rider',level:'55° banks',description:'Switch your uphill lean as the bank changes sides.',sky:[.75,.78,.9],bridge:2,opening:1.3,gateSpeed:.6},
  {id:'cloud-wall',name:'Cloud Wall',level:'60° banks',description:'Ride steep walls above the clouds.',sky:[.75,.78,.9],bridge:2,opening:1.3,gateSpeed:.6},
  {id:'gravity-weave',name:'Gravity Weave',level:'62° banks',description:'Link opposing banks with smooth transitions.',sky:[.75,.78,.9],bridge:2,opening:1.3,gateSpeed:.6},
- {id:'zenith',name:'Zenith',level:'65° banks',description:'Master the high line on the steepest ribbons.',sky:[.75,.78,.9],bridge:2,opening:1.3,gateSpeed:.6}
+ {id:'zenith',name:'Zenith',level:'65° banks',description:'Master the high line on the steepest ribbons.',sky:[.75,.78,.9],bridge:2,opening:1.3,gateSpeed:.6},
+ {id:'ion-gardens',name:'Ion Gardens',level:'Easy',description:'Wide spirals and a first taste of magnetic flight.',sky:[.65,.78,.85],bridge:2,opening:1.3,gateSpeed:.6},
+ {id:'helix-harbour',name:'Helix Harbour',level:'Tricky',description:'Climb the helix. Balance through opposing corkscrews.',sky:[.65,.78,.85],bridge:2,opening:1.3,gateSpeed:.6},
+ {id:'night-ribbon',name:'Night Ribbon',level:'Hard',description:'Steer through slaloms while hanging beneath the track.',sky:[.65,.78,.85],bridge:2,opening:1.3,gateSpeed:.6},
+ {id:'orbit-forge',name:'Orbit Forge',level:'Expert',description:'Vertical loops and narrow exits demand speed control.',sky:[.65,.78,.85],bridge:2,opening:1.3,gateSpeed:.6},
+ {id:'broken-circuit',name:'Broken Circuit',level:'Extreme',description:'Time your hops between disconnected magnetic ribbons.',sky:[.65,.78,.85],bridge:2,opening:1.3,gateSpeed:.6},
+ {id:'singularity',name:'Singularity',level:'Master',description:'Tight coils, ceiling turns and precision landings combined.',sky:[.65,.78,.85],bridge:2,opening:1.3,gateSpeed:.6}
 ];
-const PLANETS=[{id:'sky-isles',name:'Sky Isles',start:0,count:6,description:'Your original floating adventure'},{id:'clockwork',name:'Clockwork',start:6,count:6,description:'Mechanical gardens. A new rhythm.'},{id:'vertigo',name:'Vertigo',start:12,count:6,description:'Steep banks. Lean uphill. Hold your line.'}];
+const PLANETS=[{id:'sky-isles',name:'Sky Isles',start:0,count:6,description:'Your original floating adventure'},{id:'clockwork',name:'Clockwork',start:6,count:6,description:'Mechanical gardens. A new rhythm.'},{id:'vertigo',name:'Vertigo',start:12,count:6,description:'Steep banks. Lean uphill. Hold your line.'},{id:'flux',name:'Flux',start:18,count:6,description:'Magnetic worlds. Every direction is a new challenge.'}];
 function calibrate(samples){
  if(samples.length<8)return null;
  const mean=[0,1,2].map(i=>samples.reduce((s,v)=>s+v[i],0)/samples.length);
@@ -57,6 +63,7 @@ function displayLayout(width,height,angle){
 class Course{
  constructor(trackIndex=0,options={}){
   this.index=Number.isInteger(trackIndex)?clamp(trackIndex,0,TRACKS.length-1):0;this.track=TRACKS[this.index];
+  if(this.index>=18)return new MagneticCourse(this.index-18,options);
   this.points=[];this.sections=[];this.gates=[];this.gaps=[];this.checkpoints=[];this.cells=[];
   this.expert=!!options.expert;this.routes=[];this.platforms=[];
   if(this.index>=12)this.buildVertigo();else if(this.index>=6)this.buildClockwork();else if(this.index)this.buildAdvanced();else this.buildSkyway();
@@ -331,7 +338,8 @@ class Course{
 }
 // Isolated prototype: oriented ribbons, including surfaces above the robot.
 class MagneticCourse{
- constructor(){
+ constructor(level=null,options={}){
+  if(level!==null){this.buildFlux(clamp(level,0,5),options);return;}
   this.magnetic=true;this.index=0;this.kind='lab';this.expert=false;this.targets=[85,115,160];
   this.track={id:'magnetic-lab',name:'Magnetic Lab',level:'Experimental',description:'A spiral, corkscrew, ceiling ride and vertical loop.',sky:[.7,.78,.88]};
   this.points=[];this.sections=[];this.checkpoints=[];this.cells=[];this.routes=[];this.platforms=[];this.gaps=[];this.gates=[];this.gapStart=Infinity;this.gapEnd=Infinity;
@@ -352,11 +360,72 @@ class MagneticCourse{
   this.total=this.points.at(-1).s;this.expertCheckpoints=this.checkpoints.map(q=>({...q}));
   for(let d=12;d<this.total-6;d+=18)this.cells.push({s:d,offset:0,taken:false});
  }
+ buildFlux(level,options){
+  this.magnetic=true;this.flux=true;this.index=18+level;this.track=TRACKS[this.index];this.expert=!!options.expert;
+  this.points=[];this.sections=[];this.checkpoints=[];this.cells=[];this.routes=[];this.platforms=[];this.gaps=[];this.gates=[];this.gapStart=Infinity;this.gapEnd=Infinity;
+  let origin=[0,10,0],section=0,defaultWidth=[3.7,2.9,2.5,2.1,1.9,1.55][level];
+  const distance=()=>this.points.at(-1)?.s||0;
+  const part=(n,fn,gap=false)=>{const base=origin.slice();if(this.points.length){this.points.at(-1).gap=gap;this.points.at(-1).section=section;}for(let i=this.points.length?1:0;i<=n;i++){const q=fn(i/n),p=q.p.map((v,k)=>v+base[k]),prev=this.points.at(-1);this.points.push({p,right:q.right,up:q.up,width:q.width??defaultWidth,section,bank:0,slope:0,gap,s:prev?prev.s+len(sub(p,prev.p)):0});}origin=this.points.at(-1).p.slice();};
+  const line=(length,width=defaultWidth,roll=0,gap=false)=>part(Math.ceil(length*2),u=>({p:[0,0,length*u],right:[Math.cos(roll),Math.sin(roll),0],up:[-Math.sin(roll),Math.cos(roll),0],width}),gap);
+  const twist=(length,from=0,to=Math.PI*2,width=defaultWidth)=>part(Math.ceil(length*3),u=>{const a=mix(from,to,u*u*(3-2*u));return {p:[0,0,length*u],right:[Math.cos(a),Math.sin(a),0],up:[-Math.sin(a),Math.cos(a),0],width};});
+  const spiral=(radius,rise,sign=1)=>part(Math.ceil(radius*2*Math.PI*2),u=>{const a=u*Math.PI*2,t=norm([sign*radius*Math.sin(a),rise/(Math.PI*2),radius*Math.cos(a)]),right=[Math.cos(a),0,-sign*Math.sin(a)];return {p:[sign*radius*(1-Math.cos(a)),rise*u,radius*Math.sin(a)],right,up:norm(cross(t,right))};});
+  const slalom=(length,amplitude,roll=0,width=defaultWidth)=>part(Math.ceil(length*3),u=>{const a=u*2*Math.PI,dx=amplitude*2*Math.PI*Math.sin(a),t=norm([dx,0,length]),r=norm([length,0,-dx]),up=[0,1,0];return {p:[amplitude*(1-Math.cos(a)),0,length*u],right:r.map((v,k)=>v*Math.cos(roll)+up[k]*Math.sin(roll)),up:up.map((v,k)=>v*Math.cos(roll)-r[k]*Math.sin(roll)),width};});
+  const loop=(radius,width=defaultWidth)=>part(Math.ceil(radius*Math.PI*6),u=>{const a=u*Math.PI*2,t=norm([10/(Math.PI*2),radius*Math.sin(a),radius*Math.cos(a)]),up=[0,Math.cos(a),-Math.sin(a)];return {p:[10*u,radius*(1-Math.cos(a)),radius*Math.sin(a)],right:norm(cross(up,t)),up,width};});
+  const deck=(name,hint,length=12)=>{section=this.sections.length;this.sections.push({s:distance(),name,hint});this.checkpoints.push({s:distance()+2,label:name});line(length,Math.max(3,defaultWidth));};
+  const ceiling=(length,amplitude=0)=>{twist(level<3?26:20,0,Math.PI);slalom(length,amplitude,Math.PI);twist(level<3?26:20,Math.PI,Math.PI*2);};
+  const jump=(gap,width=defaultWidth)=>{line(14,width);const start=distance();line(gap,width,0,true);this.gaps.push({start,end:distance()});line(15,Math.max(2.3,width));};
+  if(level===0){
+   deck('Magnetic garden','Cyan edges hold you against the track. Both edges stay open.',22);slalom(28,3);
+   deck('Gentle orbit','Brake if the curve pushes you toward the outside.');spiral(18,10);
+   deck('First wall','Counter-steer as gravity pulls across the ribbon.');twist(32,0,Math.PI/2);line(12,3.7,Math.PI/2);twist(32,Math.PI/2,0);
+   deck('Garden weave','A broad slalom. Relax your tilt between turns.');slalom(40,6);
+   deck('First inversion','Keep your line while the world turns.');ceiling(14);
+   deck('Garden home','You have learned magnetic grip. Bring it home.');line(22,4);
+  }else if(level===1){
+   deck('Harbour launch','The ribbon is narrower now. Settle before the helix.',20);
+   deck('Tower ascent','Climb around the tower. Ease off before each bend.');spiral(15,20);
+   deck('First corkscrew','Steer against the changing pull of gravity.');twist(50);
+   deck('Reverse screw','The next rotation runs the other way.');twist(44,0,-Math.PI*2);
+   deck('Descending coil','Control your speed as the helix descends.');spiral(13,-16,-1);
+   deck('Harbour home','Find the centre through the final weave.');slalom(32,5);line(18,3.5);
+  }else if(level===2){
+   deck('Night approach','Overhead curves need active steering, not just balance.',20);slalom(26,5);
+   deck('Ceiling slalom','Steer through the bends while hanging beneath the ribbon.');ceiling(48,8);
+   deck('Thin ribbon','Settle onto the narrow crossing.');line(26,1.5);slalom(30,6);
+   deck('Reverse ceiling','Switch your steering smoothly through the overhead weave.');ceiling(40,-7);
+   deck('Night roll','A shorter corkscrew leaves less time to react.');twist(38);
+   deck('Dawn deck','Keep a steady line to the finish.');slalom(34,6);line(16,3);
+  }else if(level===3){
+   deck('Forge entry','Build speed for the loop. Brake before its narrow exit.',20);
+   deck('Outer loop','Keep forward pressure through the climb.');loop(15);
+   deck('Needle exit','A narrow weave follows the loop.');slalom(36,7,0,1.4);twist(38);
+   deck('Inner loop','A tighter loop, followed immediately by a thin ribbon.');loop(10,1.8);line(18,1.35);
+   deck('Hanging forge','Keep your line through the overhead bend.');ceiling(32,6);
+   deck('Forge home','Slow for the last weave.');slalom(28,6);line(16,3);
+  }else if(level===4){
+   deck('Circuit entry','Cyan ends at real gaps. Lift the phone to hop.',20);
+   deck('First disconnect','Build speed, then hop just before the broken edge.');jump(3.2,2.3);
+   deck('Rolling circuit','A corkscrew sets up the next landing.');twist(36);jump(3.6);
+   deck('Overhead circuit','Steer through the ceiling bend.');ceiling(34,7);
+   deck('Final disconnect','Settle after the loop, then commit to the gap.');loop(11);jump(4);
+   deck('Circuit home','Keep your line after the last landing.');slalom(32,7,0,1.65);line(18,3);
+  }else{
+   deck('Singularity entry','Every skill, less room. Brake early and keep your line.',20);twist(34);
+   deck('Tight coil','A tight rising spiral leads into a narrow reverse roll.');spiral(11,18);twist(32,0,-Math.PI*2);
+   deck('Dark matter','A narrow ceiling slalom. Stay patient.');ceiling(38,8);
+   deck('Event loop','Control the loop, then line up for the landing.');loop(9,1.5);jump(4.2,1.6);
+   deck('Double disconnect','Land, settle, and hop again.');jump(3.6,1.6);twist(32);jump(4.2,1.5);
+   deck('Last light','One final weave on the narrow ribbon.');slalom(34,8,0,1.3);line(20,3.5);
+  }
+  this.total=distance();this.gapStart=this.gaps[0]?.start??Infinity;this.gapEnd=this.gaps[0]?.end??Infinity;
+  this.expertCheckpoints=this.checkpoints.filter((_,i)=>i%2===0).map(q=>({...q}));if(this.expert)this.checkpoints=this.expertCheckpoints.map(q=>({...q}));
+  for(let d=12,i=0;d<this.total-6;d+=19,i++){const q=this.at(d);if(this.gaps.some(g=>d>g.start-4&&d<g.end+4))continue;this.cells.push({s:d,offset:q.width<1.7?0:(i%2?.35:-.35),taken:false});}
+ }
  at(s){
   s=clamp(s,0,this.total??this.points.at(-1).s);let i=0,hi=this.points.length-2;while(i<hi){const m=Math.ceil((i+hi)/2);if(this.points[m].s<=s)i=m;else hi=m-1;}
   const a=this.points[i],b=this.points[i+1],u=clamp((s-a.s)/(b.s-a.s||1),0,1),tangent=norm(sub(b.p,a.p)),r=a.right.map((v,k)=>mix(v,b.right[k],u));
   const right=norm(r.map((v,k)=>v-tangent[k]*dot(r,tangent))),up=norm(cross(tangent,right));
-  return {p:a.p.map((v,k)=>mix(v,b.p[k],u)),tangent,right,up,width:mix(a.width,b.width,u),s,section:a.section,index:i,bank:0,slope:0,gap:false};
+  return {p:a.p.map((v,k)=>mix(v,b.p[k],u)),tangent,right,up,width:mix(a.width,b.width,u),s,section:a.section,index:i,bank:0,slope:0,gap:!!a.gap};
  }
  routeAt(s){return this.at(s);}
  cellPosition(c){const q=this.at(c.s);return q.p.map((v,k)=>v+q.right[k]*c.offset+q.up[k]*.8);}
@@ -381,25 +450,27 @@ class Run{
   if(this.finished)return;this.events=[];if(!this.externalClock)this.elapsed+=dt;this.time+=dt;this.flash=Math.max(0,this.flash-dt);this.jumpCooldown-=dt;
   const c=this.course,q=c.at(this.labS),blend=1-Math.exp(-dt*10),steer=clamp(input.steer||0,-1,1),throttle=clamp(input.throttle||0,-1,1);
   this.pose.pitch=mix(this.pose.pitch,throttle*.28,blend);this.pose.roll=mix(this.pose.roll,-steer*.35,blend);
+  if(c.flux){this.nudgeCooldown-=dt;this.pose.twist=mix(this.pose.twist,clamp(input.turn||0,-1,1)*.22,blend);const burst=input.burst||[0,0,0];if(this.grounded&&this.nudgeCooldown<=0&&(burst[0]||burst[2])){this.labSide+=clamp(burst[0],-2,2);this.labForward+=clamp(burst[2],-2,2);this.nudgeCooldown=.3;}}
   if(this.grounded){
    // Gravity acts along the ribbon; 32 m/s² of normal magnetic attraction holds
    // against gravity on ceilings and through the loop at the 9 m/s speed cap.
    this.labForward=clamp((this.labForward+(18*throttle-12.5*q.tangent[1])*dt)*Math.exp(-.46*dt),-4,9);
-   this.labSide=(this.labSide+(17*steer-12.5*q.right[1])*dt)*Math.exp(-1.2*dt);
+   const qa=c.at(Math.max(0,this.labS-.3)),qb=c.at(Math.min(c.total,this.labS+.3)),curve=sub(qb.tangent,qa.tangent).map(v=>v/Math.max(.001,qb.s-qa.s)),outward=c.flux?-(this.labForward**2)*dot(curve,q.right):0;
+   this.labSide=(this.labSide+(17*steer+(c.flux?clamp(input.turn||0,-1,1)*5:0)-12.5*q.right[1]+outward)*dt)*Math.exp(-1.2*dt);
    this.labS=clamp(this.labS+this.labForward*dt,0,c.total);this.labU+=this.labSide*dt;
    const next=c.at(this.labS),previous=this.position;this.surface={...next,offset:this.labU};this.progress=this.labS;this.hint=next.index;
    this.position=next.p.map((v,k)=>v+next.right[k]*this.labU+next.up[k]*this.radius);this.velocity=this.position.map((v,k)=>(v-previous[k])/dt);
    const ahead=c.at(Math.min(c.total,this.labS+.2)),behind=c.at(Math.max(0,this.labS-.2)),ds=Math.max(.001,ahead.s-behind.s),curvature=sub(ahead.tangent,behind.tangent).map(v=>v/ds),reaction=32+12.5*next.up[1]+this.labForward**2*dot(curvature,next.up);
-   if(Math.abs(this.labU)>next.width||reaction<0||input.burst?.[1]>.5&&this.jumpCooldown<=0){
+   if(next.gap||Math.abs(this.labU)>next.width||reaction<0||input.burst?.[1]>.5&&this.jumpCooldown<=0){
     this.grounded=false;this.labAir=0;this.jumpCooldown=.5;
-    if(Math.abs(this.labU)>next.width){this.falling=true;this.announce('fall','Magnetic contact lost',1.5);}else{this.velocity=this.velocity.map((v,k)=>v+next.up[k]*4.5);this.announce('jump','Magnetic hop',.8);}
+    if(next.gap||reaction<0||Math.abs(this.labU)>next.width){this.falling=true;this.announce('fall','Magnetic contact lost',1.5);}else{this.velocity=this.velocity.map((v,k)=>v+next.up[k]*(c.flux?6.2:4.5));this.announce('jump','Magnetic hop',.8);}
    }
   }else{
    this.labAir+=dt;this.velocity[1]-=12.5*dt;
    // Attraction works only near the last ribbon, never across the open edges.
    let nearest=null,dist=Infinity;
    for(let d=Math.max(0,this.labS-7);d<=Math.min(c.total,this.labS+12);d+=.5){const t=c.at(d),rel=sub(this.position,t.p),u=dot(rel,t.right),h=dot(rel,t.up),along=dot(rel,t.tangent),v=along*along+(h-this.radius)**2;if(v<dist){dist=v;nearest={q:t,u,h,along};}}
-   if(nearest){const {q:t,u,h,along}=nearest;if(Math.abs(u)<t.width&&h>0&&h<3&&Math.abs(along)<1){
+   if(nearest){const {q:t,u,h,along}=nearest;if(!t.gap&&(!c.flux||dot(this.velocity,t.up)<=0)&&Math.abs(u)<t.width&&h>0&&h<3&&Math.abs(along)<1){
     this.velocity=this.velocity.map((v,k)=>v-t.up[k]*32*dt);
     if(h<=this.radius+.06&&dot(this.velocity,t.up)<0){this.labS=t.s;this.labU=u;this.labForward=dot(this.velocity,t.tangent);this.labSide=dot(this.velocity,t.right);this.grounded=true;this.falling=false;this.surface={...t,offset:u};this.emit('land',{strength:.4});}
    }}
@@ -408,7 +479,7 @@ class Run{
   }
   if(this.grounded){this.maxProgress=Math.max(this.maxProgress,this.progress);c.checkpoints.forEach((cp,i)=>{if(i>this.checkpoint&&this.progress>=cp.s){this.checkpoint=i;this.splits[i]=this.elapsed;this.lastSplit={index:i,time:this.elapsed};this.announce('checkpoint','Magnetic checkpoint secured',1.5);}});}
   for(const cell of c.cells)if(!cell.taken&&len(sub(this.position,c.cellPosition(cell)))<1.05){cell.taken=true;this.collected++;this.announce('cell','Energy +1',.6,{variant:this.collected,position:c.cellPosition(cell)});}
-  if(this.grounded&&this.progress>=c.total-2.2){this.finished=true;this.announce('finish','Magnetic test complete',2);}
+  if(this.grounded&&this.progress>=c.total-2.2){this.finished=true;this.announce('finish',c.flux?'Course complete':'Magnetic test complete',2);}
  }
  step(dt,input){
   if(!(dt>0&&dt<=1/30))throw new RangeError('Fixed physics step required.');
@@ -487,7 +558,7 @@ class Run{
   if(planar>.4){const target=Math.atan2(this.velocity[0],this.velocity[2]);this.yaw+=Math.atan2(Math.sin(target-this.yaw),Math.cos(target-this.yaw))*(1-Math.exp(-dt*7));}
  }
  demoInput(){
-  if(this.course.magnetic){const q=this.course.at(this.labS);return {throttle:clamp(((5.5-this.labForward)*3+.46*this.labForward+12.5*q.tangent[1])/18,-1,1),steer:clamp((-this.labU*5-this.labSide*3+12.5*q.right[1])/17,-1,1)};}
+  if(this.course.magnetic){const c=this.course,q=c.at(this.labS),a=c.at(Math.max(0,this.labS-.3)),b=c.at(Math.min(c.total,this.labS+.3)),curve=sub(b.tangent,a.tangent).map(v=>v/Math.max(.001,b.s-a.s)),outward=c.flux?-(this.labForward**2)*dot(curve,q.right):0,near=c.gaps.some(g=>this.labS>g.start-15&&this.labS<g.end+5),speed=near?8:5.5;return {throttle:clamp(((speed-this.labForward)*3+.46*this.labForward+12.5*q.tangent[1])/18,-1,1),steer:clamp((-this.labU*5-this.labSide*3+12.5*q.right[1]-outward)/17,-1,1),burst:c.gaps.some(g=>this.labS>g.start-.8&&this.labS<g.start-.15)&&this.grounded&&this.jumpCooldown<=0?[0,1,0]:[0,0,0]};}
   const q=this.surface,s=this.progress,course=this.course;
   let speed=5.2,offset=0;
   if(q.width<2)speed=4.2;

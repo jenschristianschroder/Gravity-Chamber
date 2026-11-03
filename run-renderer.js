@@ -222,14 +222,16 @@ class Renderer{
  buildMagneticTrack(){
   const parts=[];const point=(q,x,y=0)=>q.p.map((v,k)=>v+q.right[k]*x+q.up[k]*y);
   for(let i=0;i<this.course.points.length-1;i++){
-   const a=this.course.at(this.course.points[i].s),b=this.course.at(this.course.points[i+1].s),out=[];
+   const a=this.course.at(this.course.points[i].s),b=this.course.at(this.course.points[i+1].s),out=[];if(a.gap)continue;
    quad(out,point(a,-a.width),point(b,-b.width),point(b,b.width),point(a,a.width),i%16<8?[.82,.88,.96]:[.7,.78,.9]);
    quad(out,point(a,a.width,-.3),point(b,b.width,-.3),point(b,-b.width,-.3),point(a,-a.width,-.3),INK);
    for(const side of [-1,1]){quad(out,point(a,side*a.width),point(b,side*b.width),point(b,side*b.width,-.3),point(a,side*a.width,-.3),TEAL);quad(out,point(a,side*a.width,.02),point(b,side*b.width,.02),point(b,side*(b.width-.14),.02),point(a,side*(a.width-.14),.02),[.3,1,.92]);}
    if(i%8<4)quad(out,point(a,-.035,.025),point(b,-.035,.025),point(b,.035,.025),point(a,.035,.025),GOLD);
    if(a.s>this.course.total-5&&i%2===0)quad(out,point(a,-a.width,.03),point(b,-b.width,.03),point(b,b.width,.03),point(a,a.width,.03),WHITE);
    parts.push({s:a.s,vertices:out});
-  }return batch(parts);
+  }
+  for(const gap of this.course.gaps)for(let i=0;i<3;i++){const q=this.course.at(gap.start-1.5-i*1.1),out=[],at=(x,z)=>q.p.map((v,k)=>v+q.right[k]*x+q.tangent[k]*z+q.up[k]*.04);for(const side of [-1,1])quad(out,at(0,.35),at(side*.7,-.15),at(side*.7,-.35),at(0,.15),CORAL,q.up);parts.push({s:q.s,vertices:out});}
+  return batch(parts);
  }
  buildTrack(){
   if(this.course.magnetic)return this.buildMagneticTrack();
@@ -414,7 +416,9 @@ class Renderer{
   for(const particle of this.particles){const size=.055+.025*particle.life/particle.total;this.draw(this.gem,model(particle.p,[size,size,size],particle.life*4),[...particle.color,Math.min(1,particle.life/.25)]);}
   gl.depthMask(true);
   if(run.ghost){
-   const ghost=model(run.ghost.position,[1,1,1],run.ghost.yaw);gl.depthMask(false);
+   let ghost=model(run.ghost.position,[1,1,1],run.ghost.yaw);
+   if(this.course.magnetic){let closest=0,distance=Infinity;for(let i=0;i<this.course.points.length;i+=4){const d=G.len(G.sub(run.ghost.position,this.course.points[i].p));if(d<distance){closest=i;distance=d;}}const q=this.course.at(this.course.points[closest].s);ghost=robotModel({course:this.course,surface:q,position:run.ghost.position,pose:{pitch:0,roll:0}});}
+   gl.depthMask(false);
    this.draw(this.robotShell,ghost,[.35,.8,.9,.23],LIT);this.draw(this.robotTrim,ghost,[.4,.95,1,.2],LIT);gl.depthMask(true);
   }
   // Three batched materials share the full phone-controlled pose.

@@ -18,22 +18,22 @@ test('six Clockwork courses have distinct geometry, safe checkpoints and achieva
  assert.ok(new G.Course(8).routes.length);assert.ok(new G.Course(9).gaps.length);assert.ok(new G.Course(10).platforms.length);
 });
 test('planet unlocks, records and remembered selections remain independent and survive reloads',()=>{
- const storage=memory(),p=new P.Progress(storage);assert.deepEqual(p.unlockedByPlanet,[1,1,1]);assert.ok(p.isUnlocked(0)&&p.isUnlocked(6));assert.equal(p.complete(7,finished(7)),null);
- for(let i=0;i<6;i++)p.complete(i,finished(i));assert.deepEqual(p.unlockedByPlanet,[6,1,1]);assert.equal(p.isUnlocked(7),false);
- p.select(3);p.select(6);assert.deepEqual(p.planetSelections,[3,6,12]);assert.ok(p.complete(6,finished(6)).newUnlock);assert.deepEqual(p.unlockedByPlanet,[6,2,1]);
+ const storage=memory(),p=new P.Progress(storage);assert.deepEqual(p.unlockedByPlanet,[1,1,1,1]);assert.ok(p.isUnlocked(0)&&p.isUnlocked(6));assert.equal(p.complete(7,finished(7)),null);
+ for(let i=0;i<6;i++)p.complete(i,finished(i));assert.deepEqual(p.unlockedByPlanet,[6,1,1,1]);assert.equal(p.isUnlocked(7),false);
+ p.select(3);p.select(6);assert.deepEqual(p.planetSelections,[3,6,12,18]);assert.ok(p.complete(6,finished(6)).newUnlock);assert.deepEqual(p.unlockedByPlanet,[6,2,1,1]);
  for(let i=7;i<12;i++){const r=p.complete(i,finished(i));assert.equal(r.campaignComplete,i===11);}p.select(10);
- const reload=new P.Progress(storage);assert.deepEqual(reload.unlockedByPlanet,[6,6,1]);assert.equal(reload.selected,10);assert.deepEqual(reload.planetSelections,[3,10,12]);assert.equal(reload.record(0).time,70);assert.equal(reload.record(6).time,70);
+ const reload=new P.Progress(storage);assert.deepEqual(reload.unlockedByPlanet,[6,6,1,1]);assert.equal(reload.selected,10);assert.deepEqual(reload.planetSelections,[3,10,12,18]);assert.equal(reload.record(0).time,70);assert.equal(reload.record(6).time,70);
  assert.ok(P.parse(reload.export()).records['brass-gardens']);
 });
 test('old backups open Clockwork at its first world without changing Sky Isles records or selected course',()=>{
  const storage=memory();storage.setItem(P.KEY,JSON.stringify({version:2,rules:2,selected:4,tutorialDone:true,settings:{invertSteering:true},records:{skyway:{time:36.84,medal:3,clean:true}}}));
- const p=new P.Progress(storage);assert.equal(p.record(0).time,36.84);assert.equal(p.selected,4);assert.deepEqual(p.planetSelections,[4,6,12]);assert.deepEqual(p.unlockedByPlanet,[2,1,1]);assert.ok(p.settings.invertSteering);
+ const p=new P.Progress(storage);assert.equal(p.record(0).time,36.84);assert.equal(p.selected,4);assert.deepEqual(p.planetSelections,[4,6,12,18]);assert.deepEqual(p.unlockedByPlanet,[2,1,1,1]);assert.ok(p.settings.invertSteering);
 });
 test('Clockwork challenge URLs round-trip and cannot unlock either campaign',()=>{
  const p=new P.Progress(memory());for(let i=6;i<12;i++)for(const section of [null,0,5]){
   const spec={track:i,section,expert:false,target:28.41,day:undefined};assert.deepEqual(J.decode(J.encode(spec)),spec);
   const c=J.makeCourse(spec);assert.equal(c.index,i);p.completeKey(J.key(spec),{...finished(i),course:c});
- }assert.deepEqual(p.unlockedByPlanet,[1,1,1]);assert.ok(P.parse(p.export()));
+ }assert.deepEqual(p.unlockedByPlanet,[1,1,1,1]);assert.ok(P.parse(p.export()));
 });
 test('curated quick runs preserve platform support, have separate records, and finish in short sessions',()=>{
  for(const q of J.QUICK_RUNS){const spec={...q,expert:false,target:0},c=J.makeCourse(spec),r=new G.Run(c);

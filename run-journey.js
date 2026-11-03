@@ -2,7 +2,7 @@
 (function(root){
 'use strict';
 const G=root.GravityRun,RULES=2,DAY=86400000;
-const TIMES=[[74,95,125],[92,118,150],[84,110,145],[103,132,170],[114,148,185],[136,174,220],[50,64,85],[60,76,100],[48,62,82],[43,56,76],[56,72,94],[80,102,135],[67,88,120],[84,110,145],[83,108,145],[100,130,175],[97,128,170],[124,160,210]];
+const TIMES=[[74,95,125],[92,118,150],[84,110,145],[103,132,170],[114,148,185],[136,174,220],[50,64,85],[60,76,100],[48,62,82],[43,56,76],[56,72,94],[80,102,135],[67,88,120],[84,110,145],[83,108,145],[100,130,175],[97,128,170],[124,160,210],[78,100,130],[72,95,125],[86,112,145],[83,110,145],[71,96,130],[94,125,165]];
 const BADGES=[{id:'none',name:'Original',goal:''},{id:'sprout',name:'Sprout',goal:'clean campaign run'},{id:'star',name:'Star',goal:'Silver campaign medals'},{id:'gear',name:'Gear',goal:'clean Clockwork run'}];
 const QUICK_RUNS=[{track:7,section:3,name:'Gate Dance',description:'Two readable beats. Find the rhythm.'},{track:9,section:1,name:'Perfect Landing',description:'Launch, land, and settle.'},{track:8,section:1,name:'Ribbon Run',description:'Smooth steering through the foundry.'},{track:10,section:1,name:'Dock Hop',description:'Watch the moving landing.'}];
 const MEDALS=['Unranked','Bronze','Silver','Gold'];
@@ -27,12 +27,13 @@ function sliceCourse(index,section=0,options={}){
  const full=new G.Course(index),part=G.clamp(section,0,full.sections.length-1);
  let start=Math.max(0,full.sections[part].s-5),end=Math.min(full.total,options.single?(full.sections[part+1]?.s??full.total)+5:start+125);
  for(const gap of full.gaps){if(start>gap.start-10&&start<gap.end+5)start=Math.max(0,gap.start-12);if(end>gap.start-5&&end<gap.end+7)end=Math.min(full.total,gap.end+10);}
- const course=Object.create(G.Course.prototype);
+ const course=Object.create(full.magnetic?G.MagneticCourse.prototype:G.Course.prototype);
  Object.assign(course,{index,expert:false,kind:'sprint',sourceStart:start,sourceSection:part,track:{...full.track,name:full.track.name+' / '+full.sections[part].name},points:[],sections:[],gates:[],gaps:[],checkpoints:[],cells:[],routes:[],platforms:[]});
+ if(full.magnetic){course.magnetic=true;course.flux=full.flux;}
  const sourceSections=full.sections.filter((s,i)=>s.s<end&&(i===full.sections.length-1||full.sections[i+1].s>start));
  for(const s of sourceSections)course.sections.push({...s,s:Math.max(0,s.s-start)});
- for(const s of [start,...full.points.filter(p=>p.s>start&&p.s<end).map(p=>p.s)]){const q=full.at(s),p=clonePoint(q,s-start);p.section=Math.max(0,sourceSections.indexOf(full.sections[q.section]));course.points.push(p);}
- const last=clonePoint(full.at(end),end-start);last.section=course.sections.length-1;course.points.push(last);course.total=end-start;
+ for(const s of [start,...full.points.filter(p=>p.s>start&&p.s<end).map(p=>p.s)]){const q=full.at(s),p=clonePoint(q,s-start);if(full.magnetic){p.right=q.right.slice();p.up=q.up.slice();}p.section=Math.max(0,sourceSections.indexOf(full.sections[q.section]));course.points.push(p);}
+ const last=clonePoint(full.at(end),end-start);if(full.magnetic){last.right=full.at(end).right.slice();last.up=full.at(end).up.slice();}last.section=course.sections.length-1;course.points.push(last);course.total=end-start;
  course.gaps=full.gaps.filter(g=>g.start>=start&&g.end<=end).map(g=>({start:g.start-start,end:g.end-start}));
  course.gapStart=course.gaps[0]?.start??Infinity;course.gapEnd=course.gaps[0]?.end??Infinity;
  course.gates=full.gates.filter(g=>g.s>start+4&&g.s<end-5).map(g=>({...g,s:g.s-start}));
@@ -88,7 +89,7 @@ function decode(hash){
  if(!hash||hash==='#')return null;
  if(hash.length>150||!hash.startsWith('#c='))throw Error('This challenge link is not valid.');
  const a=hash.slice(3).split('~');if(a.length!==6||a[0]!==String(RULES))throw Error('This challenge uses different rules. Ask your friend for a new link.');
- if(!/^(?:[0-9]|1[0-7])$/.test(a[1])||!(a[2]==='full'||/^[0-5]$/.test(a[2]))||!['n','e'].includes(a[3])||!/^\d{1,8}$/.test(a[4]))throw Error('This challenge link is not valid.');
+ if(!/^(?:[0-9]|1[0-9]|2[0-3])$/.test(a[1])||!(a[2]==='full'||/^[0-5]$/.test(a[2]))||!['n','e'].includes(a[3])||!/^\d{1,8}$/.test(a[4]))throw Error('This challenge link is not valid.');
  const spec={track:Number(a[1]),section:a[2]==='full'?null:Number(a[2]),expert:a[3]==='e',target:Number(a[4])/1000,day:a[5]||undefined};
  if(spec.target>7200||spec.section!==null&&spec.expert)throw Error('This challenge link is not valid.');
  if(spec.day){if(!validDay(spec.day))throw Error('This daily challenge date is not valid.');const expected=daily(spec.day);if(expected.track!==spec.track||expected.section!==spec.section||spec.expert)throw Error('This daily challenge does not match its date.');}

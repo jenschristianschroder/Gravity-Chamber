@@ -2,7 +2,7 @@
   "id": "./",
   "name": "Gravity Run",
   "short_name": "Gravity Run",
-  "description": "A motion-controlled robot adventure across three planets and eighteen floating worlds.",
+  "description": "A motion-controlled robot adventure across four planets and twenty-four floating worlds.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -4,7 +4,7 @@ A third-person browser game where your phone is the controller.
 
 **[Play Gravity Run](https://jenschristianschroder.github.io/Gravity-Chamber/)**
 
-Guide a rolling robot across eighteen floating courses on three planets. Learn to roll, brake, steer, and hop; then find faster lines, earn medals, race your own ghost, and challenge friends. The game runs entirely in the browser. No accounts, backend, external libraries, tracking, advertising, or third-party runtime requests. There are no touch, keyboard, or joystick movement controls.
+Guide a rolling robot across twenty-four floating courses on four planets. Learn to roll, brake, steer, and hop; then find faster lines, earn medals, race your own ghost, and challenge friends. The game runs entirely in the browser. No accounts, backend, external libraries, tracking, advertising, or third-party runtime requests. There are no touch, keyboard, or joystick movement controls.
 
 ## Playing and learning
 
@@ -26,7 +26,7 @@ The prototype uses full 3D orthonormal track frames, local steering, projected w
 
 ## Campaign and mastery
 
-Choose **Sky Isles**, **Clockwork**, or **Vertigo** above the home carousel. Each planet starts with its first course unlocked, remembers its selected course, and has its own six-course progression. Finish a campaign course with motion controls to unlock the next on that planet. Existing Sky Isles records, unlocks, course geometry, gate timing, and physics are preserved. Normal play has frequent safe checkpoints. **Expert checkpoints** retains the original sparse recovery points and has separate records. Each fall adds two seconds.
+Choose **Sky Isles**, **Clockwork**, **Vertigo**, or **Flux** above the home carousel. Each planet starts with its first course unlocked, remembers its selected course, and has its own six-course progression. Finish a campaign course with motion controls to unlock the next on that planet. Existing Sky Isles records, unlocks, course geometry, gate timing, and physics are preserved. Normal play has frequent safe checkpoints. **Expert checkpoints** retains the original sparse recovery points and has separate records. Each fall adds two seconds.
 
 | Course | Difficulty | Length | Gates | Gaps | Normal / expert checkpoints |
 | --- | --- | ---: | ---: | ---: | ---: |
@@ -43,7 +43,20 @@ Seabreeze and Fracture offer narrower gold-edged shortcuts with collectible deto
 
 **Vertigo** adds six genuinely banked courses with their own unlocks and records. High Tide (45°), Violet Bowl (50°), Ridge Rider (55°), Cloud Wall (60°), Gravity Weave (62°), and Zenith (65°) all contain sustained curves banked in both directions. Gold edges and on-surface arrows mark the uphill side; coral marks the low edge. Steer toward gold and maintain that input to resist the downhill slide, then ease off on the flat. Too much input can take you over the high edge too. The HUD reports the current bank angle.
 
-Vertigo alone uses gravity projected onto the actual support plane, steering forces along that plane, slope-aware sphere clearance, and robot alignment with the bank. Curvature and changing bank angle contribute to the surface gradient. Existing Sky Isles and Clockwork course data and deterministic physics are unchanged. Smooth roll-ins and wide flat decks give time to line up. Normal checkpoints occupy all six flat section entries; expert mode uses three. There are no gates or jump gaps on this planet: the banks are the challenge. Practice, previews, friend links, ghosts, imports, and exports support all eighteen courses. Medal targets remain provisional until phone playtesting.
+Vertigo alone uses gravity projected onto the actual support plane, steering forces along that plane, slope-aware sphere clearance, and robot alignment with the bank. Curvature and changing bank angle contribute to the surface gradient. Existing Sky Isles and Clockwork course data and deterministic physics are unchanged. Smooth roll-ins and wide flat decks give time to line up. Normal checkpoints occupy all six flat section entries; expert mode uses three. There are no gates or jump gaps on this planet: the banks are the challenge. Practice, previews, friend links, ghosts, imports, and exports support all twenty-four courses. Medal targets remain provisional until phone playtesting.
+
+**Flux** is a fourth, separate six-world campaign built from the magnetic prototype. The first world is available immediately. Each world introduces a different demand, with narrower ribbons, shorter rotation transitions and fewer places to recover your balance as you progress:
+
+| World | Primary skill | Later combinations |
+| --- | --- | --- |
+| Ion Gardens | Broad spiral, wall ride and first inversion | Wide slalom and ceiling introduction |
+| Helix Harbour | Rising and descending helices | Opposing full corkscrews |
+| Night Ribbon | Steering through ceiling slaloms | Narrow crossings and a quicker corkscrew |
+| Orbit Forge | Large and tight vertical loops | Thin exits, precision weave, hanging bend |
+| Broken Circuit | Three real gaps requiring timed hops | Corkscrew, ceiling weave and loop approaches |
+| Singularity | All magnetic skills with less margin | Tight coil, narrow ceiling, loop, three precision landings |
+
+Flux adds speed-dependent outward drift in curves, so braking makes tight bends easier. Cyan edges show magnetic support; coral chevrons mark takeoffs where the track is actually missing. Build speed and lift just before the edge. A stronger Flux hop gives clearance across the gaps, with magnetic recapture on descent. Normal mode offers six section-entry checkpoints; expert mode offers three. All worlds support practice, separate records, local ghosts, medals, friend challenges and progress backups. Magnetic Lab remains an unscored test course and retains its original cornering response. Existing three-planet records and courses are unchanged. Initial medal targets are provisional pending phone playtests.
 
 Earn Bronze, Silver, and Gold time medals, plus independent clean-run and all-cells badges. Your best medal contributes 1–3 mastery marks; each badge contributes one more. Campaign marks unlock Coral, Mint, Sky, and Gold courier colors without changing the physics. Results suggest a next goal and show the difference from your best time.
 
@@ -78,7 +91,7 @@ Results show precise time to the next medal. When comparable checkpoint splits e
 - **Result cards:** create a PNG on-device. Use the native share sheet where available, or copy the link and save the card. Sharing only happens after the player chooses it. Link previews use a static social image; individual scores live in the link fragment and result card.
 - **Pass the phone:** two named players take three attempts each on the same daily course. Recalibrate for each player; the fastest attempt wins. These results never overwrite personal records.
 
-Clockwork adds four curated **Quick runs**: Gate Dance, Perfect Landing, Ribbon Run, and Dock Hop. They use new-planet sections, preserve supported moving platforms and complete shortcut routes, and keep separate sprint records. Automated demo runs take roughly 20–40 seconds; phone-play times will vary. These are available without campaign unlocks. Existing daily schedules and old challenge URLs are unchanged; new links also support Clockwork and Vertigo tracks.
+Clockwork adds four curated **Quick runs**: Gate Dance, Perfect Landing, Ribbon Run, and Dock Hop. They use new-planet sections, preserve supported moving platforms and complete shortcut routes, and keep separate sprint records. Automated demo runs take roughly 20–40 seconds; phone-play times will vary. These are available without campaign unlocks. Existing daily schedules and old challenge URLs are unchanged; new links also support Clockwork, Vertigo, and Flux tracks.
 
 Friend invitations now show the course, time to beat, approximate duration, and a direct challenge action. Results offer **Send a rematch** for incoming time challenges. Links still carry a target time, not another player’s ghost.
 
@@ -102,7 +115,7 @@ Gameplay requests fullscreen in a browser tab, portrait locking, and a screen wa
 
 Outside the course, home-screen controls open track selection, challenges, and Your robot. A small pencil badge over the home robot opens its customization and settings. Phone screens fill the viewport, with safe-area spacing, fixed screen headers, independently scrolling content, and large controls. Secondary screens have a consistent back action.
 
-The planet selector switches between Sky Isles, Clockwork, and Vertigo. The home tile selects that planet’s six campaign tracks in a carousel with course-shaped previews, horizontal swipes, selection dots, and previous/next controls. Vertical gestures still scroll the menu. Locked tracks remain previewable and show their unlock requirement; selecting a track persists across visits. Game actions use button shapes and purpose-specific icons instead of trailing text arrows.
+The planet selector switches between Sky Isles, Clockwork, Vertigo, and Flux. The home tile selects that planet’s six campaign tracks in a carousel with course-shaped previews, horizontal swipes, selection dots, and previous/next controls. Vertical gestures still scroll the menu. Locked tracks remain previewable and show their unlock requirement; selecting a track persists across visits. Game actions use button shapes and purpose-specific icons instead of trailing text arrows.
 
 The little robot is the recurring identity on the home screen, every menu, calibration, pause, and results. Shared SVG artwork stays sharp and reflects the selected courier color, including a live preview in Your robot. Small character animations and screen transitions respect reduced motion. App artwork is hidden during gameplay, and the 3D renderer stops drawing while the app screens cover it. Resuming or starting a run cuts the camera directly to the robot.
 

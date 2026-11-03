@@ -12,7 +12,7 @@ function cleanRecord(r,legacy=false){
  if(Array.isArray(r.ghost)&&r.ghost.length<=3000&&r.ghost.every((s,i)=>Array.isArray(s)&&s.length===5&&s.every(v=>finite(v,-10000,10000))&&s[0]>=0&&(i===0||s[0]>r.ghost[i-1][0])))record.ghost=r.ghost;
  return record;
 }
-function validKey(key){return G.TRACKS.some(t=>key===t.id||key===t.id+'-expert')||/^challenge-(?:[0-9]|1[0-7])-[ne]$/.test(key)||/^sprint-(?:[0-9]|1[0-7])-[0-5]$/.test(key)||/^daily-20\d{2}-\d{2}-\d{2}$/.test(key)&&J.validDay(key.slice(6));}
+function validKey(key){return G.TRACKS.some(t=>key===t.id||key===t.id+'-expert')||/^challenge-(?:[0-9]|1[0-9]|2[0-3])-[ne]$/.test(key)||/^sprint-(?:[0-9]|1[0-9]|2[0-3])-[0-5]$/.test(key)||/^daily-20\d{2}-\d{2}-\d{2}$/.test(key)&&J.validDay(key.slice(6));}
 function settings(data={}){
  if(!data||typeof data!=='object')data={};
  const value={...DEFAULTS};
@@ -26,7 +26,7 @@ function parse(raw){
  if(!d||![1,2].includes(d.version)||!d.records||typeof d.records!=='object'||Array.isArray(d.records))throw Error('That file is not a supported Gravity Run backup.');
  if(d.version===2&&d.rules!==J.RULES)throw Error('That backup uses different course rules. Keep it for the matching game version.');
  const records={},legacy={};
- if(Object.keys(d.records).length>220)throw Error('The backup contains too many records.');
+ if(Object.keys(d.records).length>280)throw Error('The backup contains too many records.');
  for(const [key,r] of Object.entries(d.records)){if(!validKey(key))continue;const c=cleanRecord(r,d.version===1);if(c)(d.version===1?legacy:records)[key]=c;}
  if(d.version===2&&d.legacy&&typeof d.legacy==='object')for(const track of G.TRACKS){const c=cleanRecord(d.legacy[track.id],true);if(c)legacy[track.id]=c;}
  return {records,legacy,selected:Number.isInteger(d.selected)?G.clamp(d.selected,0,G.TRACKS.length-1):0,planetSelections:G.PLANETS.map((p,i)=>Number.isInteger(d.planetSelections?.[i])&&d.planetSelections[i]>=p.start&&d.planetSelections[i]<p.start+p.count?d.planetSelections[i]:Number.isInteger(d.selected)&&d.selected>=p.start&&d.selected<p.start+p.count?d.selected:p.start),tutorialDone:d.tutorialDone===true,settings:settings(d.settings)};

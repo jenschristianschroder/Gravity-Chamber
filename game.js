@@ -38,7 +38,7 @@ function trackUI(){
  const planet=Math.floor(selected/6),planetInfo=G.PLANETS[planet];
  $('tracks-title').textContent=planetInfo.name+' worlds.';
  $('planet-picker').hidden=activity!=='campaign';$('planet-description').hidden=activity!=='campaign';$('planet-description').textContent=planetInfo.description;
- $('app').classList.toggle('clockwork',course.index>=6&&course.index<12);$('app').classList.toggle('vertigo',course.index>=12);
+ $('app').classList.toggle('clockwork',course.index>=6&&course.index<12);$('app').classList.toggle('vertigo',course.index>=12&&course.index<18);$('app').classList.toggle('flux',course.index>=18);
  for(let p=0;p<G.PLANETS.length;p++){$('planet-'+p).setAttribute('aria-pressed',String(p===planet));$('planet-progress-'+p).textContent=progress.unlockedByPlanet[p]+' / 6 worlds';}
  const open=activity!=='campaign'||progress.isUnlocked(selected),r=record(),track=course.track;
  $('course-label').textContent=activity==='campaign'?'COURSE '+String(selected%6+1).padStart(2,'0')+' / '+(course.expert?'EXPERT':'CAMPAIGN'):activity==='challenge'?(challenge.day?'DAILY FLIGHT / '+challenge.day:'FRIENDLY CHALLENGE'):activity==='party'?'PASS THE PHONE':activity==='practice'?'SECTION PRACTICE':activity==='lab'?'EXPERIMENTAL / MAGNETIC LAB':'FLIGHT SCHOOL';
@@ -153,7 +153,7 @@ function hudUpdate(){
  else if(run.jumpCooldown>0){jump='Settling…';jumpState='build';}
  else if(gap&&gap.start>run.progress&&speed<5.5){jump='Build speed for the gap';jumpState='build';}
  else if(gap&&gap.start-run.progress<2.5){jump='Hop now ↑';}
- if(course.magnetic)jump=run.grounded?(run.surface.up[1]<-.6?'Upside down · magnetic grip':Math.abs(run.surface.up[1])<.4?'Wall ride · magnetic grip':'Magnetic grip active'):'Contact lost · returning to ribbon';
+ if(course.magnetic&&!gap)jump=run.grounded?(run.surface.up[1]<-.6?'Upside down · magnetic grip':Math.abs(run.surface.up[1])<.4?'Wall ride · magnetic grip':'Magnetic grip active'):'Contact lost · returning to ribbon';
  $('jump-status').textContent=jump;$('jump-status').setAttribute('data-state',jumpState);
  let split='';const cp=run.lastSplit;
  if(cp&&baseline?.splits?.[cp.index]!=null){const d=cp.time-baseline.splits[cp.index];split=(d<=0?'−':'+')+Math.abs(d).toFixed(2)+'s at checkpoint';}
