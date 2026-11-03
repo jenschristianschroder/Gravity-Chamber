@@ -329,6 +329,38 @@ class Course{
  gateCenter(gate,time){const q=this.at(gate.s);return (gate.rhythm?clamp(Math.sin(time*this.track.gateSpeed+gate.phase)*1.2,-1,1):Math.sin(time*this.track.gateSpeed+gate.phase))*Math.max(0,q.width-this.track.opening-.45);}
  cellPosition(cell){const q=this.routeAt(cell.s,cell.route);return [q.p[0]+q.right[0]*cell.offset,q.p[1]+.8+cell.offset*q.bank,q.p[2]+q.right[2]*cell.offset];}
 }
+// Isolated prototype: oriented ribbons, including surfaces above the robot.
+class MagneticCourse{
+ constructor(){
+  this.magnetic=true;this.index=0;this.kind='lab';this.expert=false;this.targets=[85,115,160];
+  this.track={id:'magnetic-lab',name:'Magnetic Lab',level:'Experimental',description:'A spiral, corkscrew, ceiling ride and vertical loop.',sky:[.7,.78,.88]};
+  this.points=[];this.sections=[];this.checkpoints=[];this.cells=[];this.routes=[];this.platforms=[];this.gaps=[];this.gates=[];this.gapStart=Infinity;this.gapEnd=Infinity;
+  let origin=[0,8,0],section=0;
+  const add=(p,right,up,width=3)=>{const prev=this.points.at(-1);this.points.push({p,right,up,width,section,bank:0,slope:0,gap:false,s:prev?prev.s+len(sub(p,prev.p)):0});};
+  const mark=(name,hint)=>{section=this.sections.length;const d=this.points.at(-1)?.s||0;this.sections.push({s:d,name,hint});this.checkpoints.push({s:d+2,label:name});};
+  const part=(n,fn)=>{const base=origin.slice();for(let i=this.points.length?1:0;i<=n;i++){const q=fn(i/n);add(q.p.map((v,k)=>v+base[k]),q.right,q.up,q.width);}origin=this.points.at(-1).p.slice();};
+  const line=(length,roll=0)=>part(Math.ceil(length*2),u=>({p:[0,0,u*length],right:[Math.cos(roll),Math.sin(roll),0],up:[-Math.sin(roll),Math.cos(roll),0],width:3.4}));
+  const twist=(length,from,to)=>part(Math.ceil(length*2),u=>{const t=u*u*(3-2*u),a=mix(from,to,t);return {p:[0,0,u*length],right:[Math.cos(a),Math.sin(a),0],up:[-Math.sin(a),Math.cos(a),0],width:2.8};});
+  mark('Magnetic deck','Cyan edges mean magnetic grip. Tilt forward to roll; steer across the ribbon.');line(22);
+  mark('Rising spiral','Keep a steady pace around the tower. Both edges remain open.');
+  part(220,u=>{const a=u*Math.PI*2,t=norm([15*Math.sin(a),12/(Math.PI*2),15*Math.cos(a)]),right=[Math.cos(a),0,-Math.sin(a)];return {p:[15*(1-Math.cos(a)),12*u,15*Math.sin(a)],right,up:norm(cross(t,right)),width:3.1};});line(14);
+  mark('Corkscrew','Let the camera turn with the track. Left and right follow your view.');twist(64,0,Math.PI*2);line(14);
+  mark('Ceiling ride','Magnetic grip holds you underneath. Keep your steering gentle.');twist(25,0,Math.PI);line(28,Math.PI);twist(25,Math.PI,Math.PI*2);line(14);
+  mark('Vertical loop','Keep rolling through the loop. The cyan ribbon stays beneath your wheels.');
+  part(220,u=>{const a=u*Math.PI*2,t=norm([10/(Math.PI*2),14*Math.sin(a),14*Math.cos(a)]),up=[0,Math.cos(a),-Math.sin(a)];return {p:[10*u,14*(1-Math.cos(a)),14*Math.sin(a)],right:norm(cross(up,t)),up,width:3.2};});line(14);
+  mark('Return deck','Test complete. Your campaign records are untouched.');line(24);
+  this.total=this.points.at(-1).s;this.expertCheckpoints=this.checkpoints.map(q=>({...q}));
+  for(let d=12;d<this.total-6;d+=18)this.cells.push({s:d,offset:0,taken:false});
+ }
+ at(s){
+  s=clamp(s,0,this.total??this.points.at(-1).s);let i=0,hi=this.points.length-2;while(i<hi){const m=Math.ceil((i+hi)/2);if(this.points[m].s<=s)i=m;else hi=m-1;}
+  const a=this.points[i],b=this.points[i+1],u=clamp((s-a.s)/(b.s-a.s||1),0,1),tangent=norm(sub(b.p,a.p)),r=a.right.map((v,k)=>mix(v,b.right[k],u));
+  const right=norm(r.map((v,k)=>v-tangent[k]*dot(r,tangent))),up=norm(cross(tangent,right));
+  return {p:a.p.map((v,k)=>mix(v,b.p[k],u)),tangent,right,up,width:mix(a.width,b.width,u),s,section:a.section,index:i,bank:0,slope:0,gap:false};
+ }
+ routeAt(s){return this.at(s);}
+ cellPosition(c){const q=this.at(c.s);return q.p.map((v,k)=>v+q.right[k]*c.offset+q.up[k]*.8);}
+}
 class Run{
  constructor(course=new Course()){this.course=course;this.radius=.44;this.reset();}
  reset(){
@@ -337,7 +369,7 @@ class Run{
   this.splits=[];this.lastSplit=null;this.sectionFalls={};this.recording=[];this.ghost=null;this.platformId=null;
   this.course.cells.forEach(c=>c.taken=false);this.place(2);
  }
- place(s){const q=this.course.at(s);this.position=[q.p[0],q.p[1]+this.radius*(this.course.index>=12?Math.sqrt(this.course.surfaceFrame(q).d):1),q.p[2]];this.velocity=[0,0,0];this.hint=q.index;this.grounded=true;this.falling=false;this.progress=q.s;this.surface=q;this.yaw=Math.atan2(q.tangent[0],q.tangent[2]);this.pose={pitch:0,roll:0,twist:0};}
+ place(s){if(this.course.magnetic){const q=this.course.at(s);this.position=q.p.map((v,k)=>v+q.up[k]*this.radius);this.velocity=[0,0,0];this.hint=q.index;this.grounded=true;this.falling=false;this.progress=q.s;this.surface=q;this.yaw=0;this.pose={pitch:0,roll:0,twist:0};this.labS=q.s;this.labU=0;this.labForward=0;this.labSide=0;this.labAir=0;return;}const q=this.course.at(s);this.position=[q.p[0],q.p[1]+this.radius*(this.course.index>=12?Math.sqrt(this.course.surfaceFrame(q).d):1),q.p[2]];this.velocity=[0,0,0];this.hint=q.index;this.grounded=true;this.falling=false;this.progress=q.s;this.surface=q;this.yaw=Math.atan2(q.tangent[0],q.tangent[2]);this.pose={pitch:0,roll:0,twist:0};}
  emit(type,details={}){this.events.push({type,position:this.position.slice(),...details});}
  announce(type,message,duration,details={}){this.event=message;this.eventKind=type;this.flash=duration;this.emit(type,details);}
  recover(){
@@ -345,8 +377,42 @@ class Run{
   this.falls++;this.elapsed+=2;this.place(this.course.checkpoints[this.checkpoint].s);this.jumpCooldown=.18;this.jumpBuffer=0;this.coyote=0;
   this.announce('recover','Checkpoint recovery · +2s',1.8);
  }
+ stepMagnetic(dt,input){
+  if(this.finished)return;this.events=[];if(!this.externalClock)this.elapsed+=dt;this.time+=dt;this.flash=Math.max(0,this.flash-dt);this.jumpCooldown-=dt;
+  const c=this.course,q=c.at(this.labS),blend=1-Math.exp(-dt*10),steer=clamp(input.steer||0,-1,1),throttle=clamp(input.throttle||0,-1,1);
+  this.pose.pitch=mix(this.pose.pitch,throttle*.28,blend);this.pose.roll=mix(this.pose.roll,-steer*.35,blend);
+  if(this.grounded){
+   // Gravity acts along the ribbon; 32 m/s² of normal magnetic attraction holds
+   // against gravity on ceilings and through the loop at the 9 m/s speed cap.
+   this.labForward=clamp((this.labForward+(18*throttle-12.5*q.tangent[1])*dt)*Math.exp(-.46*dt),-4,9);
+   this.labSide=(this.labSide+(17*steer-12.5*q.right[1])*dt)*Math.exp(-1.2*dt);
+   this.labS=clamp(this.labS+this.labForward*dt,0,c.total);this.labU+=this.labSide*dt;
+   const next=c.at(this.labS),previous=this.position;this.surface={...next,offset:this.labU};this.progress=this.labS;this.hint=next.index;
+   this.position=next.p.map((v,k)=>v+next.right[k]*this.labU+next.up[k]*this.radius);this.velocity=this.position.map((v,k)=>(v-previous[k])/dt);
+   const ahead=c.at(Math.min(c.total,this.labS+.2)),behind=c.at(Math.max(0,this.labS-.2)),ds=Math.max(.001,ahead.s-behind.s),curvature=sub(ahead.tangent,behind.tangent).map(v=>v/ds),reaction=32+12.5*next.up[1]+this.labForward**2*dot(curvature,next.up);
+   if(Math.abs(this.labU)>next.width||reaction<0||input.burst?.[1]>.5&&this.jumpCooldown<=0){
+    this.grounded=false;this.labAir=0;this.jumpCooldown=.5;
+    if(Math.abs(this.labU)>next.width){this.falling=true;this.announce('fall','Magnetic contact lost',1.5);}else{this.velocity=this.velocity.map((v,k)=>v+next.up[k]*4.5);this.announce('jump','Magnetic hop',.8);}
+   }
+  }else{
+   this.labAir+=dt;this.velocity[1]-=12.5*dt;
+   // Attraction works only near the last ribbon, never across the open edges.
+   let nearest=null,dist=Infinity;
+   for(let d=Math.max(0,this.labS-7);d<=Math.min(c.total,this.labS+12);d+=.5){const t=c.at(d),rel=sub(this.position,t.p),u=dot(rel,t.right),h=dot(rel,t.up),along=dot(rel,t.tangent),v=along*along+(h-this.radius)**2;if(v<dist){dist=v;nearest={q:t,u,h,along};}}
+   if(nearest){const {q:t,u,h,along}=nearest;if(Math.abs(u)<t.width&&h>0&&h<3&&Math.abs(along)<1){
+    this.velocity=this.velocity.map((v,k)=>v-t.up[k]*32*dt);
+    if(h<=this.radius+.06&&dot(this.velocity,t.up)<0){this.labS=t.s;this.labU=u;this.labForward=dot(this.velocity,t.tangent);this.labSide=dot(this.velocity,t.right);this.grounded=true;this.falling=false;this.surface={...t,offset:u};this.emit('land',{strength:.4});}
+   }}
+   this.position=this.position.map((v,k)=>v+this.velocity[k]*dt);
+   if(this.labAir>1.8){this.recover();return;}
+  }
+  if(this.grounded){this.maxProgress=Math.max(this.maxProgress,this.progress);c.checkpoints.forEach((cp,i)=>{if(i>this.checkpoint&&this.progress>=cp.s){this.checkpoint=i;this.splits[i]=this.elapsed;this.lastSplit={index:i,time:this.elapsed};this.announce('checkpoint','Magnetic checkpoint secured',1.5);}});}
+  for(const cell of c.cells)if(!cell.taken&&len(sub(this.position,c.cellPosition(cell)))<1.05){cell.taken=true;this.collected++;this.announce('cell','Energy +1',.6,{variant:this.collected,position:c.cellPosition(cell)});}
+  if(this.grounded&&this.progress>=c.total-2.2){this.finished=true;this.announce('finish','Magnetic test complete',2);}
+ }
  step(dt,input){
   if(!(dt>0&&dt<=1/30))throw new RangeError('Fixed physics step required.');
+  if(this.course.magnetic){this.stepMagnetic(dt,input);return;}
   this.events=[];
   if(this.finished)return;
   if(!this.externalClock)this.elapsed+=dt;
@@ -421,6 +487,7 @@ class Run{
   if(planar>.4){const target=Math.atan2(this.velocity[0],this.velocity[2]);this.yaw+=Math.atan2(Math.sin(target-this.yaw),Math.cos(target-this.yaw))*(1-Math.exp(-dt*7));}
  }
  demoInput(){
+  if(this.course.magnetic){const q=this.course.at(this.labS);return {throttle:clamp(((5.5-this.labForward)*3+.46*this.labForward+12.5*q.tangent[1])/18,-1,1),steer:clamp((-this.labU*5-this.labSide*3+12.5*q.right[1])/17,-1,1)};}
   const q=this.surface,s=this.progress,course=this.course;
   let speed=5.2,offset=0;
   if(q.width<2)speed=4.2;
@@ -433,6 +500,6 @@ class Run{
   return {throttle:clamp((dot(acc,q.tangent)+12.5*q.slope)/13,-1,1),steer:clamp((dot(acc,q.right)+12.5*q.bank)/17,-1,1),turn:0,burst};
  }
 }
-const api={clamp,mix,len,norm,dot,cross,sub,calibrate,motionControls,displayLayout,TRACKS,PLANETS,Course,Run};
+const api={clamp,mix,len,norm,dot,cross,sub,calibrate,motionControls,displayLayout,TRACKS,PLANETS,Course,MagneticCourse,Run};
 root.GravityRun=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(globalThis);

@@ -18,6 +18,12 @@ A new run reuses a recent calibration after a fresh sensor reading and a short r
 
 **How to move** has six animated SVG lessons, each showing the phone movement beside the robot’s response. Animations can be paused or scrubbed, work without WebGL or sensor access, and respect reduced-motion settings. The entire robot leans with calibrated phone input; the follow camera keeps a level horizon.
 
+## Magnetic Lab prototype
+
+Choose **Magnetic Lab** from the home screen, then **Start run** or **Preview**. This separate, roughly 80-second test route includes a rising spiral, a 360° corkscrew, an upside-down ceiling ride, and a vertical loop. Cyan edges identify magnetic surfaces. Tilt forward to accelerate and lean sideways to steer relative to the rotating camera; both edges remain open. A brief lift detaches from the surface, and nearby magnetic attraction can recapture the robot. Checkpoints let you retry after losing contact. The HUD distinguishes upright grip, wall riding, and upside-down travel.
+
+The prototype uses full 3D orthonormal track frames, local steering, projected world gravity, bounded magnetic attraction, and a camera that follows the local surface orientation. It does not replace any campaign track, award medals, save records, unlock courses, or generate misleading challenge links. This is a phone-playtesting route; camera comfort, steering feel and difficulty still need human feedback.
+
 ## Campaign and mastery
 
 Choose **Sky Isles**, **Clockwork**, or **Vertigo** above the home carousel. Each planet starts with its first course unlocked, remembers its selected course, and has its own six-course progression. Finish a campaign course with motion controls to unlock the next on that planet. Existing Sky Isles records, unlocks, course geometry, gate timing, and physics are preserved. Normal play has frequent safe checkpoints. **Expert checkpoints** retains the original sparse recovery points and has separate records. Each fall adds two seconds.

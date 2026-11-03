@@ -41,12 +41,12 @@ function trackUI(){
  $('app').classList.toggle('clockwork',course.index>=6&&course.index<12);$('app').classList.toggle('vertigo',course.index>=12);
  for(let p=0;p<G.PLANETS.length;p++){$('planet-'+p).setAttribute('aria-pressed',String(p===planet));$('planet-progress-'+p).textContent=progress.unlockedByPlanet[p]+' / 6 worlds';}
  const open=activity!=='campaign'||progress.isUnlocked(selected),r=record(),track=course.track;
- $('course-label').textContent=activity==='campaign'?'COURSE '+String(selected%6+1).padStart(2,'0')+' / '+(course.expert?'EXPERT':'CAMPAIGN'):activity==='challenge'?(challenge.day?'DAILY FLIGHT / '+challenge.day:'FRIENDLY CHALLENGE'):activity==='party'?'PASS THE PHONE':activity==='practice'?'SECTION PRACTICE':'FLIGHT SCHOOL';
+ $('course-label').textContent=activity==='campaign'?'COURSE '+String(selected%6+1).padStart(2,'0')+' / '+(course.expert?'EXPERT':'CAMPAIGN'):activity==='challenge'?(challenge.day?'DAILY FLIGHT / '+challenge.day:'FRIENDLY CHALLENGE'):activity==='party'?'PASS THE PHONE':activity==='practice'?'SECTION PRACTICE':activity==='lab'?'EXPERIMENTAL / MAGNETIC LAB':'FLIGHT SCHOOL';
  $('track-name').textContent=track.name;$('track-difficulty').textContent=activity==='campaign'?track.level+' · '+(selected%6+1)+' / 6':'Motion controls · separate results';
- $('track-description').textContent=activity==='campaign'?track.description:activity==='training'?'Four small steps. Find your balance.':'A short flight. Everyone can take part.';
+ $('track-description').textContent=activity==='campaign'?track.description:activity==='training'?'Four small steps. Find your balance.':activity==='lab'?course.track.description+' Cyan edges hold you to the surface. Both edges are open.':'A short flight. Everyone can take part.';
  $('campaign-count').textContent=progress.unlockedByPlanet[planet]+' / 6 tracks unlocked · '+progress.marks()+' mastery marks';
  $('course-distance').textContent=Math.round(course.total)+' metres';$('course-sections').textContent=course.sections.length+' sections';$('course-cells').textContent=course.cells.length+' energy cells';
- $('start').textContent=!open?'Locked':!progress.tutorialDone&&activity!=='party'?'Learn to play':activity==='challenge'?'Accept challenge':'Start run';
+ $('start').textContent=!open?'Locked':!progress.tutorialDone&&activity!=='party'&&activity!=='lab'?'Learn to play':activity==='challenge'?'Accept challenge':'Start run';
  $('start').disabled=!renderer||!open;$('start').classList.toggle('locked',!open);$('demo').disabled=!renderer;$('demo').textContent='Preview';
  $('course-lock-note').hidden=open;$('course-lock-note').textContent=open?'':'Finish '+G.TRACKS[Math.max(0,selected-1)].name+' to unlock.';
  $('best').textContent=[r?(r.legacy?'Previous rules · ':'Your best · ')+time(r.time)+(r.medal?' · '+J.MEDALS[r.medal]:'' ):'',!progress.saved?'Progress is kept for this session only.':''].filter(Boolean).join(' · ');
@@ -133,14 +133,14 @@ function ui(){
  document.body.classList.toggle('playing',state==='playing');
  $('menu').hidden=state!=='menu';$('calibrating').hidden=state!=='waiting';$('countdown').hidden=state!=='ready';$('paused').hidden=state!=='paused';$('finish').hidden=state!=='finished';
  const hud=state==='playing';$('hud-stats').hidden=!hud;$('route-hud').hidden=!hud;$('bottom-hud').hidden=state!=='playing';$('edition').hidden=state!=='menu';
- $('training-status').hidden=activity!=='training'||state!=='playing';$('recenter').hidden=mode==='demo';$('open-practice').hidden=activity==='training'||activity==='party';
+ $('training-status').hidden=activity!=='training'||state!=='playing';$('recenter').hidden=mode==='demo';$('open-practice').hidden=activity==='training'||activity==='party'||activity==='lab';
  $('open-settings').hidden=state==='waiting'||state==='ready';display();trackUI();soundUI();hudUpdate();
 }
 function hudUpdate(){
  $('timer').textContent=time(run.elapsed);$('energy').textContent=run.collected+' / '+course.cells.length;
  $('section').textContent=activity==='training'?training?.title||'Flight school':course.track.name+' / '+course.sections[run.surface.section].name;
  const distance=Math.round(G.clamp(run.progress/course.total,0,1)*100);$('distance').textContent=distance+'%';$('route-fill').style.width=distance+'%';
- const speed=Math.hypot(run.velocity[0],run.velocity[2]);$('speed').textContent=Math.round(speed*3.6)+' km/h';$('checkpoint').textContent='CHECKPOINT '+(run.checkpoint+1)+' / '+course.checkpoints.length;
+ const speed=(course.magnetic?G.len(run.velocity):Math.hypot(run.velocity[0],run.velocity[2]));$('speed').textContent=Math.round(speed*3.6)+' km/h';$('checkpoint').textContent='CHECKPOINT '+(run.checkpoint+1)+' / '+course.checkpoints.length;
  let hint=course.sections[run.surface.section].hint||hints[run.surface.section]||'Find your line.';
  if(course.index>=12&&Math.abs(run.surface.bank)>.35)hint=Math.round(Math.atan(Math.abs(run.surface.bank))*180/Math.PI)+'° bank · Steer uphill toward the gold edge. Hold, then ease off.';
  for(const route of course.routes||[])if(run.progress>route.start-8&&run.progress<route.start+6)hint='Wide bend or narrow shortcut? The shortcut holds a bonus cell.';
@@ -153,12 +153,13 @@ function hudUpdate(){
  else if(run.jumpCooldown>0){jump='Settling…';jumpState='build';}
  else if(gap&&gap.start>run.progress&&speed<5.5){jump='Build speed for the gap';jumpState='build';}
  else if(gap&&gap.start-run.progress<2.5){jump='Hop now ↑';}
+ if(course.magnetic)jump=run.grounded?(run.surface.up[1]<-.6?'Upside down · magnetic grip':Math.abs(run.surface.up[1])<.4?'Wall ride · magnetic grip':'Magnetic grip active'):'Contact lost · returning to ribbon';
  $('jump-status').textContent=jump;$('jump-status').setAttribute('data-state',jumpState);
  let split='';const cp=run.lastSplit;
  if(cp&&baseline?.splits?.[cp.index]!=null){const d=cp.time-baseline.splits[cp.index];split=(d<=0?'−':'+')+Math.abs(d).toFixed(2)+'s at checkpoint';}
  else if(challenge?.target)split='Target '+time(challenge.target);
  $('split-delta').textContent=split;
- $('practice-suggestion').hidden=activity==='training'||activity==='party'||mode==='demo'||!(run.sectionFalls[run.surface.section]>=2);
+ $('practice-suggestion').hidden=activity==='training'||activity==='party'||activity==='lab'||mode==='demo'||!(run.sectionFalls[run.surface.section]>=2);
  const message=run.flash>0?run.event:'';if($('toast').textContent!==message){$('toast').textContent=message;$('toast').setAttribute('data-kind',run.eventKind||'info');}
  if(state==='waiting'){const p=motion.calibration?100:Math.round(motion.readiness*100);$('calibration-fill').style.width=p+'%';$('calibration-progress').setAttribute('aria-valuenow',String(p));$('calibration-status').textContent=motion.calibration?'Starting angle saved. Waiting for a fresh reading…':motion.reason;}
  if(state==='ready')$('ready-number').textContent=String(Math.max(1,Math.ceil((readyAt-now())/1000)));
@@ -201,7 +202,7 @@ function returnFromTraining(play=true){
  if(target.activity==='challenge'&&target.spec)chooseChallenge(target.spec);else selectTrack(target.selected);
  if(play)void startMotion();
 }
-function play(){if(!renderer)return;if(!progress.tutorialDone&&activity!=='training'&&activity!=='party')launchTraining();else void startMotion();}
+function play(){if(!renderer)return;if(!progress.tutorialDone&&activity!=='training'&&activity!=='party'&&activity!=='lab')launchTraining();else void startMotion();}
 function startDemo(){
  if(!renderer)return;session++;detach();motion.clearImpulses();mode='demo';recentering=false;unlockAudio();void enterFullscreen();begin();
 }
@@ -218,12 +219,12 @@ function finish(){
  let result=null;const scored=mode==='motion'&&(activity==='campaign'||activity==='challenge');
  if(scored)result=activity==='campaign'?progress.complete(selected,run):progress.completeKey(J.key(challenge),run);
  const rank=J.medal(run.elapsed,J.targets(course)),goal=J.nextGoal(run,result?.earned||record());
- $('finish-kicker').textContent=mode==='demo'?'DEMO COMPLETE':activity==='training'?'FLIGHT SCHOOL COMPLETE':activity==='practice'?'PRACTICE COMPLETE':result?.campaignComplete?(course.index>=6?G.PLANETS[Math.floor(course.index/6)].name.toUpperCase()+' COMPLETE':'ALL SIX TRACKS COMPLETE'):result?.record?'NEW PERSONAL BEST':'FLIGHT COMPLETE';
+ $('finish-kicker').textContent=mode==='demo'?'DEMO COMPLETE':activity==='training'?'FLIGHT SCHOOL COMPLETE':activity==='practice'?'PRACTICE COMPLETE':activity==='lab'?'MAGNETIC TEST COMPLETE':result?.campaignComplete?(course.index>=6?G.PLANETS[Math.floor(course.index/6)].name.toUpperCase()+' COMPLETE':'ALL SIX TRACKS COMPLETE'):result?.record?'NEW PERSONAL BEST':'FLIGHT COMPLETE';
  $('finish-title').textContent=activity==='training'?'You’re ready to roll.':mode==='demo'?'Course previewed.':course.track.name+' complete.';
  $('finish-time').textContent=time(run.elapsed);$('finish-energy').textContent=run.collected+' / '+course.cells.length;$('finish-falls').textContent=String(run.falls);
  $('finish-badges').textContent=scored?[J.MEDALS[rank]+(rank?' medal':''),run.falls===0?'✓ Clean run':'',course.cells.length&&run.collected===course.cells.length?'◆ All cells':''].filter(Boolean).join(' · '):'';
  $('finish-delta').textContent=baseline&&!baseline.legacy?(run.elapsed<baseline.time?'Improved by ':'Behind your best by ')+Math.abs(run.elapsed-baseline.time).toFixed(2)+'s':'';
- let note=mode==='demo'?'Take control with your phone when you are ready.':activity==='practice'?'That section is yours to practise. Campaign records are unchanged.':activity==='training'?'Roll, brake, steer, and hop. Take those four moves into your first course.':goal.detail;
+ let note=mode==='demo'?'Take control with your phone when you are ready.':activity==='lab'?'Test complete. Try another run to compare how the spiral, corkscrew and ceiling feel. Campaign records are unchanged.':activity==='practice'?'That section is yours to practise. Campaign records are unchanged.':activity==='training'?'Roll, brake, steer, and hop. Take those four moves into your first course.':goal.detail;
  if(challenge?.target&&mode==='motion'){const delta=run.elapsed-challenge.target;note=delta<0?'You beat the challenge by '+(-delta).toFixed(2)+'s. Send a rematch!':delta===0?'A perfect tie. One more run?':delta.toFixed(2)+'s to beat your friend. Try another line.';}
  if(result?.newUnlock)note+=' '+G.TRACKS[selected+1].name+' is unlocked.';
  if(result?.newColors.length)note+=' New courier color: '+result.newColors.join(', ')+'.';
@@ -346,6 +347,7 @@ $('learn-controls').addEventListener('click',()=>{$('settings').close();launchTr
 $('daily-play').addEventListener('click',()=>{chooseChallenge(J.daily());play();});$('open-challenges').addEventListener('click',openChallenges);$('close-challenges').addEventListener('click',()=>$('challenges').close());
 for(let i=0;i<7;i++)$('day-'+i).addEventListener('click',()=>{$('challenges').close();chooseChallenge(J.daily(J.recentDays()[i]));play();});
 for(let i=0;i<6;i++)$('challenge-'+i).addEventListener('click',()=>{$('challenges').close();chooseChallenge({track:i,section:quickSections[i],expert:false,target:0});play();});
+$('open-magnetic-lab').addEventListener('click',()=>{training=null;party=null;prepare(new G.MagneticCourse(),'lab');state='menu';setURL();$('status').textContent=rendererError;ui();});
 $('back-campaign').addEventListener('click',()=>selectTrack(selected));$('open-practice').addEventListener('click',openPractice);$('close-practice').addEventListener('click',()=>$('practice').close());
 $('practice-suggestion').addEventListener('click',()=>{pause();practiceSection(run.surface.section);});
 for(let i=0;i<6;i++)$('practice-'+i).addEventListener('click',()=>practiceSection(i));

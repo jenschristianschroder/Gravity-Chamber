@@ -8,8 +8,9 @@ const identity=()=>[1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1];
 function model(p,s=[1,1,1],yaw=0){const c=Math.cos(yaw),n=Math.sin(yaw);return[c*s[0],0,-n*s[0],0,0,s[1],0,0,n*s[2],0,c*s[2],0,p[0],p[1],p[2],1];}
 function multiply(a,b){const out=new Float32Array(16);for(let c=0;c<4;c++)for(let r=0;r<4;r++){let v=0;for(let k=0;k<4;k++)v+=a[k*4+r]*b[c*4+k];out[c*4+r]=v;}return out;}
 function perspective(fov,aspect,near,far){const f=1/Math.tan(fov/2),nf=1/(near-far);return[f/aspect,0,0,0,0,f,0,0,0,0,(far+near)*nf,-1,0,0,2*far*near*nf,0];}
-function lookAt(eye,target){const z=G.norm(G.sub(eye,target)),x=G.norm(G.cross([0,1,0],z)),y=G.cross(z,x);return[x[0],y[0],z[0],0,x[1],y[1],z[1],0,x[2],y[2],z[2],0,-G.dot(x,eye),-G.dot(y,eye),-G.dot(z,eye),1];}
+function lookAt(eye,target,up=[0,1,0]){const z=G.norm(G.sub(eye,target)),x=G.norm(G.cross(up,z)),y=G.cross(z,x);return[x[0],y[0],z[0],0,x[1],y[1],z[1],0,x[2],y[2],z[2],0,-G.dot(x,eye),-G.dot(y,eye),-G.dot(z,eye),1];}
 function robotModel(run){
+ if(run.course.magnetic){const q=run.surface,pose=run.pose||{pitch:0,roll:0},a=pose.roll,b=pose.pitch,c=Math.cos(a),s=Math.sin(a),cp=Math.cos(b),sp=Math.sin(b),frame=[...q.right,0,...q.up,0,...q.tangent,0,...run.position,1];return multiply(frame,multiply([c,s,0,0,-s,c,0,0,0,0,1,0,0,0,0,1],[1,0,0,0,0,cp,sp,0,0,-sp,cp,0,0,0,0,1]));}
  const pose=run.pose||{pitch:0,roll:0,twist:0},banked=run.course.index>=12&&run.grounded,frame=banked?run.course.surfaceFrame(run.surface):null,tilt=pose.pitch-(frame?Math.atan(frame.slope):0),lean=pose.roll+(frame?Math.atan(frame.bank):0),c=Math.cos(tilt),s=Math.sin(tilt),a=Math.cos(lean),b=Math.sin(lean);
  const pitch=[1,0,0,0,0,c,s,0,0,-s,c,0,0,0,0,1],roll=[a,b,0,0,-b,a,0,0,0,0,1,0,0,0,0,1];
  const courseYaw=Math.atan2(run.surface.tangent[0],run.surface.tangent[2]);
@@ -17,6 +18,7 @@ function robotModel(run){
  return multiply(model(run.position,[1,1,1],courseYaw),multiply(pitch,multiply(roll,model([0,0,0],[1,1,1],run.yaw-courseYaw+pose.twist))));
 }
 function contactShadow(run){
+ if(run.course.magnetic){if(!run.grounded)return null;const q=run.surface,u=run.labU||0,radius=Math.min(.55,(q.width-Math.abs(u))*.9);if(radius<=0)return null;const p=q.p.map((v,k)=>v+q.right[k]*u+q.up[k]*.02);return {height:0,alpha:.3,radius,matrix:[...q.right.map(v=>v*radius),0,...q.up,0,...q.tangent.map(v=>v*radius),0,...p,1]};}
  const q=run.surface,p=run.position,relative=G.sub(p,q.p),along=G.dot(relative,q.tangent);
  const floor=q.p[1]+along*q.slope+G.dot(relative,q.right)*(q.bank||0),height=p[1]-run.radius*(run.course.index>=12?Math.sqrt(run.course.surfaceFrame(q).d):1)-floor,clearance=q.width-Math.abs(G.dot(relative,q.right));
  // A surface must be underneath the robot, never above it or beyond an edge.
@@ -152,7 +154,7 @@ class Renderer{
  }
  setCourse(course){
   for(const key of ['track','scenery','landmarks'])if(this[key])this.gl.deleteBuffer(this[key].buffer);
-  this.course=course;this.eye=[-7,11,-9];this.target=[0,5,7];this.resetEffects();
+  this.course=course;this.cameraUp=[0,1,0];this.eye=[-7,11,-9];this.target=[0,5,7];this.resetEffects();
   this.track=this.mesh(this.buildTrack());this.scenery=this.mesh(this.buildScenery());this.landmarks=this.mesh(this.buildLandmarks());
   this.gl.clearColor(...course.track.sky,1);
  }
@@ -217,7 +219,20 @@ class Renderer{
   }
   return out;
  }
+ buildMagneticTrack(){
+  const parts=[];const point=(q,x,y=0)=>q.p.map((v,k)=>v+q.right[k]*x+q.up[k]*y);
+  for(let i=0;i<this.course.points.length-1;i++){
+   const a=this.course.at(this.course.points[i].s),b=this.course.at(this.course.points[i+1].s),out=[];
+   quad(out,point(a,-a.width),point(b,-b.width),point(b,b.width),point(a,a.width),i%16<8?[.82,.88,.96]:[.7,.78,.9]);
+   quad(out,point(a,a.width,-.3),point(b,b.width,-.3),point(b,-b.width,-.3),point(a,-a.width,-.3),INK);
+   for(const side of [-1,1]){quad(out,point(a,side*a.width),point(b,side*b.width),point(b,side*b.width,-.3),point(a,side*a.width,-.3),TEAL);quad(out,point(a,side*a.width,.02),point(b,side*b.width,.02),point(b,side*(b.width-.14),.02),point(a,side*(a.width-.14),.02),[.3,1,.92]);}
+   if(i%8<4)quad(out,point(a,-.035,.025),point(b,-.035,.025),point(b,.035,.025),point(a,.035,.025),GOLD);
+   if(a.s>this.course.total-5&&i%2===0)quad(out,point(a,-a.width,.03),point(b,-b.width,.03),point(b,b.width,.03),point(a,a.width,.03),WHITE);
+   parts.push({s:a.s,vertices:out});
+  }return batch(parts);
+ }
  buildTrack(){
+  if(this.course.magnetic)return this.buildMagneticTrack();
   const parts=[],vertigo=this.course.index>=12,clockwork=this.course.index>=6&&this.course.index<12;
   for(const path of [{points:this.course.points},...(this.course.routes||[])]){
   const points=path.points,at=s=>this.course.routeAt(s,path.id);
@@ -282,6 +297,7 @@ class Renderer{
   return batch(parts);
  }
  buildLandmarks(){
+  if(this.course.magnetic){const parts=[];for(const cp of this.course.checkpoints){const q=this.course.at(cp.s),out=[],p=(x,y)=>q.p.map((v,k)=>v+q.right[k]*x+q.up[k]*y);for(const side of [-1,1])beam(out,p(side*q.width,0),p(side*q.width,2),.09,MINT);parts.push({s:cp.s,vertices:out});}return batch(parts);}
   const parts=[],portals=[...this.course.checkpoints.slice(1).map(cp=>({s:cp.s,type:'checkpoint'})),...this.course.gates.map(g=>({s:g.s,type:'gate'})),{s:this.course.total-2,type:'finish'}];
   for(const portal of portals){
    const out=[],q=this.course.at(portal.s),yaw=Math.atan2(q.tangent[0],q.tangent[2]),gate=portal.type==='gate',finish=portal.type==='finish',height=finish?4.7:gate?3.6:3.8,color=finish?CORAL:gate?TEAL:MINT;
@@ -309,6 +325,7 @@ class Renderer{
   return batch(parts);
  }
  buildScenery(){
+  if(this.course.magnetic){const out=[];for(const s of [0,this.course.total]){const q=this.course.at(s);sphere(out,[q.p[0],q.p[1]-7,q.p[2]],[6,3,6],[.38,.5,.61],8,12);}return batch([{s:0,vertices:out}]);}
   const parts=[],season=this.course.index,foliage=season>=12?[.52,.44,.66]:season>=6?[.38,.59,.48]:[[.25,.59,.44],[.24,.57,.48],[.62,.61,.31],[.37,.57,.64],[.36,.55,.49],[.53,.47,.65]][season];
   const count=Math.ceil(this.course.total/15);
   for(let i=0;i<count;i++){
@@ -352,13 +369,14 @@ class Renderer{
   const speed=Math.hypot(run.velocity[0],run.velocity[2]);
   const ahead=this.course.routeAt(Math.min(this.course.total,run.progress+(this.course.index>=6?8+speed*.3:5)),run.surface.route),dir=ahead.tangent,p=run.position;
   const narrow=width/height<.8,back=narrow?10.8:7.8,raise=narrow?5.5:4.1;
-  const desired=active?[p[0]-dir[0]*back,p[1]+raise+(this.course.index>=12?Math.abs(run.surface.bank)*1.4:0),p[2]-dir[2]*back]:[-6.5,10.5,-8];
+  let desired=active?[p[0]-dir[0]*back,p[1]+raise+(this.course.index>=12?Math.abs(run.surface.bank)*1.4:0),p[2]-dir[2]*back]:[-6.5,10.5,-8];
   const look=this.course.index>=6?6:3.8;
-  const target=active?[p[0]+dir[0]*look,p[1]+.4,p[2]+dir[2]*look]:[1,5.4,8];
+  let target=active?[p[0]+dir[0]*look,p[1]+.4,p[2]+dir[2]*look]:[1,5.4,8];
+  if(this.course.magnetic){const q=run.surface;desired=p.map((v,k)=>v-q.tangent[k]*back+q.up[k]*raise);target=p.map((v,k)=>v+q.tangent[k]*5+q.up[k]*.4);const t=this.cameraCut?1:1-Math.exp(-Math.min(dt,.1)*7);this.cameraUp=G.norm(this.cameraUp.map((v,k)=>G.mix(v,q.up[k],t)));}
   const blend=this.cameraCut?1:1-Math.exp(-Math.min(dt,.1)*5);this.cameraCut=false;
   this.eye=this.eye.map((v,i)=>G.mix(v,desired[i],blend));this.target=this.target.map((v,i)=>G.mix(v,target[i],blend));
   const fov=Math.PI/3+(active&&!this.reduced?G.clamp(speed/11,0,1)*.045:0);
-  const vp=multiply(perspective(fov,width/height,.12,140),lookAt(this.eye,this.target));
+  const vp=multiply(perspective(fov,width/height,.12,140),lookAt(this.eye,this.target,this.course.magnetic?this.cameraUp:undefined));
   gl.uniformMatrix4fv(this.uniforms.uVP,false,vp);gl.uniform3fv(this.uniforms.uEye,this.eye);gl.uniform3fv(this.uniforms.uSky,this.course.track.sky);
   this.drawVisible(this.scenery);this.drawVisible(this.track);this.drawVisible(this.landmarks);
   for(let i=0;i<(this.course.platforms||[]).length;i++){

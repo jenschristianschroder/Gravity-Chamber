@@ -44,8 +44,8 @@ test('renderer uploads finite geometry and draws the course at phone and desktop
  for(let i=0;i<2000;i++)run.step(1/120,run.demoInput());
  canvas.clientWidth=1280;canvas.clientHeight=720;renderer.render(run,1/60,true);
  assert.deepEqual(viewport,[1280,720]);assert.ok(renderer.eye.every(Number.isFinite));
- for(let i=0;i<G.TRACKS.length;i++){
-  const next=new G.Course(i),player=new G.Run(next);renderer.setCourse(next);
+ for(let i=0;i<=G.TRACKS.length;i++){
+  const next=i===G.TRACKS.length?new G.MagneticCourse():new G.Course(i),player=new G.Run(next);renderer.setCourse(next);
   assert.equal(liveBuffers.size,15,'changing tracks releases the previous scene buffers');
   assert.ok([...liveBuffers].reduce((sum,b)=>sum+b.count*40,0)<12*1024*1024,'geometry must stay below the 12 MiB GPU buffer budget');
   for(let s=5;s<next.total;s+=30){
